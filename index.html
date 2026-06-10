@@ -543,6 +543,7 @@
         <button class="btn" id="clearBtn">清空</button>
         <button class="btn" id="hintBtn">Hint 3/3 (-100)</button>
         <button class="btn" id="shuffleBtn">随机换盘</button>
+        <button class="btn" id="pauseBtn">暂停</button>
       </div>
 
       <div class="history">
@@ -71453,7 +71454,8 @@ zyrtec
 zyuganov
 zzz`.split(/\s+/);
     const TWO_LETTER_WORDS = `aa ab ad ae ag ah ai al am an ar as at aw ax ay ba be bi bo by da de do ed ef eh el em en er es et ex fa fe go ha he hi ho id if in is it jo ka ki la li lo ma me mi mm mo mu my na ne no nu od oe of oh oi om on op or os ow ox oy pa pe pi qi re sh si so ta te ti to uh um un up us ut we wo xi xu ya ye yo za`.split(/\s+/);
-    const ALL_WORDS = [...TWO_LETTER_WORDS, ...WORDS];
+    const CUSTOM_WORDS = `axe`.split(/\s+/);
+    const ALL_WORDS = [...TWO_LETTER_WORDS, ...CUSTOM_WORDS, ...WORDS];
     const DICTIONARY = new Set(ALL_WORDS);
     const MIN_LEN = 2;
 
@@ -71481,6 +71483,7 @@ zzz`.split(/\s+/);
     let dragMoved = false;
     let hintPathActive = false;
     let gameOver = false;
+    let paused = false;
 
     function pickLetter() {
       return LETTERS[Math.floor(Math.random() * LETTERS.length)].toUpperCase();
@@ -71512,6 +71515,7 @@ zzz`.split(/\s+/);
     function startTimer() {
       clearInterval(timer);
       timer = setInterval(() => {
+        if (paused) return;
         secondsLeft -= 1;
         updateTime();
         if (secondsLeft <= 0) endGame();
@@ -71595,11 +71599,13 @@ zzz`.split(/\s+/);
     }
 
     function updateControls() {
-      document.getElementById("submitBtn").disabled = gameOver || path.length < MIN_LEN;
-      document.getElementById("clearBtn").disabled = gameOver || path.length === 0;
+      document.getElementById("submitBtn").disabled = gameOver || paused || path.length < MIN_LEN;
+      document.getElementById("clearBtn").disabled = gameOver || paused || path.length === 0;
       document.getElementById("hintBtn").textContent = `Hint ${hintsLeft}/${HINT_LIMIT} (-${HINT_COST})`;
-      document.getElementById("hintBtn").disabled = gameOver || hintsLeft <= 0 || score < HINT_COST;
-      document.getElementById("shuffleBtn").disabled = gameOver;
+      document.getElementById("hintBtn").disabled = gameOver || paused || hintsLeft <= 0 || score < HINT_COST;
+      document.getElementById("shuffleBtn").disabled = gameOver || paused;
+      document.getElementById("pauseBtn").textContent = paused ? "继续" : "暂停";
+      document.getElementById("pauseBtn").disabled = gameOver;
     }
 
     function scoreWord(word) {
@@ -71615,7 +71621,7 @@ zzz`.split(/\s+/);
     }
 
     function submitWord() {
-      if (gameOver || path.length < MIN_LEN) return;
+      if (gameOver || paused || path.length < MIN_LEN) return;
       const word = currentWord().toLowerCase();
       if (!DICTIONARY.has(word)) {
         setMessage(`"${word.toUpperCase()}" 不在内置词库里。`, "bad");
@@ -71752,6 +71758,7 @@ zzz`.split(/\s+/);
     }
 
     function showHint() {
+      if (paused) return;
       if (hintsLeft <= 0) {
         setMessage("本局 Hint 已用完。", "bad");
         updateControls();
@@ -71777,7 +71784,7 @@ zzz`.split(/\s+/);
     }
 
     function shuffleBoard() {
-      if (gameOver) return;
+      if (gameOver || paused) return;
       newGrid();
       renderBoard();
       clearPath(false);
@@ -71790,6 +71797,7 @@ zzz`.split(/\s+/);
 
     function endGame() {
       gameOver = true;
+      paused = false;
       clearInterval(timer);
       secondsLeft = 0;
       updateTime();
@@ -71809,6 +71817,7 @@ zzz`.split(/\s+/);
       hintPathActive = false;
       secondsLeft = GAME_SECONDS;
       gameOver = false;
+      paused = false;
       scoreEl.textContent = "0";
       countEl.textContent = "0";
       wordListEl.innerHTML = "";
@@ -71823,8 +71832,17 @@ zzz`.split(/\s+/);
       paintPath();
     }
 
-    boardEl.addEventListener("pointerdown", event => {
+    function togglePause() {
       if (gameOver) return;
+      paused = !paused;
+      dragging = false;
+      clearPath(false);
+      setMessage(paused ? "已暂停。" : "继续游戏。", paused ? "" : "good");
+      updateControls();
+    }
+
+    boardEl.addEventListener("pointerdown", event => {
+      if (gameOver || paused) return;
       dragging = true;
       dragMoved = false;
       boardEl.setPointerCapture(event.pointerId);
@@ -71850,6 +71868,7 @@ zzz`.split(/\s+/);
     document.getElementById("clearBtn").addEventListener("click", () => clearPath(true));
     document.getElementById("hintBtn").addEventListener("click", showHint);
     document.getElementById("shuffleBtn").addEventListener("click", shuffleBoard);
+    document.getElementById("pauseBtn").addEventListener("click", togglePause);
     document.getElementById("newGameBtn").addEventListener("click", startGame);
     document.getElementById("againBtn").addEventListener("click", startGame);
 
