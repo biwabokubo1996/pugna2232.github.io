@@ -542,7 +542,7 @@
         <button class="btn primary" id="submitBtn">提交</button>
         <button class="btn" id="clearBtn">清空</button>
         <button class="btn" id="hintBtn">Hint 3/3 (-100)</button>
-        <button class="btn" id="shuffleBtn">Shuffle</button>
+        <button class="btn" id="shuffleBtn">随机换盘</button>
       </div>
 
       <div class="history">
@@ -555,7 +555,7 @@
 
       <div class="footer-actions">
         <button class="btn primary" id="newGameBtn">新游戏</button>
-        <div class="small-note">计分：3 字母 10 分，之后长度越长奖励越高；Hint 每次消耗 100 分且每局最多 3 次，Shuffle 免费重排字母盘。</div>
+        <div class="small-note">计分：3 字母 10 分，之后长度越长奖励越高；Hint 每次消耗 100 分且每局最多 3 次，随机换盘会生成一整盘新字母。</div>
       </div>
     </aside>
   </main>
@@ -71783,7 +71783,11 @@ zzz`.split(/\s+/);
       newGrid();
       renderBoard();
       clearPath(false);
-      setMessage("字母盘已重排。");
+      boardWrapEl.classList.remove("is-success");
+      void boardWrapEl.offsetWidth;
+      boardWrapEl.classList.add("is-success");
+      setTimeout(() => boardWrapEl.classList.remove("is-success"), 760);
+      setMessage("已生成一整盘新随机字母。");
     }
 
     function endGame() {
