@@ -182,6 +182,19 @@
       pointer-events: none;
     }
 
+    .cell.is-wild {
+      color: #6d4300;
+      background: linear-gradient(160deg, #fff8d5, #f1b74c);
+      border-color: #d28c20;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+    }
+
+    .cell.is-wild.is-selected {
+      color: #fff;
+      background: linear-gradient(160deg, #d98f23, #8b4f09);
+      border-color: #744206;
+    }
+
     .cell.is-adjacent:not(.is-selected) {
       background: var(--tile-next);
       border-color: #8ebdb5;
@@ -574,6 +587,8 @@
     const GAME_SECONDS = 300;
     const HINT_COST = 100;
     const HINT_LIMIT = 3;
+    const WILD_LETTER = "α";
+    const WILD_CHANCE = 0.03;
     const LETTERS = "eeeeeeeeeeeeaaaaaaaaaiiiiiiiiioooooooonnnnnnrrrrrrttttttllllssssuuuuddggbbccmmppffhhvwykjxqz";
     const WORDS = `aaa
 aachen
@@ -71486,6 +71501,7 @@ zzz`.split(/\s+/);
     let paused = false;
 
     function pickLetter() {
+      if (Math.random() < WILD_CHANCE) return WILD_LETTER;
       return LETTERS[Math.floor(Math.random() * LETTERS.length)].toUpperCase();
     }
 
@@ -71502,6 +71518,7 @@ zzz`.split(/\s+/);
           cell.type = "button";
           cell.className = "cell";
           cell.textContent = grid[r][c];
+          cell.classList.toggle("is-wild", grid[r][c] === WILD_LETTER);
           cell.dataset.r = r;
           cell.dataset.c = c;
           cell.setAttribute("aria-label", `${grid[r][c]} at row ${r + 1}, column ${c + 1}`);
@@ -71540,6 +71557,23 @@ zzz`.split(/\s+/);
 
     function currentWord() {
       return path.map(pos => grid[pos.r][pos.c]).join("");
+    }
+
+    function matchesPattern(pattern, word) {
+      if (pattern.length !== word.length) return false;
+      for (let i = 0; i < pattern.length; i += 1) {
+        const letter = pattern[i].toLowerCase();
+        if (letter !== WILD_LETTER && letter !== word[i]) return false;
+      }
+      return true;
+    }
+
+    function resolveWord(pattern) {
+      const plain = pattern.toLowerCase();
+      if (!plain.includes(WILD_LETTER)) {
+        return DICTIONARY.has(plain) ? plain : null;
+      }
+      return ALL_WORDS.find(word => matchesPattern(plain, word)) || null;
     }
 
     function cellFromPoint(event) {
@@ -71622,9 +71656,10 @@ zzz`.split(/\s+/);
 
     function submitWord() {
       if (gameOver || paused || path.length < MIN_LEN) return;
-      const word = currentWord().toLowerCase();
-      if (!DICTIONARY.has(word)) {
-        setMessage(`"${word.toUpperCase()}" 不在内置词库里。`, "bad");
+      const pattern = currentWord();
+      const word = resolveWord(pattern);
+      if (!word) {
+        setMessage(`"${pattern.toUpperCase()}" 不在内置词库里。`, "bad");
         return;
       }
       const points = scoreWord(word);
@@ -71732,7 +71767,7 @@ zzz`.split(/\s+/);
 
       function dfs(r, c, index) {
         if (r < 0 || c < 0 || r >= SIZE || c >= SIZE) return false;
-        if (visited[r][c] || grid[r][c] !== word[index]) return false;
+        if (visited[r][c] || (grid[r][c] !== WILD_LETTER && grid[r][c] !== word[index])) return false;
 
         visited[r][c] = true;
         steps.push({ r, c });
