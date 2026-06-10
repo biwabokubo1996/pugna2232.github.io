@@ -555,7 +555,7 @@
 
       <div class="footer-actions">
         <button class="btn primary" id="newGameBtn">新游戏</button>
-        <div class="small-note">计分：3 字母 10 分，之后长度越长奖励越高；Hint 每次消耗 100 分且每局最多 3 次，随机换盘会生成一整盘新字母。</div>
+        <div class="small-note">计分：2 字母 4 分，3 字母 10 分，之后长度越长奖励越高；单词可重复计分，Hint 每次消耗 100 分且每局最多 3 次。</div>
       </div>
     </aside>
   </main>
@@ -71452,8 +71452,10 @@ zyrian
 zyrtec
 zyuganov
 zzz`.split(/\s+/);
-    const DICTIONARY = new Set(WORDS);
-    const MIN_LEN = 3;
+    const TWO_LETTER_WORDS = `aa ab ad ae ag ah ai al am an ar as at aw ax ay ba be bi bo by da de do ed ef eh el em en er es et ex fa fe go ha he hi ho id if in is it jo ka ki la li lo ma me mi mm mo mu my na ne no nu od oe of oh oi om on op or os ow ox oy pa pe pi qi re sh si so ta te ti to uh um un up us ut we wo xi xu ya ye yo za`.split(/\s+/);
+    const ALL_WORDS = [...TWO_LETTER_WORDS, ...WORDS];
+    const DICTIONARY = new Set(ALL_WORDS);
+    const MIN_LEN = 2;
 
     const boardEl = document.getElementById("board");
     const currentWordEl = document.getElementById("currentWord");
@@ -71470,7 +71472,7 @@ zzz`.split(/\s+/);
     let grid = [];
     let cells = [];
     let path = [];
-    let found = new Map();
+    let found = [];
     let score = 0;
     let hintsLeft = HINT_LIMIT;
     let secondsLeft = GAME_SECONDS;
@@ -71601,6 +71603,7 @@ zzz`.split(/\s+/);
     }
 
     function scoreWord(word) {
+      if (word.length === 2) return 4;
       if (word.length === 3) return 10;
       if (word.length === 4) return 18;
       return word.length * word.length * 2;
@@ -71618,20 +71621,15 @@ zzz`.split(/\s+/);
         setMessage(`"${word.toUpperCase()}" 不在内置词库里。`, "bad");
         return;
       }
-      if (found.has(word)) {
-        setMessage(`"${word.toUpperCase()}" 已经找过了。`, "bad");
-        return;
-      }
-
       const points = scoreWord(word);
       const scoredPath = path.slice();
-      found.set(word, points);
+      found.push({ word, points });
       score += points;
       celebrateWord(points, scoredPath);
       replacePath();
       renderFound();
       scoreEl.textContent = score;
-      countEl.textContent = found.size;
+      countEl.textContent = found.length;
       updateControls();
       setMessage(`+${points} 分，漂亮。`, "good");
       clearPath(false);
@@ -71697,22 +71695,22 @@ zzz`.split(/\s+/);
     }
 
     function renderFound() {
-      const entries = Array.from(found.entries()).sort((a, b) => b[1] - a[1] || b[0].length - a[0].length);
+      const entries = found.slice().sort((a, b) => b.points - a.points || b.word.length - a.word.length);
       wordListEl.innerHTML = "";
-      entries.forEach(([word, points]) => {
+      entries.forEach(({ word, points }) => {
         const item = document.createElement("div");
         item.className = "word-item";
         item.innerHTML = `<span>${word}</span><span>${points}</span>`;
         wordListEl.appendChild(item);
       });
-      const best = entries.reduce((winner, entry) => entry[0].length > winner.length ? entry[0] : winner, "");
+      const best = entries.reduce((winner, entry) => entry.word.length > winner.length ? entry.word : winner, "");
       bestWordEl.textContent = best ? `最长 ${best.toUpperCase()}` : "最长 -";
     }
 
     function findHint() {
       if (gameOver) return null;
-      const words = WORDS
-        .filter(word => word.length >= MIN_LEN && !found.has(word))
+      const words = ALL_WORDS
+        .filter(word => word.length >= MIN_LEN)
         .sort((a, b) => b.length - a.length);
 
       for (const word of words) {
@@ -71796,7 +71794,7 @@ zzz`.split(/\s+/);
       secondsLeft = 0;
       updateTime();
       clearPath(false);
-      endStats.textContent = `最终分数 ${score}，找到 ${found.size} 个单词。`;
+      endStats.textContent = `最终分数 ${score}，找到 ${found.length} 个单词。`;
       endModal.classList.add("is-open");
       document.querySelectorAll(".btn").forEach(btn => {
         if (!["newGameBtn", "againBtn"].includes(btn.id)) btn.disabled = true;
@@ -71806,7 +71804,7 @@ zzz`.split(/\s+/);
     function startGame() {
       score = 0;
       hintsLeft = HINT_LIMIT;
-      found = new Map();
+      found = [];
       path = [];
       hintPathActive = false;
       secondsLeft = GAME_SECONDS;
