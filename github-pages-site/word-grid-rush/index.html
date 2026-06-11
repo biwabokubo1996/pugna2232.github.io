@@ -557,6 +557,7 @@
         <button class="btn" id="hintBtn">Hint 3/3 (-100)</button>
         <button class="btn" id="shuffleBtn">随机换盘 3/3</button>
         <button class="btn" id="pauseBtn">暂停</button>
+        <button class="btn" id="musicBtn">音乐 开</button>
       </div>
 
       <div class="history">
@@ -590,6 +591,13 @@
     const SHUFFLE_LIMIT = 3;
     const WILD_LETTER = "α";
     const WILD_CHANCE = 0.03;
+    const NOTE_SCALE = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88];
+    const BGM_MELODY = [
+      329.63, 329.63, 349.23, 392.00, 392.00, 349.23, 329.63, 293.66,
+      261.63, 261.63, 293.66, 329.63, 329.63, 293.66, 293.66,
+      329.63, 329.63, 349.23, 392.00, 392.00, 349.23, 329.63, 293.66,
+      261.63, 261.63, 293.66, 329.63, 293.66, 261.63, 261.63
+    ];
     const LETTERS = "eeeeeeeeeeeeaaaaaaaaaiiiiiiiiioooooooonnnnnnrrrrrrttttttllllssssuuuuddggbbccmmppffhhvwykjxqz";
     const WORDS = `aaa
 aachen
@@ -71501,6 +71509,75 @@ zzz`.split(/\s+/);
     let hintPathActive = false;
     let gameOver = false;
     let paused = false;
+    let audioCtx = null;
+    let noteIndex = 0;
+    let musicOn = false;
+    let bgmTimer = null;
+    let bgmIndex = 0;
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return null;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playTone(freq, duration = 0.16, gainValue = 0.08, type = "sine") {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(gainValue, now + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + duration + 0.03);
+    }
+
+    function playPickSound() {
+      playTone(NOTE_SCALE[noteIndex % NOTE_SCALE.length], 0.13, 0.09, "triangle");
+      noteIndex += 1;
+    }
+
+    function playSuccessSound() {
+      [523.25, 659.25, 783.99].forEach((freq, index) => {
+        setTimeout(() => playTone(freq, 0.16, 0.075, "triangle"), index * 70);
+      });
+    }
+
+    function playErrorSound() {
+      playTone(164.81, 0.18, 0.07, "sawtooth");
+    }
+
+    function startBgm() {
+      ensureAudio();
+      if (!musicOn || bgmTimer || !audioCtx) return;
+      bgmTimer = setInterval(() => {
+        if (!musicOn || paused || gameOver) return;
+        playTone(BGM_MELODY[bgmIndex % BGM_MELODY.length], 0.34, 0.025, "sine");
+        bgmIndex += 1;
+      }, 430);
+    }
+
+    function stopBgm() {
+      clearInterval(bgmTimer);
+      bgmTimer = null;
+    }
+
+    function toggleMusic() {
+      musicOn = !musicOn;
+      document.getElementById("musicBtn").textContent = musicOn ? "音乐 关" : "音乐 开";
+      if (musicOn) startBgm();
+      else stopBgm();
+    }
 
     function pickLetter() {
       if (Math.random() < WILD_CHANCE) return WILD_LETTER;
@@ -71598,10 +71675,12 @@ zzz`.split(/\s+/);
       if (existingIndex !== -1) return false;
       if (path.length > 0 && !isAdjacent(path[path.length - 1], pos)) {
         setMessage("只能连接相邻的字母。", "bad");
+        playErrorSound();
         return false;
       }
 
       path.push(pos);
+      playPickSound();
       paintPath();
       return true;
     }
@@ -71663,12 +71742,14 @@ zzz`.split(/\s+/);
       const word = resolveWord(pattern);
       if (!word) {
         setMessage(`"${pattern.toUpperCase()}" 不在内置词库里。`, "bad");
+        playErrorSound();
         return;
       }
       const points = scoreWord(word);
       const scoredPath = path.slice();
       found.push({ word, points });
       score += points;
+      playSuccessSound();
       celebrateWord(points, scoredPath);
       replacePath();
       renderFound();
@@ -71838,6 +71919,7 @@ zzz`.split(/\s+/);
     function endGame() {
       gameOver = true;
       paused = false;
+      stopBgm();
       clearInterval(timer);
       secondsLeft = 0;
       updateTime();
@@ -71859,6 +71941,7 @@ zzz`.split(/\s+/);
       secondsLeft = GAME_SECONDS;
       gameOver = false;
       paused = false;
+      bgmIndex = 0;
       scoreEl.textContent = "0";
       countEl.textContent = "0";
       wordListEl.innerHTML = "";
@@ -71869,6 +71952,7 @@ zzz`.split(/\s+/);
       renderBoard();
       updateTime();
       startTimer();
+      if (musicOn) startBgm();
       setMessage("拖拽或点击相邻字母开始。");
       paintPath();
     }
@@ -71879,6 +71963,8 @@ zzz`.split(/\s+/);
       dragging = false;
       clearPath(false);
       setMessage(paused ? "已暂停。" : "继续游戏。", paused ? "" : "good");
+      if (paused) stopBgm();
+      else if (musicOn) startBgm();
       updateControls();
     }
 
@@ -71886,6 +71972,8 @@ zzz`.split(/\s+/);
       if (gameOver || paused) return;
       dragging = true;
       dragMoved = false;
+      ensureAudio();
+      if (musicOn) startBgm();
       boardEl.setPointerCapture(event.pointerId);
       startSelection(event.target.closest(".cell"));
     });
@@ -71910,6 +71998,7 @@ zzz`.split(/\s+/);
     document.getElementById("hintBtn").addEventListener("click", showHint);
     document.getElementById("shuffleBtn").addEventListener("click", shuffleBoard);
     document.getElementById("pauseBtn").addEventListener("click", togglePause);
+    document.getElementById("musicBtn").addEventListener("click", toggleMusic);
     document.getElementById("newGameBtn").addEventListener("click", startGame);
     document.getElementById("againBtn").addEventListener("click", startGame);
 
