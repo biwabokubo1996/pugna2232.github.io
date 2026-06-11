@@ -555,7 +555,7 @@
         <button class="btn primary" id="submitBtn">提交</button>
         <button class="btn" id="clearBtn">清空</button>
         <button class="btn" id="hintBtn">Hint 3/3 (-100)</button>
-        <button class="btn" id="shuffleBtn">随机换盘</button>
+        <button class="btn" id="shuffleBtn">随机换盘 3/3</button>
         <button class="btn" id="pauseBtn">暂停</button>
       </div>
 
@@ -569,7 +569,7 @@
 
       <div class="footer-actions">
         <button class="btn primary" id="newGameBtn">新游戏</button>
-        <div class="small-note">计分：2 字母 4 分，3 字母 10 分，之后长度越长奖励越高；单词可重复计分，Hint 每次消耗 100 分且每局最多 3 次。</div>
+        <div class="small-note">计分：2 字母 4 分，3 字母 10 分，之后长度越长奖励越高；Hint 每次消耗 100 分且每局最多 3 次，随机换盘每局最多 3 次。</div>
       </div>
     </aside>
   </main>
@@ -587,6 +587,7 @@
     const GAME_SECONDS = 300;
     const HINT_COST = 100;
     const HINT_LIMIT = 3;
+    const SHUFFLE_LIMIT = 3;
     const WILD_LETTER = "α";
     const WILD_CHANCE = 0.03;
     const LETTERS = "eeeeeeeeeeeeaaaaaaaaaiiiiiiiiioooooooonnnnnnrrrrrrttttttllllssssuuuuddggbbccmmppffhhvwykjxqz";
@@ -71492,6 +71493,7 @@ zzz`.split(/\s+/);
     let found = [];
     let score = 0;
     let hintsLeft = HINT_LIMIT;
+    let shufflesLeft = SHUFFLE_LIMIT;
     let secondsLeft = GAME_SECONDS;
     let timer = null;
     let dragging = false;
@@ -71637,7 +71639,8 @@ zzz`.split(/\s+/);
       document.getElementById("clearBtn").disabled = gameOver || paused || path.length === 0;
       document.getElementById("hintBtn").textContent = `Hint ${hintsLeft}/${HINT_LIMIT} (-${HINT_COST})`;
       document.getElementById("hintBtn").disabled = gameOver || paused || hintsLeft <= 0 || score < HINT_COST;
-      document.getElementById("shuffleBtn").disabled = gameOver || paused;
+      document.getElementById("shuffleBtn").textContent = `随机换盘 ${shufflesLeft}/${SHUFFLE_LIMIT}`;
+      document.getElementById("shuffleBtn").disabled = gameOver || paused || shufflesLeft <= 0;
       document.getElementById("pauseBtn").textContent = paused ? "继续" : "暂停";
       document.getElementById("pauseBtn").disabled = gameOver;
     }
@@ -71819,7 +71822,8 @@ zzz`.split(/\s+/);
     }
 
     function shuffleBoard() {
-      if (gameOver || paused) return;
+      if (gameOver || paused || shufflesLeft <= 0) return;
+      shufflesLeft -= 1;
       newGrid();
       renderBoard();
       clearPath(false);
@@ -71827,7 +71831,8 @@ zzz`.split(/\s+/);
       void boardWrapEl.offsetWidth;
       boardWrapEl.classList.add("is-success");
       setTimeout(() => boardWrapEl.classList.remove("is-success"), 760);
-      setMessage("已生成一整盘新随机字母。");
+      updateControls();
+      setMessage(`已生成一整盘新随机字母，剩余 ${shufflesLeft} 次。`);
     }
 
     function endGame() {
@@ -71847,6 +71852,7 @@ zzz`.split(/\s+/);
     function startGame() {
       score = 0;
       hintsLeft = HINT_LIMIT;
+      shufflesLeft = SHUFFLE_LIMIT;
       found = [];
       path = [];
       hintPathActive = false;
