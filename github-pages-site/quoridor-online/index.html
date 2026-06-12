@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>步步为营</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  </head>
+  <body>
+    <main class="app">
+      <section class="topbar">
+        <div>
+          <h1>步步为营</h1>
+          <p id="status">玩家 1 的回合</p>
+        </div>
+        <button id="resetGame" type="button">重开</button>
+      </section>
+
+      <section class="table">
+        <aside class="panel">
+          <div class="modebar" aria-label="玩法模式">
+            <button class="gameMode active" data-game-mode="ai" type="button">人机</button>
+            <button class="gameMode" data-game-mode="local" type="button">双人</button>
+            <button class="gameMode" data-game-mode="online" type="button">联机</button>
+          </div>
+
+          <div class="onlinePanel hidden" id="onlinePanel">
+            <div class="onlineControls">
+              <input id="roomCode" autocomplete="off" maxlength="12" placeholder="房间号" />
+              <button id="hostRoom" type="button">创建</button>
+              <button id="joinRoom" type="button">加入</button>
+            </div>
+            <p id="onlineInfo">创建后把房间号发给朋友；朋友输入房间号点加入。</p>
+          </div>
+
+          <div class="player turn" id="p0">
+            <span class="token gold"></span>
+            <strong>玩家 1</strong>
+            <small>墙：10</small>
+          </div>
+          <div class="player" id="p1">
+            <span class="token teal"></span>
+            <strong>电脑</strong>
+            <small>墙：10</small>
+          </div>
+          <div class="controls">
+            <button class="mode active" data-mode="move" type="button">移动</button>
+            <button class="mode" data-mode="h" type="button">横墙</button>
+            <button class="mode" data-mode="v" type="button">竖墙</button>
+          </div>
+          <p class="hint">移动时点高亮格子。放墙时选择横墙或竖墙，再点棋盘缝隙。GitHub Pages 联机需要双方浏览器能连接外部 P2P 服务。</p>
+        </aside>
+
+        <div class="boardWrap">
+          <div id="board" class="board" aria-label="步步为营棋盘"></div>
+        </div>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>
