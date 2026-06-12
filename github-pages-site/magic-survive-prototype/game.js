@@ -8,11 +8,15 @@ const levelPanel = document.querySelector("#levelPanel");
 const choicesEl = document.querySelector("#choices");
 const startPanel = document.querySelector("#startPanel");
 const startBtn = document.querySelector("#startBtn");
+const moveStick = document.querySelector("#moveStick");
+const moveKnob = moveStick?.querySelector("span");
+const pauseTouch = document.querySelector("#pauseTouch");
 
 const W = canvas.width;
 const H = canvas.height;
 const TILE = 520;
 const keys = new Set();
+const touchMove = { x: 0, y: 0, active: false, pointerId: null };
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = list => list[Math.floor(Math.random() * list.length)];
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -494,6 +498,8 @@ function update(dt) {
   if (keys.has("KeyS") || keys.has("ArrowDown")) my += 1;
   if (keys.has("KeyA") || keys.has("ArrowLeft")) mx -= 1;
   if (keys.has("KeyD") || keys.has("ArrowRight")) mx += 1;
+  mx += touchMove.x;
+  my += touchMove.y;
   const len = Math.hypot(mx, my) || 1;
   p.x += (mx / len) * p.speed * dt;
   p.y += (my / len) * p.speed * dt;
@@ -540,7 +546,14 @@ function update(dt) {
 function updateFollowers(dt) {
   const p = state.player;
   p.followerDefense = state.followers.reduce((sum, f) => sum + (f.id === "golem" ? 3 : f.id === "giant" ? 6 : 0), 0);
-  state.followers.forEach((f, i) => {
+  for (let i = state.followers.length - 1; i >= 0; i--) {
+    const f = state.followers[i];
+    if (f.hp <= 0) {
+      addText(`${f.name} 倒下`, f.x - 24, f.y - 28, "#d7b08a");
+      state.followers.splice(i, 1);
+      continue;
+    }
+    f.hitGrace = Math.max(0, (f.hitGrace || 0) - dt);
     const target = nearestEnemy(f, f.range + 170);
     const home = { x: p.x + ((i % 3) - 1) * 34, y: p.y + 42 + Math.floor(i / 3) * 18 };
     const moveTarget = target || home;
@@ -563,7 +576,7 @@ function updateFollowers(dt) {
       if (attackTarget) followerAttack(f, attackTarget);
       f.t = f.id === "water" ? 0.85 : f.id === "golem" ? 1.15 : f.id === "giant" ? 1.25 : f.id === "lotus" ? 1.65 : f.id === "balrog" ? 1.05 : 0.95;
     }
-  });
+  }
 }
 
 function followerAttack(f, target) {
@@ -863,6 +876,18 @@ function updateEnemyShots(dt) {
     s.x += s.vx * dt;
     s.y += s.vy * dt;
     s.life -= dt;
+    let hitFollower = null;
+    for (const f of state.followers) {
+      if (f.hp > 0 && Math.hypot(s.x - f.x, s.y - f.y) < s.r + 14) {
+        hitFollower = f;
+        break;
+      }
+    }
+    if (hitFollower) {
+      damageFollower(hitFollower, s.damage);
+      state.enemyShots.splice(i, 1);
+      continue;
+    }
     if (Math.hypot(s.x - p.x, s.y - p.y) < s.r + p.r) {
       if (!p.ward && p.hitGrace <= 0) {
         p.hp -= s.damage;
@@ -930,33 +955,61 @@ function updateMonsters(dt) {
       state.monsters.splice(i, 1);
       continue;
     }
-    const a = Math.atan2(p.y - m.y, p.x - m.x);
+    const followerTarget = far > 360 ? nearestFollower(m, 430) : null;
+    const target = followerTarget || p;
+    const targetRadius = followerTarget ? 15 : p.r;
+    const a = Math.atan2(target.y - m.y, target.x - m.x);
     const slow = m.slow ? 0.55 : 1;
     m.x += Math.cos(a) * m.speed * slow * dt;
     m.y += Math.sin(a) * m.speed * slow * dt;
     m.slow = Math.max(0, (m.slow || 0) - dt);
     m.hit = Math.max(0, m.hit - dt);
     m.attackCd = Math.max(0, (m.attackCd || 0) - dt);
-    if (Math.hypot(p.x - m.x, p.y - m.y) < p.r + m.r && m.attackCd <= 0 && p.hitGrace <= 0) {
-      const incoming = Math.max(1, 11 - effectiveDefense()) * (1 - p.groupReduce);
-      p.hp -= incoming;
-      p.hitGrace = 0.45;
+    if (Math.hypot(target.x - m.x, target.y - m.y) < targetRadius + m.r && m.attackCd <= 0) {
+      const incoming = Math.max(1, 11 - (followerTarget ? 0 : effectiveDefense())) * (1 - (followerTarget ? 0 : p.groupReduce));
+      if (followerTarget) damageFollower(followerTarget, incoming);
+      else if (p.hitGrace <= 0) {
+        p.hp -= incoming;
+        p.hitGrace = 0.45;
+        addText(`-${Math.ceil(incoming)}`, p.x - 10, p.y - 28, "#ff7a66");
+      }
       m.attackCd = m.kind === "boss" ? 0.55 : 0.85;
-      addText(`-${Math.ceil(incoming)}`, p.x - 10, p.y - 28, "#ff7a66");
-      const push = Math.atan2(m.y - p.y, m.x - p.x);
+      const push = Math.atan2(m.y - target.y, m.x - target.x);
       m.x += Math.cos(push) * 22;
       m.y += Math.sin(push) * 22;
-      if (p.thorns) m.hp -= p.thorns * 2;
+      if (!followerTarget && p.thorns) m.hp -= p.thorns * 2;
     }
     if (m.tag === "ranged") {
       m.shoot -= dt;
-      const rangeToPlayer = Math.hypot(p.x - m.x, p.y - m.y);
-      if (m.shoot <= 0 && rangeToPlayer < 620) {
-        fireEnemyShot(m, p);
+      const shotTarget = far > 420 ? nearestFollower(m, 620) || p : p;
+      const rangeToTarget = Math.hypot(shotTarget.x - m.x, shotTarget.y - m.y);
+      if (m.shoot <= 0 && rangeToTarget < 620) {
+        fireEnemyShot(m, shotTarget);
         m.shoot = rand(2.2, 3.7);
       }
     }
   }
+}
+
+function nearestFollower(pos, range = Infinity) {
+  let best = null;
+  let bestD = range;
+  for (const f of state.followers) {
+    if (f.hp <= 0) continue;
+    const d = Math.hypot(f.x - pos.x, f.y - pos.y);
+    if (d < bestD) {
+      best = f;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+function damageFollower(f, amount) {
+  if (f.hitGrace > 0) return;
+  f.hp -= amount;
+  f.hitGrace = 0.42;
+  addText(`-${Math.ceil(amount)}`, f.x - 10, f.y - 28, "#ffb089");
 }
 
 function updateGems(dt) {
@@ -1072,10 +1125,16 @@ function addFollower(src) {
 }
 
 function spawnFollower(src, x = state.player.x + rand(-28, 28), y = state.player.y + rand(34, 58)) {
-  const f = { ...src, x, y, t: rand(0, 1), autoChess: true };
+  const maxHp = followerMaxHp(src);
+  const f = { ...src, x, y, hp: maxHp, maxHp, hitGrace: 0, t: rand(0, 1), autoChess: true };
   state.followers.push(f);
   state.items.push(`棋子:${f.name}`);
   return f;
+}
+
+function followerMaxHp(src) {
+  const base = src.element === "earth" ? 95 : src.element === "fire" ? 78 : 72;
+  return Math.floor(base * (1 + (src.tier - 1) * 0.85));
 }
 
 function resolveFollowerMerge(startId) {
@@ -1479,13 +1538,25 @@ function drawFollower(f) {
       ctx.globalAlpha = 1;
     }
     ctx.drawImage(img, drawX - size / 2, drawY - size / 2, size, size);
+    drawFollowerHealth(f, drawX, drawY, size);
     ctx.restore();
     return;
   }
   drawCircle(f.x, f.y, 9 + f.tier * 2, f.element === "fire" ? "#ff9b4f" : f.element === "ice" ? "#8de8ff" : "#b49a6d");
+  drawFollowerHealth(f, f.x, f.y, 28);
   ctx.fillStyle = "#101010";
   ctx.font = "12px Microsoft YaHei";
   ctx.fillText(f.tier, f.x - 3, f.y + 4);
+}
+
+function drawFollowerHealth(f, x, y, size) {
+  if (!f.maxHp) return;
+  const w = Math.max(28, size * 0.72);
+  const ratio = clamp(f.hp / f.maxHp, 0, 1);
+  ctx.fillStyle = "rgba(0,0,0,.55)";
+  ctx.fillRect(x - w / 2, y - size * 0.5 - 8, w, 4);
+  ctx.fillStyle = ratio > 0.35 ? "#74e08b" : "#ff7666";
+  ctx.fillRect(x - w / 2, y - size * 0.5 - 8, w * ratio, 4);
 }
 
 function drawGem(g) {
@@ -1809,11 +1880,13 @@ function syncHud() {
   `;
   skillsEl.innerHTML = Object.values(state.skills).map(s => `<li><span>${skillBook[s.id].name}</span><b>Lv.${s.level}</b></li>`).join("");
   const followerSummary = Object.values(state.followers.reduce((acc, f) => {
-    acc[f.id] ||= { name: f.name, tier: f.tier, count: 0 };
+    acc[f.id] ||= { name: f.name, tier: f.tier, count: 0, hp: 0, maxHp: 0 };
     acc[f.id].count++;
+    acc[f.id].hp += Math.max(0, f.hp || 0);
+    acc[f.id].maxHp += f.maxHp || 0;
     return acc;
   }, {}));
-  followersEl.innerHTML = followerSummary.length ? followerSummary.map(f => `<li><span>${f.name} ×${f.count}</span><b>T${f.tier}</b></li>`).join("") : "<li><span>暂无</span><b>-</b></li>";
+  followersEl.innerHTML = followerSummary.length ? followerSummary.map(f => `<li><span>${f.name} ×${f.count}</span><b>T${f.tier} ${Math.ceil(f.hp)}/${Math.ceil(f.maxHp)}</b></li>`).join("") : "<li><span>暂无</span><b>-</b></li>";
   itemsEl.innerHTML = [...state.items.slice(-8), ...state.artifacts.map(a => `神器:${a}`)].slice(-10).map(i => `<li><span>${i}</span><b></b></li>`).join("") || "<li><span>暂无</span><b>-</b></li>";
 }
 
@@ -1840,8 +1913,48 @@ function start() {
 window.addEventListener("keydown", e => {
   keys.add(e.code);
   if (e.code === "Space" && state?.running) state.paused = !state.paused;
+  if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
 });
 window.addEventListener("keyup", e => keys.delete(e.code));
+if (moveStick) {
+  const setStick = e => {
+    const rect = moveStick.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const max = rect.width * 0.36;
+    const len = Math.hypot(dx, dy) || 1;
+    const mag = Math.min(1, len / max);
+    touchMove.x = (dx / len) * mag;
+    touchMove.y = (dy / len) * mag;
+    if (moveKnob) moveKnob.style.transform = `translate(calc(-50% + ${touchMove.x * max}px), calc(-50% + ${touchMove.y * max}px))`;
+  };
+  const resetStick = () => {
+    touchMove.x = 0;
+    touchMove.y = 0;
+    touchMove.active = false;
+    touchMove.pointerId = null;
+    if (moveKnob) moveKnob.style.transform = "translate(-50%, -50%)";
+  };
+  moveStick.addEventListener("pointerdown", e => {
+    touchMove.active = true;
+    touchMove.pointerId = e.pointerId;
+    moveStick.setPointerCapture(e.pointerId);
+    setStick(e);
+    e.preventDefault();
+  });
+  moveStick.addEventListener("pointermove", e => {
+    if (!touchMove.active || e.pointerId !== touchMove.pointerId) return;
+    setStick(e);
+    e.preventDefault();
+  });
+  moveStick.addEventListener("pointerup", resetStick);
+  moveStick.addEventListener("pointercancel", resetStick);
+}
+pauseTouch?.addEventListener("click", () => {
+  if (state?.running) state.paused = !state.paused;
+});
 startBtn.addEventListener("click", start);
 
 state = newState();
