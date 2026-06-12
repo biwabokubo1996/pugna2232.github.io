@@ -46,7 +46,7 @@ for (const file of new Set(Object.values(monsterAssetByName))) {
   img.src = `./assets/monsters/${file}`;
   monsterImages[file] = img;
 }
-const followerAssetById = { furnace: "FurnaceSpirit.png", water: "WaterElemental.png" };
+const followerAssetById = { furnace: "FurnaceSpirit.png", balrog: "Balrog.png", lotus: "RedLotusBeast.png", water: "WaterElemental.png", rock: "RockSpirit.png", golem: "Golem.png", giant: "MountainGiant.png" };
 const followerImages = {};
 for (const file of new Set(Object.values(followerAssetById))) {
   const img = new Image();
@@ -124,8 +124,8 @@ const followersBook = [
   { id: "lotus", name: "红莲星兽", tier: 3, element: "fire", damage: 55, range: 240 },
   { id: "water", name: "水元素", tier: 1, element: "ice", damage: 17, range: 260 },
   { id: "rock", name: "岩石精灵", tier: 1, element: "earth", damage: 12, range: 120 },
-  { id: "golem", name: "石人", tier: 2, element: "earth", damage: 22, range: 135 },
-  { id: "giant", name: "山岭巨人", tier: 3, element: "earth", damage: 43, range: 120 }
+  { id: "golem", name: "石人", tier: 2, element: "earth", damage: 22, range: 230 },
+  { id: "giant", name: "山岭巨人", tier: 3, element: "earth", damage: 43, range: 260 }
 ];
 
 const followerById = Object.fromEntries(followersBook.map(f => [f.id, f]));
@@ -544,7 +544,7 @@ function updateFollowers(dt) {
     const target = nearestEnemy(f, f.range + 170);
     const home = { x: p.x + ((i % 3) - 1) * 34, y: p.y + 42 + Math.floor(i / 3) * 18 };
     const moveTarget = target || home;
-    const desired = target ? (f.id === "water" ? Math.max(145, target.r + 110) : Math.max(58, target.r + 34)) : 0;
+    const desired = target ? (f.id === "water" ? Math.max(145, target.r + 110) : f.id === "golem" || f.id === "giant" ? Math.max(125, target.r + 92) : Math.max(58, target.r + 34)) : 0;
     const dx = moveTarget.x - f.x;
     const dy = moveTarget.y - f.y;
     const d = Math.hypot(dx, dy) || 1;
@@ -561,7 +561,7 @@ function updateFollowers(dt) {
     if (f.t <= 0) {
       const attackTarget = nearestEnemy(f, f.range);
       if (attackTarget) followerAttack(f, attackTarget);
-      f.t = f.id === "water" ? 0.85 : f.id === "lotus" ? 1.65 : f.id === "giant" ? 1.35 : f.id === "balrog" ? 1.05 : 0.95;
+      f.t = f.id === "water" ? 0.85 : f.id === "golem" ? 1.15 : f.id === "giant" ? 1.25 : f.id === "lotus" ? 1.65 : f.id === "balrog" ? 1.05 : 0.95;
     }
   });
 }
@@ -580,29 +580,33 @@ function followerAttack(f, target) {
     addLine(f.x, f.y, target.x, target.y, "rgba(145,232,255,.28)", 4, 0.12, false);
     return;
   }
+  if (f.id === "rock") {
+    f.cast = 0.28;
+    punchTarget(f, target, damage * 1.18);
+    return;
+  }
+  if (f.id === "golem") {
+    f.cast = 0.36;
+    f.face = Math.atan2(target.y - f.y, target.x - f.x);
+    throwBoulder(f, target, damage * 1.08);
+    return;
+  }
   if (f.id === "balrog") {
-    damageCone(f.x, f.y, target.x, target.y, f.range, Math.PI * 0.42, damage * 0.95, "fire");
-    addLine(f.x, f.y, target.x, target.y, "rgba(255,112,48,.72)", 10, 0.22, true);
-    addRing(target.x, target.y, 38, "rgba(255,130,55,.55)", 0.28);
+    f.cast = 0.42;
+    f.face = Math.atan2(target.y - f.y, target.x - f.x);
+    breatheFire(f, target, damage);
     return;
   }
   if (f.id === "lotus") {
-    damageCircle(target.x, target.y, 88, damage, "fire", false);
-    state.zones.push({ x: target.x, y: target.y, r: 88, life: 0.45, maxLife: 0.45, damage: 0, element: "fire", type: "visual", color: "rgba(255,72,52,.34)", grow: 2.4 });
-    addRing(target.x, target.y, 88, "rgba(255,190,74,.9)", 0.48);
-    for (let i = 0; i < 7; i++) {
-      const a = rand(0, Math.PI * 2);
-      addLine(target.x, target.y, target.x + Math.cos(a) * 78, target.y + Math.sin(a) * 78, "rgba(255,210,90,.72)", 5, 0.35, true);
-    }
+    f.cast = 0.55;
+    f.face = Math.atan2(target.y - f.y, target.x - f.x);
+    summonLotusMeteor(f, target, damage * 1.25);
     return;
   }
   if (f.id === "giant") {
-    damageCircle(f.x, f.y, 92, damage * 1.05, "earth", true);
-    addRing(f.x, f.y, 92, "rgba(214,156,88,.85)", 0.45);
-    for (let i = 0; i < 6; i++) {
-      const a = rand(0, Math.PI * 2);
-      addLine(f.x, f.y, f.x + Math.cos(a) * 92, f.y + Math.sin(a) * 92, "rgba(226,172,104,.58)", 4, 0.35, true);
-    }
+    f.cast = 0.65;
+    f.face = Math.atan2(target.y - f.y, target.x - f.x);
+    giantEarthquake(f, damage * 1.25);
     return;
   }
   fireProjectile(f.x, f.y, target.x, target.y, 360, damage, f.tier >= 2 ? 6 : 5, f.element, f.element === "fire" ? "#ff8a42" : f.element === "ice" ? "#9deaff" : "#c7a16a");
@@ -638,6 +642,138 @@ function fireFollowerFireball(f, target, damage) {
   }
 }
 
+function punchTarget(f, target, damage) {
+  const a = Math.atan2(target.y - f.y, target.x - f.x);
+  f.face = a;
+  const fistX = f.x + Math.cos(a) * 24;
+  const fistY = f.y + Math.sin(a) * 24;
+  hitMonster(target, damage, "earth");
+  target.x += Math.cos(a) * 18;
+  target.y += Math.sin(a) * 18;
+  target.slow = Math.max(target.slow || 0, 0.3);
+  addRing(target.x, target.y, 30, "rgba(214,170,102,.82)", 0.22);
+  addLine(f.x, f.y, fistX, fistY, "rgba(74,48,30,.82)", 9, 0.12, false);
+  addLine(fistX, fistY, target.x, target.y, "rgba(238,196,132,.65)", 6, 0.16, true);
+  for (let i = 0; i < 3; i++) {
+    const s = a + rand(-0.8, 0.8);
+    addLine(target.x, target.y, target.x + Math.cos(s) * rand(16, 32), target.y + Math.sin(s) * rand(16, 32), "rgba(164,124,82,.55)", 3, 0.18, true);
+  }
+}
+
+function throwBoulder(f, target, damage) {
+  const a = Math.atan2(target.y - f.y, target.x - f.x);
+  const startX = f.x + Math.cos(a) * 22;
+  const startY = f.y + Math.sin(a) * 22 - 8;
+  state.projectiles.push({
+    kind: "boulder",
+    x: startX,
+    y: startY,
+    px: startX,
+    py: startY,
+    vx: Math.cos(a) * 340,
+    vy: Math.sin(a) * 340,
+    damage,
+    r: 11,
+    element: "earth",
+    color: "#a88a62",
+    life: 2.1,
+    maxLife: 2.1,
+    pierce: false,
+    hit: new Set(),
+    angle: a,
+    spin: rand(0, Math.PI * 2)
+  });
+  addLine(f.x, f.y, startX, startY, "rgba(92,66,42,.55)", 7, 0.12, false);
+}
+
+function giantEarthquake(f, damage) {
+  const radius = 132;
+  damageCircle(f.x, f.y, radius, damage, "earth", true);
+  state.zones.push({
+    x: f.x,
+    y: f.y,
+    r: radius,
+    life: 0.5,
+    maxLife: 0.5,
+    damage: 0,
+    element: "earth",
+    type: "visual",
+    color: "rgba(156,105,58,.28)",
+    grow: 2.4
+  });
+  addRing(f.x, f.y, radius * 0.62, "rgba(255,124,42,.78)", 0.34);
+  addRing(f.x, f.y, radius, "rgba(168,122,76,.82)", 0.52);
+  for (let i = 0; i < 10; i++) {
+    const a = rand(0, Math.PI * 2);
+    const inner = rand(18, 45);
+    const outer = rand(radius * 0.55, radius);
+    const x1 = f.x + Math.cos(a) * inner;
+    const y1 = f.y + Math.sin(a) * inner;
+    const x2 = f.x + Math.cos(a + rand(-0.22, 0.22)) * outer;
+    const y2 = f.y + Math.sin(a + rand(-0.22, 0.22)) * outer;
+    addLine(x1, y1, x2, y2, i % 2 ? "rgba(86,58,39,.78)" : "rgba(255,111,35,.58)", rand(3, 7), 0.45, true);
+  }
+}
+
+function breatheFire(f, target, damage) {
+  const a = Math.atan2(target.y - f.y, target.x - f.x);
+  const range = f.range + 45;
+  const arc = Math.PI * 0.52;
+  damageCone(f.x, f.y, target.x, target.y, range, arc, damage * 1.05, "fire");
+  const cx = f.x + Math.cos(a) * range * 0.48;
+  const cy = f.y + Math.sin(a) * range * 0.48;
+  state.zones.push({
+    x: cx,
+    y: cy,
+    r: range * 0.38,
+    life: 0.26,
+    maxLife: 0.26,
+    damage: 0,
+    element: "fire",
+    type: "coneVisual",
+    color: "rgba(255,92,28,.28)",
+    angle: a,
+    arc,
+    grow: 1.4
+  });
+  for (let i = 0; i < 5; i++) {
+    const spread = a + rand(-arc * 0.46, arc * 0.46);
+    const len = rand(range * 0.45, range);
+    addLine(f.x + Math.cos(a) * 12, f.y + Math.sin(a) * 12, f.x + Math.cos(spread) * len, f.y + Math.sin(spread) * len, i % 2 ? "rgba(255,207,70,.72)" : "rgba(255,83,26,.78)", rand(4, 9), 0.2, true);
+  }
+  addRing(f.x + Math.cos(a) * 22, f.y + Math.sin(a) * 22, 28, "rgba(255,183,62,.72)", 0.18);
+}
+
+function summonLotusMeteor(f, target, damage) {
+  const tx = target.x + rand(-24, 24);
+  const ty = target.y + rand(-24, 24);
+  const startX = tx - 170;
+  const startY = ty - 230;
+  state.projectiles.push({
+    kind: "lotusMeteor",
+    x: startX,
+    y: startY,
+    px: startX,
+    py: startY,
+    tx,
+    ty,
+    vx: 390,
+    vy: 520,
+    damage,
+    r: 15,
+    element: "fire",
+    color: "#ff6428",
+    life: 1.1,
+    maxLife: 1.1,
+    pierce: false,
+    hit: new Set(),
+    angle: Math.atan2(ty - startY, tx - startX),
+    spin: rand(0, Math.PI * 2)
+  });
+  addRing(tx, ty, 54, "rgba(255,82,34,.5)", 0.45);
+  addLine(f.x, f.y - 18, tx, ty, "rgba(255,198,74,.28)", 3, 0.22, true);
+}
+
 function damageCone(x, y, tx, ty, range, arc, damage, element) {
   const facing = Math.atan2(ty - y, tx - x);
   for (const m of state.monsters) {
@@ -655,6 +791,30 @@ function updateProjectiles(dt) {
     const pr = state.projectiles[i];
     pr.px = pr.x;
     pr.py = pr.y;
+    if (pr.kind === "boulder") pr.spin += dt * 8;
+    if (pr.kind === "lotusMeteor") {
+      pr.spin += dt * 9;
+      pr.x += pr.vx * dt;
+      pr.y += pr.vy * dt;
+      if (Math.random() < 0.35) {
+        addLine(pr.x, pr.y, pr.x - pr.vx * 0.035 + rand(-10, 10), pr.y - pr.vy * 0.035 + rand(-10, 10), "rgba(255,126,38,.55)", rand(4, 8), 0.16, true);
+      }
+      if (Math.hypot(pr.x - pr.tx, pr.y - pr.ty) < 28 || pr.y >= pr.ty) {
+        damageCircle(pr.tx, pr.ty, 92, pr.damage, "fire", false);
+        state.zones.push({ x: pr.tx, y: pr.ty, r: 92, life: 0.42, maxLife: 0.42, damage: 0, element: "fire", type: "visual", color: "rgba(255,72,32,.34)", grow: 2.7 });
+        addRing(pr.tx, pr.ty, 96, "rgba(255,180,62,.9)", 0.45);
+        for (let k = 0; k < 7; k++) {
+          const a = rand(0, Math.PI * 2);
+          addLine(pr.tx, pr.ty, pr.tx + Math.cos(a) * rand(36, 92), pr.ty + Math.sin(a) * rand(36, 92), "rgba(255,205,76,.7)", rand(4, 8), 0.28, true);
+        }
+        pr.life = 0;
+      }
+      if (pr.life <= 0) {
+        state.projectiles.splice(i, 1);
+        continue;
+      }
+      continue;
+    }
     pr.x += pr.vx * dt;
     pr.y += pr.vy * dt;
     if (pr.kind === "furnaceFireball") {
@@ -671,6 +831,14 @@ function updateProjectiles(dt) {
       if (!pr.hit.has(m) && Math.hypot(pr.x - m.x, pr.y - m.y) < pr.r + m.r) {
         hitMonster(m, pr.damage, pr.element);
         pr.hit.add(m);
+        if (pr.kind === "boulder") {
+          damageCircle(pr.x, pr.y, 30, pr.damage * 0.35, "earth", true);
+          addRing(pr.x, pr.y, 34, "rgba(178,136,88,.78)", 0.22);
+          for (let k = 0; k < 4; k++) {
+            const a = rand(0, Math.PI * 2);
+            addLine(pr.x, pr.y, pr.x + Math.cos(a) * rand(12, 32), pr.y + Math.sin(a) * rand(12, 32), "rgba(126,94,62,.62)", rand(2, 5), 0.18, true);
+          }
+        }
         if (pr.kind === "furnaceFireball") {
           damageCircle(pr.x, pr.y, 34, pr.damage * 0.35, "fire", false);
           addRing(pr.x, pr.y, 42, "rgba(255,130,36,.9)", 0.32);
@@ -1296,17 +1464,21 @@ function drawFollower(f) {
   const img = file && followerImages[file];
   if (img && img.complete && img.naturalWidth) {
     const pulse = f.cast ? 1 + Math.sin(performance.now() / 45) * 0.1 + f.cast * 0.35 : 1;
-    const size = (f.id === "furnace" ? 46 : 34 + f.tier * 8) * pulse;
+    const baseSize = f.id === "furnace" ? 46 : f.id === "balrog" ? 58 : f.id === "lotus" ? 62 : f.id === "giant" ? 72 : f.id === "golem" ? 60 : f.id === "rock" ? 48 : 34 + f.tier * 8;
+    const size = baseSize * pulse;
+    const lunge = (f.id === "rock" || f.id === "golem") && f.cast ? f.cast * 22 : 0;
+    const drawX = f.x + Math.cos(f.face || 0) * lunge;
+    const drawY = f.y + Math.sin(f.face || 0) * lunge;
     ctx.save();
     ctx.imageSmoothingEnabled = true;
-    ctx.shadowColor = f.id === "furnace" ? "rgba(255,132,35,.8)" : "rgba(85,225,255,.65)";
+    ctx.shadowColor = f.id === "furnace" || f.id === "balrog" || f.id === "lotus" ? "rgba(255,112,32,.85)" : f.id === "rock" || f.id === "golem" || f.id === "giant" ? "rgba(90,62,38,.75)" : "rgba(85,225,255,.65)";
     ctx.shadowBlur = f.cast ? 24 : 14;
     if (f.cast) {
       ctx.globalAlpha = 0.78;
-      drawCircle(f.x, f.y, size * 0.42, "rgba(255,101,31,.26)");
+      drawCircle(drawX, drawY, size * 0.42, f.id === "rock" || f.id === "golem" || f.id === "giant" ? "rgba(160,118,74,.24)" : "rgba(255,101,31,.26)");
       ctx.globalAlpha = 1;
     }
-    ctx.drawImage(img, f.x - size / 2, f.y - size / 2, size, size);
+    ctx.drawImage(img, drawX - size / 2, drawY - size / 2, size, size);
     ctx.restore();
     return;
   }
@@ -1365,6 +1537,27 @@ function drawZone(z) {
     ctx.arc(z.x, z.y, z.r, z.a - 0.55, z.a + 0.55);
     ctx.closePath();
     ctx.fill();
+  } else if (z.type === "coneVisual") {
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    ctx.rotate(z.angle || 0);
+    ctx.beginPath();
+    ctx.moveTo(-z.r * 0.75, 0);
+    ctx.lineTo(z.r * 0.95, -z.r * 0.58);
+    ctx.lineTo(z.r * 1.2, 0);
+    ctx.lineTo(z.r * 0.95, z.r * 0.58);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.strokeStyle = "rgba(255,210,76,.75)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-z.r * 0.6, 0);
+    ctx.lineTo(z.r * 1.1, -z.r * 0.36);
+    ctx.moveTo(-z.r * 0.55, 0);
+    ctx.lineTo(z.r * 1.15, z.r * 0.32);
+    ctx.stroke();
+    ctx.restore();
   } else if (z.type === "spiral") {
     ctx.save();
     ctx.translate(z.x, z.y);
@@ -1421,6 +1614,14 @@ function drawEffect(e) {
 }
 
 function drawProjectile(pr) {
+  if (pr.kind === "boulder") {
+    drawBoulderProjectile(pr);
+    return;
+  }
+  if (pr.kind === "lotusMeteor") {
+    drawLotusMeteor(pr);
+    return;
+  }
   if (pr.kind === "furnaceFireball") {
     drawFurnaceFireball(pr);
     return;
@@ -1454,6 +1655,35 @@ function drawProjectile(pr) {
   ctx.restore();
 }
 
+function drawBoulderProjectile(pr) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(58,42,31,.45)";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(pr.px, pr.py);
+  ctx.lineTo(pr.x, pr.y);
+  ctx.stroke();
+  ctx.translate(pr.x, pr.y);
+  ctx.rotate(pr.spin || 0);
+  ctx.fillStyle = "#8f7658";
+  ctx.strokeStyle = "#3b2a21";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(12, -2);
+  ctx.lineTo(5, -12);
+  ctx.lineTo(-9, -9);
+  ctx.lineTo(-13, 3);
+  ctx.lineTo(-4, 12);
+  ctx.lineTo(9, 9);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "rgba(220,188,132,.75)";
+  ctx.fillRect(-3, -8, 8, 4);
+  ctx.restore();
+}
+
 function drawFurnaceFireball(pr) {
   ctx.save();
   const heat = 0.7 + Math.sin((pr.spin || 0) * 1.7) * 0.18;
@@ -1484,6 +1714,40 @@ function drawFurnaceFireball(pr) {
   ctx.lineTo(-pr.r * 0.3, -pr.r * 0.55);
   ctx.lineTo(pr.r * 0.7, -pr.r * 0.12);
   ctx.stroke();
+  ctx.restore();
+}
+
+function drawLotusMeteor(pr) {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.strokeStyle = "rgba(255,92,32,.45)";
+  ctx.lineWidth = 12;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(pr.px, pr.py);
+  ctx.lineTo(pr.x, pr.y);
+  ctx.stroke();
+  ctx.translate(pr.x, pr.y);
+  ctx.rotate((pr.spin || 0) + 0.3);
+  ctx.shadowColor = "rgba(255,98,24,.95)";
+  ctx.shadowBlur = 22;
+  ctx.fillStyle = "rgba(98,42,28,.95)";
+  ctx.beginPath();
+  ctx.moveTo(18, 0);
+  ctx.lineTo(4, -15);
+  ctx.lineTo(-16, -9);
+  ctx.lineTo(-19, 8);
+  ctx.lineTo(3, 16);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,116,30,.9)";
+  ctx.beginPath();
+  ctx.arc(2, -1, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,226,86,.95)";
+  ctx.beginPath();
+  ctx.arc(5, -4, 5, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
