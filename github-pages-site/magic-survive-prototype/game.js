@@ -32,7 +32,6 @@ const monsterAssetByName = {
   "恶魔": "Demon.png",
   "树人": "Treant.png",
   "强盗": "Bandit.png",
-  "远程强盗": "Bandit.png",
   "暗精灵": "DarkElf.png",
   "独眼巨人": "Cyclops.png",
   "死亡骑士": "DeathKnight.png",
@@ -98,6 +97,10 @@ function hashUnit(seed, salt) {
   let n = Math.imul(seed ^ Math.imul(salt, 1597334677), 1274126177);
   n = (n ^ (n >>> 16)) >>> 0;
   return n / 4294967295;
+}
+
+function timeGrowth() {
+  return 1 + Math.floor((state?.time || 0) / 600) * 0.1;
 }
 
 const skillBook = {
@@ -170,7 +173,6 @@ const monsterBook = [
   ["恶魔", "#bc332e", 60, 58, 17, "demon"],
   ["树人", "#577a45", 95, 18, 19, "normal"],
   ["强盗", "#92816d", 36, 42, 11, "normal"],
-  ["远程强盗", "#b09a77", 30, 30, 10, "ranged"],
   ["暗精灵", "#8e79d6", 42, 52, 14, "ranged"]
 ];
 
@@ -264,12 +266,13 @@ function spawnMonster(kind = "normal") {
   const margin = 90;
   const pos = edge === 0 ? { x: camX + rand(0, W), y: camY - margin } : edge === 1 ? { x: camX + W + margin, y: camY + rand(0, H) } : edge === 2 ? { x: camX + rand(0, W), y: camY + H + margin } : { x: camX - margin, y: camY + rand(0, H) };
   const src = kind === "boss" ? bossBook[Math.min(Math.floor(state.time / 120), bossBook.length - 1)] : kind === "elite" ? pick(eliteBook) : pickMonster();
-  const scale = kind === "boss" ? 1 + state.time / 260 : kind === "elite" ? 1.8 : wave;
+  const growth = timeGrowth();
+  const scale = (kind === "boss" ? 1 + state.time / 260 : kind === "elite" ? 1.8 : wave) * growth;
   state.monsters.push({
     x: pos.x, y: pos.y, r: kind === "boss" ? 38 : kind === "elite" ? 28 : 16,
     name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale,
     speed: src[3] * terrainMod("monsterSpeed") * (kind === "boss" ? 0.65 : 1),
-    xp: src[4], tag: src[5], kind, hit: 0, shoot: rand(1, 3)
+    xp: src[4], tag: src[5], kind, hit: 0, shoot: rand(1, 3), attackMul: growth
   });
   if (kind === "boss") addText(`${src[0]} 降临`, W / 2 - 60, 88, "#ffd36b");
 }
@@ -301,7 +304,7 @@ function castSkill(s) {
   const p = state.player;
   const lvl = s.level;
   const dmg = b.damage * (1 + (lvl - 1) * 0.35) * p.damage * elementMult(b.element);
-  const area = b.area * (1 + (lvl - 1) * 0.08) * areaMult(b.element);
+  const area = b.area * (1 + (lvl - 1) * 0.12) * areaMult(b.element);
   if (state.skills.staticField && b.type !== "passive") {
     damageCircle(p.x, p.y, 95 * p.area, skillBook.staticField.damage * (1 + (state.skills.staticField.level - 1) * 0.35) * p.lightning, "lightning", false);
     addRing(p.x, p.y, 95 * p.area, "rgba(255,238,78,.85)", 0.22);
@@ -361,7 +364,22 @@ function castSkill(s) {
     }
   } else if (b.type === "orb") {
     const target = nearestEnemy(p) || p;
-    state.zones.push({ x: target.x, y: target.y, r: area, life: 2.6, maxLife: 2.6, damage: dmg * 0.28, element: b.element, type: "spiral", color: s.id === "flameTornado" ? "rgba(255,95,42,.30)" : "rgba(190,220,220,.22)", spin: s.id === "flameTornado" ? 8 : 5 });
+    const a = Math.atan2(target.y - p.y, target.x - p.x);
+    state.zones.push({
+      x: p.x + Math.cos(a) * 45,
+      y: p.y + Math.sin(a) * 45,
+      vx: Math.cos(a) * 170,
+      vy: Math.sin(a) * 170,
+      r: area,
+      life: 2.6,
+      maxLife: 2.6,
+      damage: dmg * 0.28,
+      element: b.element,
+      type: "movingSpiral",
+      color: s.id === "flameTornado" ? "rgba(255,95,42,.30)" : "rgba(190,220,220,.22)",
+      spin: s.id === "flameTornado" ? 8 : 5,
+      seek: 250
+    });
     addRing(target.x, target.y, area * 0.45, s.id === "flameTornado" ? "rgba(255,160,78,.65)" : "rgba(220,255,245,.55)", 0.6);
   } else if (b.type === "ward") {
     p.ward = 4 + lvl * 0.4;
@@ -395,7 +413,7 @@ function fireEnemyShot(m, p) {
     vx: Math.cos(a) * speed,
     vy: Math.sin(a) * speed,
     r: 5,
-    damage: Math.max(1, 10 - effectiveDefense()) * (1 - state.player.groupReduce),
+    damage: Math.max(1, 10 * timeGrowth() - effectiveDefense()) * (1 - state.player.groupReduce),
     color: m.name === "暗精灵" ? "rgba(196,150,255,.95)" : "rgba(255,218,126,.95)",
     life: 3.2,
     angle: a
@@ -548,6 +566,11 @@ function updateFollowers(dt) {
   p.followerDefense = state.followers.reduce((sum, f) => sum + (f.id === "golem" ? 3 : f.id === "giant" ? 6 : 0), 0);
   for (let i = state.followers.length - 1; i >= 0; i--) {
     const f = state.followers[i];
+    const grownMax = Math.floor((f.baseMaxHp || f.maxHp || followerMaxHp(f)) * timeGrowth());
+    if (grownMax > f.maxHp) {
+      f.hp += grownMax - f.maxHp;
+      f.maxHp = grownMax;
+    }
     if (f.hp <= 0) {
       addText(`${f.name} 倒下`, f.x - 24, f.y - 28, "#d7b08a");
       state.followers.splice(i, 1);
@@ -581,7 +604,7 @@ function updateFollowers(dt) {
 
 function followerAttack(f, target) {
   const p = state.player;
-  const damage = f.damage * p.damage * (1 + (f.tier - 1) * 0.18);
+  const damage = f.damage * timeGrowth() * p.damage * (1 + (f.tier - 1) * 0.18);
   if (f.id === "furnace") {
     f.cast = 0.32;
     fireFollowerFireball(f, target, damage * 1.08);
@@ -906,6 +929,17 @@ function updateZones(dt) {
     const z = state.zones[i];
     z.life -= dt;
     z.angle = (z.angle || 0) + (z.spin || 0) * dt;
+    if (z.type === "movingSpiral") {
+      const target = nearestEnemy(z, z.seek || 260);
+      if (target) {
+        const a = Math.atan2(target.y - z.y, target.x - z.x);
+        z.vx = (z.vx || 0) * 0.9 + Math.cos(a) * 210 * 0.1;
+        z.vy = (z.vy || 0) * 0.9 + Math.sin(a) * 210 * 0.1;
+      }
+      z.x += (z.vx || 0) * dt;
+      z.y += (z.vy || 0) * dt;
+      if (Math.random() < 0.25) addLine(z.x + rand(-12, 12), z.y + rand(-12, 12), z.x + rand(-42, 42), z.y + rand(-42, 42), z.element === "fire" ? "rgba(255,146,52,.32)" : "rgba(225,245,230,.25)", 3, 0.12, true);
+    }
     z.r += (z.grow || 0) * dt * 45;
     if (z.damage > 0) {
       if (z.type === "cone") {
@@ -966,7 +1000,7 @@ function updateMonsters(dt) {
     m.hit = Math.max(0, m.hit - dt);
     m.attackCd = Math.max(0, (m.attackCd || 0) - dt);
     if (Math.hypot(target.x - m.x, target.y - m.y) < targetRadius + m.r && m.attackCd <= 0) {
-      const incoming = Math.max(1, 11 - (followerTarget ? 0 : effectiveDefense())) * (1 - (followerTarget ? 0 : p.groupReduce));
+      const incoming = Math.max(1, 11 * timeGrowth() - (followerTarget ? 0 : effectiveDefense())) * (1 - (followerTarget ? 0 : p.groupReduce));
       if (followerTarget) damageFollower(followerTarget, incoming);
       else if (p.hitGrace <= 0) {
         p.hp -= incoming;
@@ -1126,7 +1160,8 @@ function addFollower(src) {
 
 function spawnFollower(src, x = state.player.x + rand(-28, 28), y = state.player.y + rand(34, 58)) {
   const maxHp = followerMaxHp(src);
-  const f = { ...src, x, y, hp: maxHp, maxHp, hitGrace: 0, t: rand(0, 1), autoChess: true };
+  const grownMax = Math.floor(maxHp * timeGrowth());
+  const f = { ...src, x, y, hp: grownMax, maxHp: grownMax, baseMaxHp: maxHp, hitGrace: 0, t: rand(0, 1), autoChess: true };
   state.followers.push(f);
   state.items.push(`棋子:${f.name}`);
   return f;
@@ -1629,7 +1664,7 @@ function drawZone(z) {
     ctx.lineTo(z.r * 1.15, z.r * 0.32);
     ctx.stroke();
     ctx.restore();
-  } else if (z.type === "spiral") {
+  } else if (z.type === "spiral" || z.type === "movingSpiral") {
     ctx.save();
     ctx.translate(z.x, z.y);
     ctx.rotate(z.angle || 0);
@@ -1875,6 +1910,7 @@ function syncHud() {
     <dt>生命</dt><dd>${Math.ceil(p.hp)} / ${p.maxHp}</dd>
     <dt>等级</dt><dd>${p.level}</dd>
     <dt>时间</dt><dd>${Math.floor(state.time)} 秒</dd>
+    <dt>成长</dt><dd>+${Math.round((timeGrowth() - 1) * 100)}%</dd>
     <dt>地形</dt><dd>${state.terrain.name}</dd>
     <dt>怪物</dt><dd>${state.monsters.length}</dd>
   `;
