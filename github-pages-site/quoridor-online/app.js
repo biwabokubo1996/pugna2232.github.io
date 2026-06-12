@@ -6,6 +6,9 @@ const onlineInfo = document.querySelector("#onlineInfo");
 const roomCode = document.querySelector("#roomCode");
 const hostRoom = document.querySelector("#hostRoom");
 const joinRoom = document.querySelector("#joinRoom");
+const bgmToggle = document.querySelector("#bgmToggle");
+const bgmVolume = document.querySelector("#bgmVolume");
+const bgmTrack = document.querySelector("#bgmTrack");
 
 let mode = "move";
 let gameMode = "ai";
@@ -14,6 +17,7 @@ let peer = null;
 let conn = null;
 let localSeat = 0;
 let isHost = false;
+let bgmReady = false;
 
 function freshState() {
   return {
@@ -35,6 +39,41 @@ function setStatus(message, error = false) {
 
 function showError(message) {
   setStatus(message, true);
+}
+
+function setupBgm() {
+  if (!bgmTrack || !bgmToggle || !bgmVolume) return;
+  const savedVolume = localStorage.getItem("quoridor-bgm-volume");
+  const volume = savedVolume === null ? 0.45 : Number(savedVolume);
+  bgmTrack.volume = Number.isFinite(volume) ? volume : 0.45;
+  bgmVolume.value = String(bgmTrack.volume);
+  bgmTrack.addEventListener("canplaythrough", () => {
+    bgmReady = true;
+  });
+  bgmTrack.addEventListener("error", () => {
+    bgmReady = false;
+    bgmToggle.textContent = "BGM";
+  });
+}
+
+function toggleBgm() {
+  if (!bgmTrack) return;
+  if (!bgmTrack.paused) {
+    bgmTrack.pause();
+    bgmToggle.textContent = "BGM";
+    return;
+  }
+  bgmTrack.play()
+    .then(() => {
+      bgmReady = true;
+      bgmToggle.textContent = "暂停";
+    })
+    .catch(() => {
+      const hint = bgmReady
+        ? "浏览器阻止播放，请再点一次 BGM。"
+        : "没有找到音乐文件：请上传 assets/bgm.mp3。";
+      showError(hint);
+    });
 }
 
 function isBlocked(ax, ay, bx, by, source = state) {
@@ -471,9 +510,17 @@ document.querySelectorAll(".gameMode").forEach((btn) => {
 resetGame.addEventListener("click", () => resetState(true));
 hostRoom.addEventListener("click", createRoom);
 joinRoom.addEventListener("click", joinRoomByCode);
+if (bgmToggle) bgmToggle.addEventListener("click", toggleBgm);
+if (bgmVolume && bgmTrack) {
+  bgmVolume.addEventListener("input", () => {
+    bgmTrack.volume = Number(bgmVolume.value);
+    localStorage.setItem("quoridor-bgm-volume", bgmVolume.value);
+  });
+}
 roomCode.addEventListener("input", () => {
   roomCode.value = roomCode.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 });
 
 addEventListener("resize", render);
+setupBgm();
 render();

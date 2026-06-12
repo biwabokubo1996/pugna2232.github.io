@@ -1,0 +1,9 @@
+Put your licensed music file here and rename it to:
+
+bgm.mp3
+
+The game page loads:
+
+./assets/bgm.mp3
+
+For example, if you want to use a Touhou Project track, upload your own legally usable MP3 file as bgm.mp3.

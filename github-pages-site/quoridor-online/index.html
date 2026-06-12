@@ -14,7 +14,14 @@
           <h1>步步为营</h1>
           <p id="status">玩家 1 的回合</p>
         </div>
-        <button id="resetGame" type="button">重开</button>
+        <div class="topActions">
+          <button id="bgmToggle" type="button">BGM</button>
+          <label class="volumeControl">
+            音量
+            <input id="bgmVolume" type="range" min="0" max="1" step="0.05" value="0.45" />
+          </label>
+          <button id="resetGame" type="button">重开</button>
+        </div>
       </section>
 
       <section class="table">
@@ -44,12 +51,21 @@
             <strong>电脑</strong>
             <small>墙：10</small>
           </div>
+
           <div class="controls">
             <button class="mode active" data-mode="move" type="button">移动</button>
             <button class="mode" data-mode="h" type="button">横墙</button>
             <button class="mode" data-mode="v" type="button">竖墙</button>
           </div>
-          <p class="hint">移动时点高亮格子。放墙时选择横墙或竖墙，再点棋盘缝隙。GitHub Pages 联机需要双方浏览器能连接外部 P2P 服务。</p>
+
+          <section class="rules" aria-label="游玩说明">
+            <h2>游玩说明</h2>
+            <p>目标：先把自己的棋子移动到对面底线。</p>
+            <p>移动：选择“移动”，点击高亮格子。相邻有对手时可以跳过；后方被墙挡住时可以斜走。</p>
+            <p>放墙：选择“横墙”或“竖墙”，点击棋盘缝隙。每人 10 面墙，放墙不能重叠、交叉，也不能完全封死任一玩家的路。</p>
+            <p>模式：人机是你对电脑；双人是同屏轮流玩；联机需要创建房间并把房间号发给朋友。</p>
+            <p class="musicNote">BGM：把你有使用权限的音乐文件放到 <code>quoridor-online/assets/bgm.mp3</code>，点击右上角 BGM 播放。</p>
+          </section>
         </aside>
 
         <div class="boardWrap">
@@ -57,6 +73,8 @@
         </div>
       </section>
     </main>
+
+    <audio id="bgmTrack" src="./assets/bgm.mp3" loop preload="none"></audio>
     <script src="./app.js"></script>
   </body>
 </html>
