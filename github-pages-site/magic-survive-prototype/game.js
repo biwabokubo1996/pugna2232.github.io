@@ -49,6 +49,10 @@ for (const file of new Set(Object.values(monsterAssetByName))) {
   img.src = `./assets/monsters/${file}`;
   monsterImages[file] = img;
 }
+const arrowImage = new Image();
+arrowImage.src = "./assets/monsters/Arrow.png";
+const stoneImage = new Image();
+stoneImage.src = "./assets/monsters/StoneProjectile.png";
 const followerAssetById = { furnace: "FurnaceSpirit.png", balrog: "Balrog.png", lotus: "RedLotusBeast.png", water: "WaterElemental.png", rock: "RockSpirit.png", golem: "Golem.png", giant: "MountainGiant.png" };
 const followerImages = {};
 for (const file of new Set(Object.values(followerAssetById))) {
@@ -165,15 +169,15 @@ const artifactBook = [
 const monsterBook = [
   ["史莱姆", "#73d56c", 18, 28, 7, "normal"],
   ["骷髅兵", "#d6d0bd", 28, 36, 9, "undead"],
-  ["骷髅射手", "#e7ddb2", 22, 26, 8, "ranged"],
+  ["骷髅射手", "#e7ddb2", 16, 34, 8, "ranged"],
   ["僵尸", "#8fa86b", 45, 22, 10, "undead"],
   ["鬼魂", "#b8d7ff", 24, 44, 9, "ghost"],
   ["野蛮人", "#d09062", 42, 42, 12, "normal"],
-  ["Imps", "#ff7051", 25, 60, 10, "demon"],
+  ["Imps", "#ff7051", 14, 88, 10, "demon"],
   ["恶魔", "#bc332e", 60, 58, 17, "demon"],
   ["树人", "#577a45", 95, 18, 19, "normal"],
   ["强盗", "#92816d", 36, 42, 11, "normal"],
-  ["暗精灵", "#8e79d6", 42, 52, 14, "ranged"]
+  ["暗精灵", "#8e79d6", 28, 82, 14, "ranged"]
 ];
 
 const eliteBook = [
@@ -265,11 +269,12 @@ function spawnMonster(kind = "normal") {
   const camY = p.y - H / 2;
   const margin = 90;
   const pos = edge === 0 ? { x: camX + rand(0, W), y: camY - margin } : edge === 1 ? { x: camX + W + margin, y: camY + rand(0, H) } : edge === 2 ? { x: camX + rand(0, W), y: camY + H + margin } : { x: camX - margin, y: camY + rand(0, H) };
-  const src = kind === "boss" ? bossBook[Math.min(Math.floor(state.time / 120), bossBook.length - 1)] : kind === "elite" ? pick(eliteBook) : pickMonster();
+  const src = kind === "boss" ? bossBook[Math.min(Math.max(0, Math.floor(state.time / 300) - 1), bossBook.length - 1)] : kind === "elite" ? pick(eliteBook) : pickMonster();
   const growth = timeGrowth();
   const scale = (kind === "boss" ? 1 + state.time / 260 : kind === "elite" ? 1.8 : wave) * growth;
+  const radius = src[0] === "比蒙巨兽" ? 58 : kind === "boss" ? 38 : src[0] === "独眼巨人" ? 42 : kind === "elite" ? 28 : 16;
   state.monsters.push({
-    x: pos.x, y: pos.y, r: kind === "boss" ? 38 : kind === "elite" ? 28 : 16,
+    x: pos.x, y: pos.y, r: radius,
     name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale,
     speed: src[3] * terrainMod("monsterSpeed") * (kind === "boss" ? 0.65 : 1),
     xp: src[4], tag: src[5], kind, hit: 0, shoot: rand(1, 3), attackMul: growth
@@ -421,6 +426,194 @@ function fireEnemyShot(m, p) {
   addLine(m.x, m.y, m.x + Math.cos(a) * 38, m.y + Math.sin(a) * 38, "rgba(255,230,150,.65)", 3, 0.18, false);
 }
 
+function fireEnemyBoulder(m, target) {
+  const a = Math.atan2(target.y - m.y, target.x - m.x);
+  const startX = m.x + Math.cos(a) * (m.r * 0.8);
+  const startY = m.y + Math.sin(a) * (m.r * 0.8) - 10;
+  state.enemyShots.push({
+    kind: "rock",
+    x: startX,
+    y: startY,
+    px: startX,
+    py: startY,
+    vx: Math.cos(a) * 285,
+    vy: Math.sin(a) * 285,
+    r: 13,
+    damage: Math.max(3, 18 * timeGrowth() - effectiveDefense() * 0.5) * (1 - state.player.groupReduce),
+    color: "rgba(164,126,82,.95)",
+    life: 3.4,
+    angle: a,
+    spin: rand(0, Math.PI * 2)
+  });
+  addLine(m.x, m.y - 10, startX, startY, "rgba(92,66,42,.62)", 8, 0.16, false);
+}
+
+function cyclopsAreaAttack(m) {
+  const p = state.player;
+  const radius = 118;
+  const damage = Math.max(4, 19 * timeGrowth() - effectiveDefense() * 0.45) * (1 - p.groupReduce);
+  if (Math.hypot(p.x - m.x, p.y - m.y) < radius + p.r && p.hitGrace <= 0) {
+    p.hp -= damage;
+    p.hitGrace = 0.48;
+    addText(`-${Math.ceil(damage)}`, p.x - 10, p.y - 28, "#ff7a66");
+  }
+  for (const f of state.followers) {
+    if (f.hp > 0 && Math.hypot(f.x - m.x, f.y - m.y) < radius + 16) damageFollower(f, damage * 0.85);
+  }
+  addRing(m.x, m.y, radius * 0.62, "rgba(255,156,70,.82)", 0.28);
+  addRing(m.x, m.y, radius, "rgba(132,96,63,.85)", 0.5);
+  state.zones.push({ x: m.x, y: m.y, r: radius, life: 0.4, maxLife: 0.4, damage: 0, element: "earth", type: "visual", color: "rgba(142,95,48,.25)", grow: 2.1 });
+  for (let i = 0; i < 8; i++) {
+    const a = rand(0, Math.PI * 2);
+    addLine(m.x + Math.cos(a) * 20, m.y + Math.sin(a) * 20, m.x + Math.cos(a + rand(-0.22, 0.22)) * rand(72, radius), m.y + Math.sin(a + rand(-0.22, 0.22)) * rand(72, radius), "rgba(96,68,42,.72)", rand(3, 6), 0.36, true);
+  }
+}
+
+function startDeathKnightCharge(m, target) {
+  const a = Math.atan2(target.y - m.y, target.x - m.x);
+  m.charge = {
+    phase: "windup",
+    t: 0.58,
+    angle: a,
+    hitFollowers: new Set(),
+    hitPlayer: false,
+    fx: 0
+  };
+  m.specialCd = rand(4.6, 6.2);
+  addText("冲锋", m.x - 18, m.y - m.r - 24, "#ff6a4c");
+}
+
+function updateDeathKnightCharge(m, target, dt) {
+  if (!m.charge) return false;
+  const c = m.charge;
+  c.t -= dt;
+  c.fx -= dt;
+  if (c.phase === "windup") {
+    const a = Math.atan2(target.y - m.y, target.x - m.x);
+    c.angle = c.angle * 0.86 + a * 0.14;
+    if (c.fx <= 0) {
+      c.fx = 0.08;
+      addLine(m.x, m.y, m.x + Math.cos(c.angle) * 230, m.y + Math.sin(c.angle) * 230, "rgba(255,70,45,.62)", 5, 0.14, false);
+    }
+    if (c.t <= 0) {
+      c.phase = "lunge";
+      c.t = 0.34;
+      addLine(m.x, m.y, m.x + Math.cos(c.angle) * 260, m.y + Math.sin(c.angle) * 260, "rgba(255,150,72,.8)", 8, 0.22, false);
+    }
+    return true;
+  }
+
+  const speed = 780;
+  const oldX = m.x;
+  const oldY = m.y;
+  m.x += Math.cos(c.angle) * speed * dt;
+  m.y += Math.sin(c.angle) * speed * dt;
+  m.hit = Math.max(m.hit, 0.08);
+  if (c.fx <= 0) {
+    c.fx = 0.045;
+    addLine(oldX, oldY, m.x, m.y, "rgba(255,88,54,.55)", 9, 0.16, false);
+  }
+
+  const p = state.player;
+  const chargeDamage = Math.max(6, 28 * timeGrowth() - effectiveDefense() * 0.5) * (1 - p.groupReduce);
+  if (!c.hitPlayer && Math.hypot(p.x - m.x, p.y - m.y) < p.r + m.r + 12 && p.hitGrace <= 0) {
+    p.hp -= chargeDamage;
+    p.hitGrace = 0.5;
+    c.hitPlayer = true;
+    addText(`-${Math.ceil(chargeDamage)}`, p.x - 10, p.y - 28, "#ff7a66");
+  }
+  for (const f of state.followers) {
+    if (f.hp <= 0 || c.hitFollowers.has(f)) continue;
+    if (Math.hypot(f.x - m.x, f.y - m.y) < m.r + 18) {
+      damageFollower(f, chargeDamage * 0.82);
+      c.hitFollowers.add(f);
+    }
+  }
+  if (c.t <= 0) m.charge = null;
+  return true;
+}
+
+function behemothEarthquake(m) {
+  const p = state.player;
+  const radius = 185;
+  const damage = Math.max(8, 34 * timeGrowth() - effectiveDefense() * 0.45) * (1 - p.groupReduce);
+  if (Math.hypot(p.x - m.x, p.y - m.y) < radius + p.r && p.hitGrace <= 0) {
+    p.hp -= damage;
+    p.hitGrace = 0.58;
+    addText(`-${Math.ceil(damage)}`, p.x - 10, p.y - 28, "#ff7a66");
+  }
+  for (const f of state.followers) {
+    if (f.hp > 0 && Math.hypot(f.x - m.x, f.y - m.y) < radius + 18) damageFollower(f, damage * 0.82);
+  }
+  state.zones.push({ x: m.x, y: m.y, r: radius, life: 0.58, maxLife: 0.58, damage: 0, element: "earth", type: "visual", color: "rgba(118,72,42,.30)", grow: 2.8 });
+  addRing(m.x, m.y, radius * 0.58, "rgba(255,150,74,.78)", 0.36);
+  addRing(m.x, m.y, radius, "rgba(126,88,54,.92)", 0.62);
+  for (let i = 0; i < 14; i++) {
+    const a = rand(0, Math.PI * 2);
+    const inner = rand(26, 64);
+    const outer = rand(radius * 0.58, radius);
+    addLine(m.x + Math.cos(a) * inner, m.y + Math.sin(a) * inner, m.x + Math.cos(a + rand(-0.25, 0.25)) * outer, m.y + Math.sin(a + rand(-0.25, 0.25)) * outer, i % 2 ? "rgba(78,52,34,.78)" : "rgba(255,118,42,.55)", rand(4, 8), 0.48, true);
+  }
+}
+
+function startBehemothCharge(m, target) {
+  const a = Math.atan2(target.y - m.y, target.x - m.x);
+  m.charge = { phase: "windup", t: 0.72, angle: a, hitFollowers: new Set(), hitPlayer: false, fx: 0, behemoth: true };
+  m.specialCd = rand(5.6, 7.2);
+  addText("比蒙突刺", m.x - 34, m.y - m.r - 28, "#ffb06b");
+}
+
+function updateBehemothCharge(m, target, dt) {
+  if (!m.charge?.behemoth) return false;
+  const c = m.charge;
+  c.t -= dt;
+  c.fx -= dt;
+  if (c.phase === "windup") {
+    const a = Math.atan2(target.y - m.y, target.x - m.x);
+    c.angle = c.angle * 0.9 + a * 0.1;
+    if (c.fx <= 0) {
+      c.fx = 0.09;
+      addLine(m.x, m.y, m.x + Math.cos(c.angle) * 300, m.y + Math.sin(c.angle) * 300, "rgba(255,150,74,.72)", 9, 0.16, false);
+    }
+    if (c.t <= 0) {
+      c.phase = "lunge";
+      c.t = 0.42;
+      addLine(m.x, m.y, m.x + Math.cos(c.angle) * 340, m.y + Math.sin(c.angle) * 340, "rgba(255,205,98,.85)", 12, 0.25, false);
+    }
+    return true;
+  }
+  const oldX = m.x;
+  const oldY = m.y;
+  const speed = 680;
+  m.x += Math.cos(c.angle) * speed * dt;
+  m.y += Math.sin(c.angle) * speed * dt;
+  m.hit = Math.max(m.hit, 0.1);
+  if (c.fx <= 0) {
+    c.fx = 0.05;
+    addLine(oldX, oldY, m.x, m.y, "rgba(156,98,58,.62)", 14, 0.18, false);
+  }
+  const p = state.player;
+  const damage = Math.max(10, 42 * timeGrowth() - effectiveDefense() * 0.5) * (1 - p.groupReduce);
+  if (!c.hitPlayer && Math.hypot(p.x - m.x, p.y - m.y) < p.r + m.r + 10 && p.hitGrace <= 0) {
+    p.hp -= damage;
+    p.hitGrace = 0.6;
+    c.hitPlayer = true;
+    addText(`-${Math.ceil(damage)}`, p.x - 10, p.y - 28, "#ff7a66");
+  }
+  for (const f of state.followers) {
+    if (f.hp <= 0 || c.hitFollowers.has(f)) continue;
+    if (Math.hypot(f.x - m.x, f.y - m.y) < m.r + 20) {
+      damageFollower(f, damage * 0.78);
+      c.hitFollowers.add(f);
+    }
+  }
+  if (c.t <= 0) {
+    m.charge = null;
+    behemothEarthquake(m);
+  }
+  return true;
+}
+
 function spawnHeal() {
   const p = state.player;
   const angle = rand(0, Math.PI * 2);
@@ -525,8 +718,8 @@ function update(dt) {
   if (state.spawn <= 0) {
     const count = state.time > 90 ? 3 : state.time > 35 ? 2 : 1;
     for (let i = 0; i < count; i++) spawnMonster("normal");
-    if (Math.random() < 0.08 + state.time / 3000) spawnMonster("elite");
-    if (Math.floor((state.time - dt) / 75) < Math.floor(state.time / 75)) spawnMonster("boss");
+    if (state.time >= 300 && Math.random() < 0.08 + state.time / 3000) spawnMonster("elite");
+    if (Math.floor((state.time - dt) / 300) < Math.floor(state.time / 300)) spawnMonster("boss");
     state.spawn = Math.max(0.18, 0.9 - state.time / 500);
   }
   for (const s of Object.values(state.skills)) {
@@ -898,6 +1091,7 @@ function updateEnemyShots(dt) {
     s.py = s.y;
     s.x += s.vx * dt;
     s.y += s.vy * dt;
+    if (s.kind === "rock") s.spin = (s.spin || 0) + dt * 8;
     s.life -= dt;
     let hitFollower = null;
     for (const f of state.followers) {
@@ -994,11 +1188,60 @@ function updateMonsters(dt) {
     const targetRadius = followerTarget ? 15 : p.r;
     const a = Math.atan2(target.y - m.y, target.x - m.x);
     const slow = m.slow ? 0.55 : 1;
-    m.x += Math.cos(a) * m.speed * slow * dt;
-    m.y += Math.sin(a) * m.speed * slow * dt;
     m.slow = Math.max(0, (m.slow || 0) - dt);
     m.hit = Math.max(0, m.hit - dt);
     m.attackCd = Math.max(0, (m.attackCd || 0) - dt);
+    m.specialCd = Math.max(0, (m.specialCd || rand(1.3, 2.2)) - dt);
+    if (m.name === "死亡骑士") {
+      const rangeToTarget = Math.hypot(target.x - m.x, target.y - m.y);
+      if (!m.charge && m.specialCd <= 0 && rangeToTarget > 135 && rangeToTarget < 620) startDeathKnightCharge(m, target);
+      if (updateDeathKnightCharge(m, target, dt)) continue;
+    }
+    if (m.name === "比蒙巨兽") {
+      const rangeToTarget = Math.hypot(target.x - m.x, target.y - m.y);
+      if (!m.charge && m.specialCd <= 0) {
+        if (rangeToTarget < 210) {
+          behemothEarthquake(m);
+          m.specialCd = rand(3.8, 5.0);
+        } else if (rangeToTarget < 720) {
+          startBehemothCharge(m, target);
+        }
+      }
+      if (updateBehemothCharge(m, target, dt)) continue;
+    }
+    const targetDistance = Math.hypot(target.x - m.x, target.y - m.y);
+    if (m.tag === "ranged") {
+      const keepDistance = m.name === "暗精灵" ? 360 : 310;
+      const strafe = Math.sin(state.time * 1.8 + m.x * 0.01) * 0.42;
+      let moveX = 0;
+      let moveY = 0;
+      if (targetDistance < keepDistance * 0.78) {
+        moveX = -Math.cos(a) + Math.cos(a + Math.PI / 2) * strafe;
+        moveY = -Math.sin(a) + Math.sin(a + Math.PI / 2) * strafe;
+      } else if (targetDistance > keepDistance * 1.22) {
+        moveX = Math.cos(a);
+        moveY = Math.sin(a);
+      } else {
+        moveX = Math.cos(a + Math.PI / 2) * strafe;
+        moveY = Math.sin(a + Math.PI / 2) * strafe;
+      }
+      const moveLen = Math.hypot(moveX, moveY) || 1;
+      m.x += (moveX / moveLen) * m.speed * slow * dt;
+      m.y += (moveY / moveLen) * m.speed * slow * dt;
+    } else {
+      m.x += Math.cos(a) * m.speed * slow * dt;
+      m.y += Math.sin(a) * m.speed * slow * dt;
+    }
+    if (m.name === "独眼巨人" && m.specialCd <= 0) {
+      const rangeToTarget = Math.hypot(target.x - m.x, target.y - m.y);
+      if (rangeToTarget < 155) {
+        cyclopsAreaAttack(m);
+        m.specialCd = rand(2.2, 3.0);
+      } else if (rangeToTarget < 560) {
+        fireEnemyBoulder(m, target);
+        m.specialCd = rand(2.8, 3.8);
+      }
+    }
     if (Math.hypot(target.x - m.x, target.y - m.y) < targetRadius + m.r && m.attackCd <= 0) {
       const incoming = Math.max(1, 11 * timeGrowth() - (followerTarget ? 0 : effectiveDefense())) * (1 - (followerTarget ? 0 : p.groupReduce));
       if (followerTarget) damageFollower(followerTarget, incoming);
@@ -1530,7 +1773,7 @@ function drawMonster(m) {
   const file = monsterAssetByName[m.name];
   const img = file && monsterImages[file];
   if (img && img.complete && img.naturalWidth) {
-    const size = m.r * (m.kind === "boss" ? 2.35 : m.kind === "elite" ? 2.15 : 2.05);
+    const size = m.r * (m.name === "比蒙巨兽" ? 2.85 : m.kind === "boss" ? 2.35 : m.kind === "elite" ? 2.15 : 2.05);
     if (m.hit) {
       ctx.globalAlpha = 0.65;
       drawCircle(m.x, m.y, size * 0.56, "#fff3cf");
@@ -1859,6 +2102,40 @@ function drawLotusMeteor(pr) {
 
 function drawEnemyShot(s) {
   ctx.save();
+  if (s.kind === "rock") {
+    ctx.strokeStyle = "rgba(62,45,32,.42)";
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(s.px, s.py);
+    ctx.lineTo(s.x, s.y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.spin || 0);
+    if (stoneImage.complete && stoneImage.naturalWidth) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(stoneImage, -18, -18, 36, 36);
+      ctx.imageSmoothingEnabled = true;
+    } else {
+      ctx.fillStyle = "#927354";
+      ctx.strokeStyle = "#3d2b21";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(13, -2);
+      ctx.lineTo(5, -12);
+      ctx.lineTo(-10, -8);
+      ctx.lineTo(-13, 4);
+      ctx.lineTo(-3, 13);
+      ctx.lineTo(10, 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
+  }
   ctx.strokeStyle = s.color;
   ctx.globalAlpha = 0.55;
   ctx.lineWidth = 4;
@@ -1870,14 +2147,21 @@ function drawEnemyShot(s) {
   ctx.globalAlpha = 1;
   ctx.translate(s.x, s.y);
   ctx.rotate(s.angle || 0);
-  ctx.fillStyle = s.color;
-  ctx.beginPath();
-  ctx.moveTo(9, 0);
-  ctx.lineTo(-7, -5);
-  ctx.lineTo(-5, 0);
-  ctx.lineTo(-7, 5);
-  ctx.closePath();
-  ctx.fill();
+  if (arrowImage.complete && arrowImage.naturalWidth) {
+    ctx.rotate(-Math.PI / 4);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(arrowImage, -18, -18, 36, 36);
+    ctx.imageSmoothingEnabled = true;
+  } else {
+    ctx.fillStyle = s.color;
+    ctx.beginPath();
+    ctx.moveTo(9, 0);
+    ctx.lineTo(-7, -5);
+    ctx.lineTo(-5, 0);
+    ctx.lineTo(-7, 5);
+    ctx.closePath();
+    ctx.fill();
+  }
   ctx.restore();
 }
 
