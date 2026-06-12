@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>步步为营 Online</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="topbar">
+        <div>
+          <h1>步步为营 Online</h1>
+          <p id="status">正在连接...</p>
+        </div>
+        <div class="room">
+          <label>
+            房间
+            <input id="roomInput" autocomplete="off" maxlength="10" />
+          </label>
+          <button id="copyLink" type="button">复制链接</button>
+          <button id="resetGame" type="button">重开</button>
+        </div>
+      </section>
+
+      <section class="table">
+        <aside class="panel">
+          <div class="player" id="p0">
+            <span class="token gold"></span>
+            <strong>玩家 1</strong>
+            <small>墙：10</small>
+          </div>
+          <div class="player" id="p1">
+            <span class="token teal"></span>
+            <strong>玩家 2</strong>
+            <small>墙：10</small>
+          </div>
+          <div class="controls">
+            <button class="mode active" data-mode="move" type="button">移动</button>
+            <button class="mode" data-mode="h" type="button">横墙</button>
+            <button class="mode" data-mode="v" type="button">竖墙</button>
+          </div>
+          <p class="hint">移动：点棋子可到达的格子。放墙：选择横墙或竖墙后点击格点之间的墙位。</p>
+        </aside>
+
+        <div class="boardWrap">
+          <div id="board" class="board" aria-label="步步为营棋盘"></div>
+        </div>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
