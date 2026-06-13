@@ -8,6 +8,8 @@ const levelPanel = document.querySelector("#levelPanel");
 const choicesEl = document.querySelector("#choices");
 const startPanel = document.querySelector("#startPanel");
 const startBtn = document.querySelector("#startBtn");
+const startActions = document.querySelector("#startActions");
+const classPanel = document.querySelector("#classPanel");
 const moveStick = document.querySelector("#moveStick");
 const moveKnob = moveStick?.querySelector("span");
 const pauseTouch = document.querySelector("#pauseTouch");
@@ -15,6 +17,7 @@ const pauseTouch = document.querySelector("#pauseTouch");
 const W = canvas.width;
 const H = canvas.height;
 const TILE = 520;
+const SAVE_KEY = "elemental-survival-save-v1";
 const BASE_FOLLOWER_LIMIT = 7;
 const WORLD_BOSS_SITES = {
   chimera: { id: "chimera", name: "奇美拉巢穴", boss: "奇美拉", x: 1850, y: -980, r: 130 }
@@ -33,7 +36,6 @@ const monsterAssetByName = {
   "鬼魂": "Ghost.png",
   "野蛮人": "Barbarian.png",
   "Imps": "Imp.png",
-  "恶魔": "Demon.png",
   "树人": "Treant.png",
   "强盗": "Bandit.png",
   "暗精灵": "DarkElf.png",
@@ -41,12 +43,11 @@ const monsterAssetByName = {
   "死亡骑士": "DeathKnight.png",
   "蝎狮": "Manticore.png",
   "比蒙巨兽": "Behemoth.png",
-  "利维坦": "Leviathan.png",
   "奇美拉": "Chimera.png",
   "海德拉": "Hydra.png",
   "耶梦加得": "Hydra.png",
   "芬里厄": "Behemoth.png",
-  "克苏鲁随从": "Leviathan.png"
+  "克苏鲁随从": "Hydra.png"
 };
 const monsterImages = {};
 for (const file of new Set(Object.values(monsterAssetByName))) {
@@ -58,7 +59,13 @@ const arrowImage = new Image();
 arrowImage.src = "./assets/monsters/Arrow.png";
 const stoneImage = new Image();
 stoneImage.src = "./assets/monsters/StoneProjectile.png";
-const followerAssetById = { furnace: "FurnaceSpirit.png", balrog: "Balrog.png", lotus: "RedLotusBeast.png", rock: "RockSpirit.png", golem: "Golem.png", giant: "MountainGiant.png" };
+const effectImages = {};
+for (const [id, file] of Object.entries({ fireBreath: "FireBreath.png", blizzard: "Blizzard.png", poisonCloud: "PoisonCloud.png", sandstorm: "Sandstorm.png", spiritTaming: "SpiritOrbit.png", blackPlague: "BlackPlague.png", chainLightning: "ChainLightning.png", thunderCloud: "ThunderCloud.png", fireball: "Fireball.png" })) {
+  const img = new Image();
+  img.src = `./assets/effects/${file}`;
+  effectImages[id] = img;
+}
+const followerAssetById = { furnace: "FurnaceSpirit.png", balrog: "Balrog.png", lotus: "RedLotusBeast.png", rock: "RockSpirit.png", golem: "Golem.png", giant: "MountainGiant.png", skeleton: "SkeletonFollower.png", skeletonWarrior: "SkeletonWarrior.png", reaper: "DeathReaper.png", militia: "Militia.png", swordsman: "Swordsman.png", knight: "Knight.png" };
 const followerImages = {};
 for (const file of new Set(Object.values(followerAssetById))) {
   const img = new Image();
@@ -117,39 +124,48 @@ function followerLimit() {
 }
 
 const skillBook = {
-  fireBreath: { name: "喷火", element: "fire", cd: 0.62, damage: 16, area: 120, type: "cone", desc: "身前锥形持续伤害并附加烧伤" },
-  tornado: { name: "龙卷风", element: "wind", cd: 2.6, damage: 18, area: 95, type: "orb", desc: "追踪旋风，持续切割敌人" },
-  meteor: { name: "陨石坠落", element: "fire", cd: 5.2, damage: 70, area: 120, type: "meteor", desc: "随机轰击大范围区域" },
-  blizzard: { name: "暴风雪", element: "ice", cd: 4.6, damage: 15, area: 170, type: "aura", desc: "范围冰伤与减速" },
-  frostNova: { name: "霜冻新星", element: "ice", cd: 4.8, damage: 35, area: 160, type: "nova", desc: "冻结近身敌人" },
-  thunderCloud: { name: "雷云", element: "lightning", cd: 2.1, damage: 34, area: 260, type: "strike", desc: "雷云随机劈落敌人" },
-  earthquake: { name: "地震", element: "earth", cd: 5.4, damage: 48, area: 220, type: "quake", desc: "向外发出地震波" },
-  magicBolt: { name: "魔力弹", element: "arcane", cd: 0.9, damage: 19, area: 0, type: "bolt", desc: "自动追踪最近敌人" },
-  chainLightning: { name: "连锁闪电", element: "lightning", cd: 2.8, damage: 29, area: 250, type: "chain", desc: "在多个目标间跳跃" },
-  poisonCloud: { name: "毒气云", element: "poison", cd: 4.1, damage: 13, area: 145, type: "cloud", desc: "持续毒雾区域" },
-  sandstorm: { name: "沙尘暴", element: "wind", cd: 4.4, damage: 20, area: 185, type: "aura", desc: "移动风暴，推挤并伤害敌人" },
-  arrow: { name: "穿云箭", element: "physical", cd: 2.3, damage: 42, area: 0, type: "line", desc: "向最近敌人射出直线穿透" },
-  ward: { name: "防御结界", element: "arcane", cd: 12, damage: 0, area: 0, type: "ward", desc: "短时间挡住所有远程伤害" },
-  staticField: { name: "静电场", element: "lightning", cd: 0, damage: 8, area: 110, type: "passive", desc: "每次施法对周围造成额外伤害" },
-  flameTornado: { name: "火龙卷", element: "fire", cd: 2.0, damage: 42, area: 125, type: "orb", desc: "喷火+龙卷风合成，旋转燃烧" },
-  doom: { name: "末日审判", element: "fire", cd: 8.2, damage: 130, area: 300, type: "doom", desc: "陨石+龙卷风+地震合成，不分敌我火伤" },
-  absoluteZero: { name: "绝对零度", element: "ice", cd: 0, damage: 20, area: 210, type: "passiveAura", desc: "暴风雪+霜冻新星合成，永久减速伤害" },
-  lightningStorm: { name: "闪电风暴", element: "lightning", cd: 1.55, damage: 48, area: 330, type: "strike", desc: "龙卷风+雷云合成，雷云跟随且更多打击" },
-  iceRing: { name: "冰暴之环", element: "ice", cd: 3.6, damage: 58, area: 180, type: "nova", desc: "陨石+霜冻新星合成，环形冰爆" }
+  fireBreath: { name: "Fire Breath", element: "fire", cd: 0.62, damage: 16, area: 120, type: "cone", desc: "Cone damage with burn" },
+  tornado: { name: "Tornado", element: "wind", cd: 2.6, damage: 18, area: 95, type: "orb", desc: "Moving spiral wind" },
+  meteor: { name: "Meteor", element: "fire", cd: 5.2, damage: 70, area: 120, type: "meteor", desc: "Large impact area" },
+  blizzard: { name: "Blizzard", element: "ice", cd: 4.6, damage: 15, area: 170, type: "aura", desc: "Ice damage and slow" },
+  frostNova: { name: "Frost Nova", element: "ice", cd: 4.8, damage: 35, area: 160, type: "nova", desc: "Freeze nearby enemies" },
+  thunderCloud: { name: "Thunder Cloud", element: "lightning", cd: 2.1, damage: 34, area: 260, type: "strike", desc: "Strike N enemies in range, N equals skill level" },
+  earthquake: { name: "Earthquake", element: "earth", cd: 5.4, damage: 48, area: 220, type: "quake", desc: "Shockwave around the caster" },
+  magicBolt: { name: "Magic Bolt", element: "arcane", cd: 0.9, damage: 19, area: 0, type: "bolt", desc: "Auto-targeted bolt" },
+  fireball: { name: "Fireball", element: "fire", cd: 2.4, damage: 32, area: 0, type: "fireball", desc: "Piercing fireballs in a straight line; count scales with level" },
+  spiritTaming: { name: "Spirit Taming", element: "arcane", cd: 0, damage: 12, area: 92, type: "spiritOrbit", desc: "Orbiting spirits damage enemies on touch" },
+  chainLightning: { name: "Chain Lightning", element: "lightning", cd: 2.8, damage: 29, area: 250, type: "chain", desc: "Jumps between nearby enemies up to 2 x level" },
+  poisonCloud: { name: "Poison Cloud", element: "poison", cd: 4.1, damage: 13, area: 145, type: "cloud", desc: "Growing poison field" },
+  blackPlague: { name: "Black Plague", element: "poison", cd: 5.6, damage: 56, area: 150, type: "plagueBolt", desc: "Plague projectile that erupts into disease cloud" },
+  sandstorm: { name: "Sandstorm", element: "wind", cd: 4.4, damage: 20, area: 185, type: "aura", desc: "Follows the player, blinds enemies" },
+  arrow: { name: "Cloud Piercer", element: "physical", cd: 2.3, damage: 42, area: 0, type: "line", desc: "Piercing shot" },
+  ward: { name: "Ward", element: "arcane", cd: 12, damage: 0, area: 0, type: "ward", desc: "Blocks ranged damage briefly" },
+  staticField: { name: "Static Field", element: "lightning", cd: 0, damage: 8, area: 110, type: "passive", desc: "Extra lightning pulse on spell cast" },
+  flameTornado: { name: "Flame Tornado", element: "fire", cd: 2.0, damage: 42, area: 125, type: "orb", desc: "Fusion of Fire Breath and Tornado" },
+  doom: { name: "Doomsday", element: "fire", cd: 8.2, damage: 130, area: 300, type: "doom", desc: "Massive fire blast" },
+  absoluteZero: { name: "Absolute Zero", element: "ice", cd: 0, damage: 20, area: 210, type: "passiveAura", desc: "Permanent freezing aura" },
+  lightningStorm: { name: "Lightning Storm", element: "lightning", cd: 1.55, damage: 48, area: 330, type: "strike", desc: "Improved Thunder Cloud" },
+  iceRing: { name: "Ice Ring", element: "ice", cd: 3.6, damage: 58, area: 180, type: "nova", desc: "Ring-shaped ice burst" }
 };
 
 const followersBook = [
-  { id: "furnace", name: "熔炉精灵", tier: 1, element: "fire", damage: 13, range: 190 },
-  { id: "balrog", name: "炎魔", tier: 2, element: "fire", damage: 24, range: 150 },
-  { id: "lotus", name: "红莲星兽", tier: 3, element: "fire", damage: 55, range: 240 },
-  { id: "rock", name: "岩石精灵", tier: 1, element: "earth", damage: 12, range: 120 },
-  { id: "golem", name: "石人", tier: 2, element: "earth", damage: 22, range: 230 },
-  { id: "giant", name: "山岭巨人", tier: 3, element: "earth", damage: 43, range: 260 }
+  { id: "furnace", name: "Furnace Spirit", tier: 1, element: "fire", damage: 13, range: 190 },
+  { id: "balrog", name: "Balrog", tier: 2, element: "fire", damage: 24, range: 150 },
+  { id: "lotus", name: "Red Lotus Beast", tier: 3, element: "fire", damage: 55, range: 240 },
+  { id: "rock", name: "Rock Spirit", tier: 1, element: "earth", damage: 12, range: 120 },
+  { id: "golem", name: "Golem", tier: 2, element: "earth", damage: 22, range: 230 },
+  { id: "giant", name: "Mountain Giant", tier: 3, element: "earth", damage: 43, range: 260 },
+  { id: "skeleton", name: "Skeleton", tier: 1, element: "physical", damage: 16, range: 86 },
+  { id: "skeletonWarrior", name: "Skeleton Warrior", tier: 2, element: "physical", damage: 28, range: 104 },
+  { id: "reaper", name: "Reaper", tier: 3, element: "arcane", damage: 46, range: 128 },
+  { id: "militia", name: "Militia", tier: 1, element: "physical", damage: 15, range: 92 },
+  { id: "swordsman", name: "Swordsman", tier: 2, element: "physical", damage: 29, range: 112 },
+  { id: "knight", name: "Knight", tier: 3, element: "physical", damage: 48, range: 132 }
 ];
 
 const followerById = Object.fromEntries(followersBook.map(f => [f.id, f]));
 const followerByName = Object.fromEntries(followersBook.map(f => [f.name, f]));
-const followerEvolvesTo = { furnace: "balrog", balrog: "lotus", rock: "golem", golem: "giant" };
+const followerEvolvesTo = { furnace: "balrog", balrog: "lotus", rock: "golem", golem: "giant", skeleton: "skeletonWarrior", skeletonWarrior: "reaper", militia: "swordsman", swordsman: "knight" };
 const followerChoices = followersBook.filter(f => f.tier === 1);
 
 const gearBook = [
@@ -183,7 +199,6 @@ const monsterBook = [
   ["鬼魂", "#b8d7ff", 24, 44, 9, "ghost"],
   ["野蛮人", "#d09062", 42, 42, 12, "normal"],
   ["Imps", "#ff7051", 14, 88, 10, "demon"],
-  ["恶魔", "#bc332e", 60, 58, 17, "demon"],
   ["树人", "#577a45", 95, 18, 19, "normal"],
   ["强盗", "#92816d", 36, 42, 11, "normal"],
   ["暗精灵", "#8e79d6", 28, 82, 14, "ranged"]
@@ -197,21 +212,68 @@ const eliteBook = [
 
 const bossBook = [
   ["比蒙巨兽", "#9a7252", 900, 24, 250],
-  ["利维坦", "#4387a7", 850, 30, 250],
   ["海德拉", "#577f42", 1100, 26, 280],
   ["耶梦加得", "#4d8b66", 1800, 30, 500],
   ["芬里厄", "#cfd6df", 1500, 52, 500],
   ["克苏鲁随从", "#446b69", 1650, 34, 500]
 ];
 
+const classBook = {
+  elementMage: {
+    name: "大魔女",
+    desc: "连锁闪电开局，后期通过元素组合打大范围爆发。",
+    skills: ["chainLightning"],
+    apply(player) {
+      player.fire *= 1.12;
+      player.arcane *= 1.08;
+    }
+  },
+  necromancer: {
+    name: "死灵法师",
+    desc: "驭灵术开局，幽灵绕身护卫，随从和亡灵系玩法更强。",
+    skills: ["spiritTaming"],
+    apply(player) {
+      player.arcane *= 1.12;
+      player.poison *= 1.06;
+      player.maxHp += 20;
+      player.hp += 20;
+    }
+  },
+  stormAdept: {
+    name: "风暴术士",
+    desc: "龙卷风与连锁闪电开局，移动更快，适合拉扯远程怪。",
+    skills: ["tornado", "chainLightning"],
+    apply(player) {
+      player.speed *= 1.08;
+      player.wind *= 1.12;
+      player.lightning *= 1.1;
+    }
+  },
+  earthWarden: {
+    name: "大地守卫",
+    desc: "地震与霜冻新星开局，生命和防御更高，前期更稳。",
+    skills: ["earthquake", "frostNova"],
+    apply(player) {
+      player.maxHp += 45;
+      player.hp += 45;
+      player.defense += 2;
+      player.earth *= 1.12;
+    }
+  }
+};
+
 let state;
 
-function newState() {
-  return {
+function newState(classId = "elementMage") {
+  const selectedClass = classBook[classId] || classBook.elementMage;
+  const nextState = {
     running: false,
     paused: false,
+    classId,
+    className: selectedClass.name,
     time: 0,
     spawn: 0,
+    saveClock: 0,
     projectiles: [],
     enemyShots: [],
     zones: [],
@@ -228,17 +290,106 @@ function newState() {
       fire: 1, ice: 1, wind: 1, earth: 1, lightning: 1, arcane: 1, poison: 1,
       regen: 0.7, crit: 0.05, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, ward: 0, hitGrace: 0
     },
-    skills: { fireBreath: skillState("fireBreath"), magicBolt: skillState("magicBolt") },
+    skills: Object.fromEntries(selectedClass.skills.map(id => [id, skillState(id)])),
     followers: [],
     items: [],
     artifacts: [],
     worldBosses: Object.fromEntries(Object.entries(WORLD_BOSS_SITES).map(([id, site]) => [id, { ...site, spawned: false, defeated: false }])),
     last: performance.now()
   };
+  selectedClass.apply(nextState.player);
+  return nextState;
 }
 
 function skillState(id) {
   return { id, level: 1, t: rand(0, skillBook[id].cd || 1) };
+}
+
+function storageAvailable() {
+  try {
+    return typeof localStorage !== "undefined";
+  } catch {
+    return false;
+  }
+}
+
+function saveGame() {
+  if (!storageAvailable() || !state?.running || state.player.hp <= 0) return;
+  const cleanMonster = m => ({
+    x: m.x, y: m.y, r: m.r, name: m.name, color: m.color,
+    hp: m.hp, maxHp: m.maxHp, speed: m.speed, xp: m.xp,
+    tag: m.tag, kind: m.kind, worldBoss: !!m.worldBoss,
+    hit: 0, shoot: m.shoot || 0, attackMul: m.attackMul || 1,
+    attackCd: m.attackCd || 0, specialCd: m.specialCd || 0,
+    slow: m.slow || 0, poison: m.poison || null, disease: m.disease || null, blind: m.blind || 0
+  });
+  const save = {
+    version: 1,
+    savedAt: Date.now(),
+    classId: state.classId,
+    className: state.className,
+    time: state.time,
+    spawn: state.spawn,
+    player: state.player,
+    skills: state.skills,
+    followers: state.followers,
+    items: state.items,
+    artifacts: state.artifacts,
+    worldBosses: state.worldBosses,
+    monsters: state.monsters.map(cleanMonster),
+    gems: state.gems,
+    chests: state.chests,
+    heals: state.heals
+  };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+  } catch {
+    // Local storage can be unavailable in some browser modes.
+  }
+}
+
+function loadSavedGame() {
+  if (!storageAvailable()) return null;
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const save = JSON.parse(raw);
+    if (!save || save.version !== 1 || !save.player || save.player.hp <= 0) return null;
+    return save;
+  } catch {
+    return null;
+  }
+}
+
+function clearSave() {
+  if (!storageAvailable()) return;
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function restoreState(save) {
+  const restored = newState(save.classId || "elementMage");
+  restored.running = true;
+  restored.paused = false;
+  restored.time = save.time || 0;
+  restored.spawn = save.spawn || 0;
+  restored.className = classBook[save.classId]?.name || save.className || restored.className;
+  restored.player = { ...restored.player, ...save.player, hitGrace: 0 };
+  restored.skills = save.skills || restored.skills;
+  restored.followers = (save.followers || []).map(f => ({ ...f, hitGrace: 0, t: f.t || rand(0, 1) }));
+  restored.items = save.items || [];
+  restored.artifacts = save.artifacts || [];
+  restored.worldBosses = save.worldBosses || restored.worldBosses;
+  restored.monsters = (save.monsters || []).map(m => ({ ...m, hit: 0, charge: null }));
+  restored.gems = save.gems || [];
+  restored.chests = save.chests || [];
+  restored.heals = save.heals || [];
+  restored.terrain = terrainAt(restored.player.x, restored.player.y);
+  restored.last = performance.now();
+  return restored;
 }
 
 function terrainMod(key, fallback = 1) {
@@ -263,6 +414,18 @@ function areaMult(element) {
   if (element === "fire") v *= terrainMod("fireArea");
   if (element === "ice") v *= terrainMod("iceArea");
   return v;
+}
+
+function skillDamageMultiplier(level) {
+  return 1 + (level - 1) * 0.35;
+}
+
+function skillAreaMultiplier(level) {
+  return 1 + (level - 1) * 0.12;
+}
+
+function skillCooldownMultiplier(level) {
+  return Math.max(0.38, 1 - (level - 1) * 0.035);
 }
 
 function addText(text, x, y, color = "#fff") {
@@ -333,12 +496,26 @@ function nearestEnemy(from, range = 9999) {
   return best;
 }
 
+function nearestEnemyExcluding(from, range = 9999, excluded = new Set()) {
+  let best = null;
+  let bd = range;
+  for (const m of state.monsters) {
+    if (excluded.has(m)) continue;
+    const d = dist(from, m);
+    if (d < bd) {
+      best = m;
+      bd = d;
+    }
+  }
+  return best;
+}
+
 function castSkill(s) {
   const b = skillBook[s.id];
   const p = state.player;
   const lvl = s.level;
-  const dmg = b.damage * (1 + (lvl - 1) * 0.35) * p.damage * elementMult(b.element);
-  const area = b.area * (1 + (lvl - 1) * 0.12) * areaMult(b.element);
+  const dmg = b.damage * skillDamageMultiplier(lvl) * p.damage * diseaseAttackMult(p) * elementMult(b.element);
+  const area = b.area * skillAreaMultiplier(lvl) * areaMult(b.element);
   if (state.skills.staticField && b.type !== "passive") {
     damageCircle(p.x, p.y, 95 * p.area, skillBook.staticField.damage * (1 + (state.skills.staticField.level - 1) * 0.35) * p.lightning, "lightning", false);
     addRing(p.x, p.y, 95 * p.area, "rgba(255,238,78,.85)", 0.22);
@@ -349,6 +526,9 @@ function castSkill(s) {
     if (!target) return;
     fireProjectile(p.x, p.y, target.x, target.y, 430, dmg, 6, b.element, "#d9b8ff");
     if (s.id === "arrow") addLine(p.x, p.y, target.x, target.y, "rgba(255,246,170,.85)", 5, 0.18, false);
+  } else if (b.type === "fireball") {
+    const target = nearestEnemy(p) || { x: p.x + 1, y: p.y };
+    castFireballVolley(p, target, lvl, dmg);
   } else if (b.type === "line") {
     const target = nearestEnemy(p);
     if (!target) return;
@@ -357,7 +537,7 @@ function castSkill(s) {
   } else if (b.type === "cone") {
     const target = nearestEnemy(p) || { x: p.x + 1, y: p.y };
     const ang = Math.atan2(target.y - p.y, target.x - p.x);
-    state.zones.push({ x: p.x, y: p.y, a: ang, r: area, life: 0.28, maxLife: 0.28, damage: dmg * 0.13, element: b.element, type: "cone", color: "rgba(255,111,49,.34)", grow: 1.2 });
+    state.zones.push({ x: p.x, y: p.y, a: ang, r: area, life: 0.32, maxLife: 0.32, damage: dmg * 0.13, element: b.element, type: s.id === "fireBreath" ? "fireBreathFx" : "cone", color: "rgba(255,111,49,.28)", grow: 1.2 });
     addParticles(p.x + Math.cos(ang) * 45, p.y + Math.sin(ang) * 45, "rgba(255,180,84,.9)", 12, 55, 0.35);
   } else if (b.type === "meteor") {
     const target = nearestEnemy(p) || { x: rand(120, W - 120), y: rand(90, H - 90) };
@@ -369,7 +549,7 @@ function castSkill(s) {
     state.zones.push({ x, y, r: area, life: 0.5, maxLife: 0.5, damage: dmg, element: b.element, type: "burst", color: "rgba(255,91,48,.30)", spin: 3, grow: 2.0 });
   } else if (b.type === "aura" || b.type === "cloud") {
     const target = nearestEnemy(p, 500) || p;
-    state.zones.push({ x: target.x, y: target.y, r: area, life: 3.2, maxLife: 3.2, damage: dmg * 0.22, element: b.element, type: b.element === "wind" ? "spiral" : "dot", color: b.element === "ice" ? "rgba(150,220,255,.25)" : b.element === "poison" ? "rgba(103,212,95,.23)" : "rgba(214,190,92,.22)", spin: b.element === "wind" ? 5 : -1, grow: 0.05 });
+    state.zones.push({ x: s.id === "sandstorm" ? p.x : target.x, y: s.id === "sandstorm" ? p.y : target.y, followPlayer: s.id === "sandstorm", r: s.id === "poisonCloud" ? area * 0.58 : area, maxR: area, life: s.id === "poisonCloud" ? 4.2 : 3.2, maxLife: s.id === "poisonCloud" ? 4.2 : 3.2, damage: dmg * 0.22, element: b.element, type: s.id === "blizzard" ? "blizzardFx" : s.id === "poisonCloud" ? "poisonCloudFx" : s.id === "sandstorm" ? "sandstormFx" : b.element === "wind" ? "spiral" : "dot", color: b.element === "ice" ? "rgba(150,220,255,.22)" : b.element === "poison" ? "rgba(103,212,95,.20)" : "rgba(214,190,92,.20)", spin: s.id === "blizzard" ? 2.2 : s.id === "poisonCloud" ? 1.6 : s.id === "sandstorm" ? 2.8 : b.element === "wind" ? 5 : -1, grow: s.id === "poisonCloud" ? 1.5 : 0.05, poisonDamage: b.element === "poison" ? dmg * 0.16 : 0, blind: s.id === "sandstorm" });
     if (b.element === "poison") addParticles(target.x, target.y, "rgba(128,255,105,.65)", 18, area * 0.45, 2.4);
   } else if (b.type === "nova") {
     damageCircle(p.x, p.y, area, dmg, b.element, true);
@@ -377,13 +557,19 @@ function castSkill(s) {
     addRing(p.x, p.y, area, "rgba(210,250,255,.9)", 0.45);
     addParticles(p.x, p.y, "rgba(190,245,255,.85)", 20, area * 0.48, 0.55);
   } else if (b.type === "strike" || b.type === "chain") {
-    const hits = b.type === "chain" ? 3 + Math.floor(lvl / 2) : 2 + Math.floor(lvl / 2);
-    for (let i = 0; i < hits; i++) {
-      const target = nearestEnemy(p, area);
-      if (target) hitMonster(target, dmg, b.element);
-      if (target) {
-        addLightning(target.x + rand(-35, 35), target.y - rand(80, 130), target.x, target.y);
-        state.zones.push({ x: target.x, y: target.y, r: 28, life: 0.18, maxLife: 0.18, damage: 0, element: b.element, type: "visual", color: "rgba(255,245,136,.45)", grow: 1.8 });
+    if (b.type === "chain") castChainLightning(p, lvl, area, dmg, b.element);
+    else {
+      const hits = s.id === "thunderCloud" ? lvl : 2 + Math.floor(lvl / 2);
+      const used = new Set();
+      for (let i = 0; i < hits; i++) {
+        const target = nearestEnemyExcluding(p, area, used);
+        if (target) hitMonster(target, dmg, b.element);
+        if (target) {
+          used.add(target);
+          addLightning(target.x + rand(-35, 35), target.y - rand(80, 130), target.x, target.y);
+          if (s.id === "thunderCloud") state.zones.push({ x: target.x, y: target.y - 38, r: 72, life: 0.32, maxLife: 0.32, damage: 0, element: b.element, type: "thunderCloudFx", color: "rgba(82,155,255,.28)", grow: 1.1 });
+          state.zones.push({ x: target.x, y: target.y, r: 28, life: 0.18, maxLife: 0.18, damage: 0, element: b.element, type: "visual", color: "rgba(255,245,136,.45)", grow: 1.8 });
+        }
       }
     }
   } else if (b.type === "quake") {
@@ -428,12 +614,131 @@ function castSkill(s) {
       const a = rand(0, Math.PI * 2);
       addLine(p.x, p.y, p.x + Math.cos(a) * area, p.y + Math.sin(a) * area, "rgba(255,210,80,.75)", 7, 0.65, true);
     }
+  } else if (b.type === "plagueBolt") {
+    const target = nearestEnemy(p) || { x: p.x + 1, y: p.y };
+    firePlagueBolt(p.x, p.y, target.x, target.y, dmg, area, lvl);
   }
 }
 
 function fireProjectile(x, y, tx, ty, speed, damage, r, element, color, pierce = false) {
   const a = Math.atan2(ty - y, tx - x);
   state.projectiles.push({ x, y, px: x, py: y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, damage, r, element, color, life: 2.2, pierce, hit: new Set(), angle: a });
+}
+
+function castFireballVolley(origin, target, level, damage) {
+  const base = Math.atan2(target.y - origin.y, target.x - origin.x);
+  const count = Math.min(7, 1 + Math.floor((level - 1) / 1));
+  const spread = Math.min(0.58, 0.11 * (count - 1));
+  for (let i = 0; i < count; i++) {
+    const offset = count === 1 ? 0 : -spread * 0.5 + spread * (i / (count - 1));
+    const a = base + offset;
+    const x = origin.x + Math.cos(a) * 26;
+    const y = origin.y + Math.sin(a) * 26;
+    state.projectiles.push({
+      kind: "fireballSkill",
+      x,
+      y,
+      px: origin.x,
+      py: origin.y,
+      vx: Math.cos(a) * 520,
+      vy: Math.sin(a) * 520,
+      damage: damage * 0.86,
+      r: 12,
+      element: "fire",
+      color: "rgba(255,128,34,.95)",
+      life: 1.55,
+      maxLife: 1.55,
+      pierce: true,
+      hit: new Set(),
+      angle: a,
+      spin: rand(0, Math.PI * 2)
+    });
+  }
+}
+
+function firePlagueBolt(x, y, tx, ty, damage, area, level) {
+  const a = Math.atan2(ty - y, tx - x);
+  const maxDist = 360 + level * 42;
+  const targetDist = Math.hypot(tx - x, ty - y);
+  const travel = Math.min(maxDist, Math.max(160, targetDist));
+  const endX = x + Math.cos(a) * travel;
+  const endY = y + Math.sin(a) * travel;
+  state.projectiles.push({
+    kind: "blackPlague",
+    x: x + Math.cos(a) * 24,
+    y: y + Math.sin(a) * 24,
+    px: x,
+    py: y,
+    vx: Math.cos(a) * 390,
+    vy: Math.sin(a) * 390,
+    tx: endX,
+    ty: endY,
+    damage,
+    area,
+    r: 12,
+    element: "poison",
+    color: "rgba(188,86,255,.95)",
+    life: travel / 390 + 0.12,
+    maxLife: travel / 390 + 0.12,
+    pierce: false,
+    hit: new Set(),
+    angle: a,
+    spin: rand(0, Math.PI * 2)
+  });
+  addLine(x, y, x + Math.cos(a) * 44, y + Math.sin(a) * 44, "rgba(194,88,255,.48)", 6, 0.2, true);
+}
+
+function explodeBlackPlague(pr) {
+  damageCircle(pr.x, pr.y, pr.area, pr.damage, "poison", true);
+  for (const m of state.monsters) {
+    if (Math.hypot(m.x - pr.x, m.y - pr.y) < pr.area + m.r) {
+      applyPoison(m, pr.damage * 0.12, 6);
+      applyDisease(m, pr.damage * 0.05, 8);
+    }
+  }
+  state.zones.push({
+    x: pr.x,
+    y: pr.y,
+    r: pr.area * 0.7,
+    maxR: pr.area * 1.08,
+    life: 2.2,
+    maxLife: 2.2,
+    damage: pr.damage * 0.13,
+    element: "poison",
+    type: "blackPlagueFx",
+    color: "rgba(142,62,220,.22)",
+    spin: 2.4,
+    grow: 1.4,
+    poisonDamage: pr.damage * 0.08
+  });
+  addRing(pr.x, pr.y, pr.area, "rgba(205,92,255,.84)", 0.52);
+}
+
+function castChainLightning(origin, level, range, damage, element) {
+  let current = nearestEnemy(origin, range);
+  if (!current) return;
+  const hit = new Set();
+  let from = origin;
+  const jumps = level * 2;
+  for (let i = 0; i < jumps && current; i++) {
+    hit.add(current);
+    hitMonster(current, damage * (1 - i * 0.04), element);
+    addLightning(from.x + rand(-8, 8), from.y + rand(-8, 8), current.x, current.y);
+    addChainLightningSprite(from.x, from.y, current.x, current.y);
+    state.zones.push({ x: current.x, y: current.y, r: 28, life: 0.18, maxLife: 0.18, damage: 0, element, type: "visual", color: "rgba(255,245,136,.45)", grow: 1.8 });
+    from = current;
+    let next = null;
+    let bd = Math.min(170 + level * 18, range);
+    for (const m of state.monsters) {
+      if (hit.has(m)) continue;
+      const d = Math.hypot(m.x - current.x, m.y - current.y);
+      if (d < bd) {
+        bd = d;
+        next = m;
+      }
+    }
+    current = next;
+  }
 }
 
 function fireEnemyShot(m, p) {
@@ -447,7 +752,7 @@ function fireEnemyShot(m, p) {
     vx: Math.cos(a) * speed,
     vy: Math.sin(a) * speed,
     r: 5,
-    damage: Math.max(1, 10 * timeGrowth() - effectiveDefense()) * (1 - state.player.groupReduce),
+    damage: Math.max(1, 10 * timeGrowth() * diseaseAttackMult(m) - effectiveDefense()) * (1 - state.player.groupReduce),
     color: m.name === "暗精灵" ? "rgba(196,150,255,.95)" : "rgba(255,218,126,.95)",
     life: 3.2,
     angle: a
@@ -468,7 +773,7 @@ function fireEnemyBoulder(m, target) {
     vx: Math.cos(a) * 285,
     vy: Math.sin(a) * 285,
     r: 13,
-    damage: Math.max(3, 18 * timeGrowth() - effectiveDefense() * 0.5) * (1 - state.player.groupReduce),
+    damage: Math.max(3, 18 * timeGrowth() * diseaseAttackMult(m) - effectiveDefense() * 0.5) * (1 - state.player.groupReduce),
     color: "rgba(164,126,82,.95)",
     life: 3.4,
     angle: a,
@@ -709,7 +1014,7 @@ function hydraPoisonCloud(m, target) {
   const x = target.x + rand(-60, 60);
   const y = target.y + rand(-60, 60);
   const radius = 165;
-  state.zones.push({ x, y, r: radius, life: 4.2, maxLife: 4.2, damage: 0, element: "poison", type: "enemyPoison", color: "rgba(86,205,68,.24)", grow: 0.02, tick: 0 });
+  state.zones.push({ x, y, r: radius, life: 4.2, maxLife: 4.2, damage: 0, element: "poison", type: "enemyPoison", color: "rgba(86,205,68,.20)", spin: 1.4, grow: 0.02, tick: 0 });
   addText("毒气云", x - 28, y - radius * 0.45, "#9cff76");
   addParticles(x, y, "rgba(112,255,84,.62)", 24, radius * 0.48, 2.4);
 }
@@ -868,6 +1173,24 @@ function hitMonster(m, amount, element) {
   if (crit) addText("暴击", m.x - 12, m.y - 18, "#ffd36b");
 }
 
+function applyBlind(target, duration = 3.2) {
+  target.blind = Math.max(target.blind || 0, duration);
+}
+
+function monsterAttackMisses(m) {
+  if ((m.blind || 0) <= 0 || Math.random() >= 0.5) return false;
+  addText("MISS", m.x - 16, m.y - 24, "#f2d38a");
+  return true;
+}
+
+function addChainLightningSprite(x1, y1, x2, y2) {
+  state.effects.push({ type: "chainSprite", x1, y1, x2, y2, life: 0.22, maxLife: 0.22 });
+}
+
+function isZombieMonster(m) {
+  return monsterAssetByName[m.name] === "Zombie.png" || m.name === "Zombie";
+}
+
 function damageCircle(x, y, r, damage, element, slow) {
   for (const m of state.monsters) {
     if (Math.hypot(m.x - x, m.y - y) < r + m.r) {
@@ -877,11 +1200,66 @@ function damageCircle(x, y, r, damage, element, slow) {
   }
 }
 
+function spiritOrbitConfig() {
+  const s = state.skills.spiritTaming;
+  if (!s) return null;
+  const b = skillBook.spiritTaming;
+  const lvl = clamp(s.level, 1, 7);
+  const count = lvl * 2;
+  const area = b.area * skillAreaMultiplier(lvl) * state.player.area;
+  const damage = b.damage * skillDamageMultiplier(lvl) * state.player.damage * elementMult(b.element);
+  return {
+    level: lvl,
+    count,
+    damage,
+    inner: area * 0.78,
+    outer: area * 1.34,
+    hitRadius: 17 + lvl * 1.4
+  };
+}
+
+function spiritOrbitPoints(cfg) {
+  const p = state.player;
+  const points = [];
+  const innerCount = Math.ceil(cfg.count / 2);
+  const outerCount = cfg.count - innerCount;
+  const t = state.time;
+  for (let i = 0; i < innerCount; i++) {
+    const a = t * 2.25 + i * Math.PI * 2 / innerCount;
+    points.push({ x: p.x + Math.cos(a) * cfg.inner, y: p.y + Math.sin(a) * cfg.inner, a, layer: 0, index: i });
+  }
+  for (let i = 0; i < outerCount; i++) {
+    const a = -t * 1.65 + i * Math.PI * 2 / Math.max(1, outerCount) + Math.PI / 5;
+    points.push({ x: p.x + Math.cos(a) * cfg.outer, y: p.y + Math.sin(a) * cfg.outer, a, layer: 1, index: innerCount + i });
+  }
+  return points;
+}
+
+function updateSpiritOrbit(dt) {
+  const cfg = spiritOrbitConfig();
+  if (!cfg) return;
+  const points = spiritOrbitPoints(cfg);
+  const damage = cfg.damage * dt;
+  for (const m of state.monsters) {
+    for (const g of points) {
+      if (Math.hypot(m.x - g.x, m.y - g.y) < m.r + cfg.hitRadius) {
+        hitMonster(m, damage, "arcane");
+        m.slow = Math.max(m.slow || 0, 0.25);
+      }
+    }
+  }
+}
+
 function update(dt) {
   if (!state.running || state.paused) return;
   const p = state.player;
   state.time += dt;
   state.spawn -= dt;
+  state.saveClock = (state.saveClock || 0) + dt;
+  if (state.saveClock >= 4) {
+    state.saveClock = 0;
+    saveGame();
+  }
   state.healTimer = (state.healTimer ?? rand(12, 22)) - dt;
   const prevTerrain = state.terrain;
   state.terrain = terrainAt(p.x, p.y);
@@ -889,6 +1267,7 @@ function update(dt) {
   p.ward = Math.max(0, p.ward - dt);
   p.hitGrace = Math.max(0, p.hitGrace - dt);
   updatePoisonStatus(p, dt);
+  updateDiseaseStatus(p, dt);
   p.hp = Math.min(p.maxHp, p.hp + p.regen * dt);
   if (state.healTimer <= 0) {
     spawnHeal();
@@ -904,8 +1283,8 @@ function update(dt) {
   mx += touchMove.x;
   my += touchMove.y;
   const len = Math.hypot(mx, my) || 1;
-  p.x += (mx / len) * p.speed * dt;
-  p.y += (my / len) * p.speed * dt;
+  p.x += (mx / len) * p.speed * diseaseMoveMult(p) * dt;
+  p.y += (my / len) * p.speed * diseaseMoveMult(p) * dt;
 
   if (state.spawn <= 0) {
     const count = state.time > 90 ? 3 : state.time > 35 ? 2 : 1;
@@ -923,10 +1302,11 @@ function update(dt) {
     s.t -= dt;
     if (s.t <= 0) {
       castSkill(s);
-      s.t = b.cd * p.cooldown * Math.max(0.38, 1 - (s.level - 1) * 0.035);
+      s.t = b.cd * p.cooldown * skillCooldownMultiplier(s.level);
     }
   }
   if (state.skills.absoluteZero) damageCircle(p.x, p.y, skillBook.absoluteZero.area * p.area, 6 * dt * 60, "ice", true);
+  updateSpiritOrbit(dt);
 
   updateFollowers(dt);
   updateProjectiles(dt);
@@ -942,10 +1322,11 @@ function update(dt) {
   if (p.healPulse && Math.floor((state.time - dt) / 9) < Math.floor(state.time / 9)) p.hp = Math.min(p.maxHp, p.hp + 30);
   if (p.hp <= 0) {
     state.running = false;
+    clearSave();
     startPanel.classList.remove("hidden");
     startPanel.querySelector("h1").textContent = "生存结束";
     startPanel.querySelector("p").textContent = `坚持 ${Math.floor(state.time)} 秒 · 等级 ${p.level}`;
-    startBtn.textContent = "重新开始";
+    renderStartMenu();
   }
 }
 
@@ -965,6 +1346,29 @@ function applyPoison(target, damage, duration = 6) {
   addText("中毒", target.x - 16, target.y - 38, "#85ff65");
 }
 
+function updateDiseaseStatus(target, dt) {
+  if (!target.disease || target.disease.time <= 0) return;
+  target.disease.time -= dt;
+  target.disease.tick = (target.disease.tick || 0) - dt;
+  if (target.disease.tick <= 0) {
+    target.disease.tick = 1.2;
+    target.hp -= target.disease.damage || 0;
+    addText("Disease", target.x - 24, target.y - 36, "#b677ff");
+  }
+}
+
+function applyDisease(target, damage = 2, duration = 7) {
+  target.disease = { time: Math.max(target.disease?.time || 0, duration), tick: 0.8, damage: Math.max(target.disease?.damage || 0, damage) };
+}
+
+function diseaseMoveMult(target) {
+  return target?.disease?.time > 0 ? 0.65 : 1;
+}
+
+function diseaseAttackMult(target) {
+  return target?.disease?.time > 0 ? 0.7 : 1;
+}
+
 function updateWorldBossSites() {
   const p = state.player;
   for (const site of Object.values(state.worldBosses || {})) {
@@ -981,12 +1385,20 @@ function updateWorldBossSites() {
 function updateFollowers(dt) {
   const p = state.player;
   p.followerDefense = state.followers.reduce((sum, f) => sum + (f.id === "golem" ? 3 : f.id === "giant" ? 6 : 0), 0);
+  p.followerAttackAura = Math.min(0.75, state.followers.filter(f => f.id === "knight" && f.hp > 0).length * 0.18);
   for (let i = state.followers.length - 1; i >= 0; i--) {
     const f = state.followers[i];
     const grownMax = Math.floor((f.baseMaxHp || f.maxHp || followerMaxHp(f)) * timeGrowth());
     if (grownMax > f.maxHp) {
       f.hp += grownMax - f.maxHp;
       f.maxHp = grownMax;
+    }
+    if (f.hp <= 0 && isSkeletonFollower(f) && !f.rebirthUsed) {
+      f.rebirthUsed = true;
+      f.hp = Math.max(1, f.maxHp * (0.45 + f.tier * 0.08));
+      f.hitGrace = 1.2;
+      addText("重生", f.x - 18, f.y - 32, "#cfe8ff");
+      addRing(f.x, f.y, 54 + f.tier * 18, "rgba(196,226,255,.9)", 0.6);
     }
     if (f.hp <= 0) {
       addText(`${f.name} 倒下`, f.x - 24, f.y - 28, "#d7b08a");
@@ -995,6 +1407,8 @@ function updateFollowers(dt) {
     }
     f.hitGrace = Math.max(0, (f.hitGrace || 0) - dt);
     updatePoisonStatus(f, dt);
+    updateDiseaseStatus(f, dt);
+    updateFollowerSpiritOrbit(f, dt);
     const target = nearestEnemy(f, f.range + 170);
     const home = { x: p.x + ((i % 3) - 1) * 34, y: p.y + 42 + Math.floor(i / 3) * 18 };
     const moveTarget = target || home;
@@ -1002,7 +1416,7 @@ function updateFollowers(dt) {
     const dx = moveTarget.x - f.x;
     const dy = moveTarget.y - f.y;
     const d = Math.hypot(dx, dy) || 1;
-    const speed = target ? 185 : 230;
+    const speed = (target ? 185 : 230) * diseaseMoveMult(f);
     if (!target || d > desired) {
       f.x += (dx / d) * speed * dt;
       f.y += (dy / d) * speed * dt;
@@ -1015,14 +1429,35 @@ function updateFollowers(dt) {
     if (f.t <= 0) {
       const attackTarget = nearestEnemy(f, f.range);
       if (attackTarget) followerAttack(f, attackTarget);
-      f.t = f.id === "golem" ? 1.15 : f.id === "giant" ? 1.25 : f.id === "lotus" ? 1.65 : f.id === "balrog" ? 1.05 : 0.95;
+      f.t = f.id === "knight" ? 0.9 : f.id === "swordsman" ? 0.88 : f.id === "militia" ? 0.98 : f.id === "reaper" ? 0.86 : f.id === "skeletonWarrior" ? 0.92 : f.id === "skeleton" ? 0.98 : f.id === "golem" ? 1.15 : f.id === "giant" ? 1.25 : f.id === "lotus" ? 1.65 : f.id === "balrog" ? 1.05 : 0.95;
     }
   }
 }
 
+function isSkeletonFollower(f) {
+  return f.id === "skeleton" || f.id === "skeletonWarrior" || f.id === "reaper";
+}
+
+function isHumanFollower(f) {
+  return f.id === "militia" || f.id === "swordsman" || f.id === "knight";
+}
+
 function followerAttack(f, target) {
   const p = state.player;
-  const damage = f.damage * timeGrowth() * p.damage * (1 + (f.tier - 1) * 0.18);
+  const damage = f.damage * timeGrowth() * p.damage * diseaseAttackMult(f) * (1 + (f.tier - 1) * 0.18) * (1 + (p.followerAttackAura || 0));
+  if (isHumanFollower(f)) {
+    f.cast = 0.28 + f.tier * 0.08;
+    f.face = Math.atan2(target.y - f.y, target.x - f.x);
+    if (f.id === "militia") militiaStrike(f, target, damage);
+    else humanCleave(f, target, damage);
+    return;
+  }
+  if (isSkeletonFollower(f)) {
+    f.cast = 0.36 + f.tier * 0.08;
+    f.face = Math.atan2(target.y - f.y, target.x - f.x);
+    skeletonSweep(f, target, damage);
+    return;
+  }
   if (f.id === "furnace") {
     f.cast = 0.32;
     fireFollowerFireball(f, target, damage * 1.08);
@@ -1058,6 +1493,90 @@ function followerAttack(f, target) {
     return;
   }
   fireProjectile(f.x, f.y, target.x, target.y, 360, damage, f.tier >= 2 ? 6 : 5, f.element, f.element === "fire" ? "#ff8a42" : f.element === "ice" ? "#9deaff" : "#c7a16a");
+}
+
+function skeletonSweep(f, target, damage) {
+  const a = Math.atan2(target.y - f.y, target.x - f.x);
+  const radius = 46 + f.tier * 18;
+  const arc = f.tier === 3 ? Math.PI * 0.92 : Math.PI * 0.72;
+  for (const m of state.monsters) {
+    const d = Math.hypot(m.x - f.x, m.y - f.y);
+    if (d > radius + m.r) continue;
+    const ma = Math.atan2(m.y - f.y, m.x - f.x);
+    const diff = Math.abs(Math.atan2(Math.sin(ma - a), Math.cos(ma - a)));
+    if (diff < arc * 0.5 || d < 30 + f.tier * 6) hitMonster(m, damage * (f.tier === 3 ? 1.12 : 1), f.element);
+  }
+  addRing(f.x, f.y, radius, f.tier === 3 ? "rgba(150,205,255,.78)" : "rgba(214,224,230,.68)", 0.22);
+  addLine(f.x, f.y, f.x + Math.cos(a - arc * 0.42) * radius, f.y + Math.sin(a - arc * 0.42) * radius, "rgba(210,228,255,.48)", 6, 0.16, true);
+  addLine(f.x, f.y, f.x + Math.cos(a + arc * 0.42) * radius, f.y + Math.sin(a + arc * 0.42) * radius, "rgba(210,228,255,.48)", 6, 0.16, true);
+  if (f.id === "reaper") addParticles(target.x, target.y, "rgba(164,218,255,.52)", 8, 44, 0.45);
+}
+
+function militiaStrike(f, target, damage) {
+  const a = Math.atan2(target.y - f.y, target.x - f.x);
+  hitMonster(target, damage * 1.05, "physical");
+  target.x += Math.cos(a) * 10;
+  target.y += Math.sin(a) * 10;
+  addLine(f.x, f.y, target.x, target.y, "rgba(205,215,225,.65)", 5, 0.13, false);
+  addRing(target.x, target.y, 24, "rgba(205,215,225,.55)", 0.18);
+}
+
+function humanCleave(f, target, damage) {
+  const a = Math.atan2(target.y - f.y, target.x - f.x);
+  const radius = f.id === "knight" ? 86 : 64;
+  const arc = f.id === "knight" ? Math.PI * 0.88 : Math.PI * 0.72;
+  for (const m of state.monsters) {
+    const d = Math.hypot(m.x - f.x, m.y - f.y);
+    if (d > radius + m.r) continue;
+    const ma = Math.atan2(m.y - f.y, m.x - f.x);
+    const diff = Math.abs(Math.atan2(Math.sin(ma - a), Math.cos(ma - a)));
+    if (diff < arc * 0.5 || d < 28) {
+      hitMonster(m, damage * (f.id === "knight" ? 1.18 : 1), "physical");
+      m.x += Math.cos(a) * (f.id === "knight" ? 14 : 8);
+      m.y += Math.sin(a) * (f.id === "knight" ? 14 : 8);
+    }
+  }
+  addRing(f.x, f.y, radius, f.id === "knight" ? "rgba(255,228,134,.72)" : "rgba(210,222,235,.62)", 0.24);
+  addLine(f.x, f.y, f.x + Math.cos(a - arc * 0.42) * radius, f.y + Math.sin(a - arc * 0.42) * radius, "rgba(230,238,245,.52)", 7, 0.16, true);
+  addLine(f.x, f.y, f.x + Math.cos(a + arc * 0.42) * radius, f.y + Math.sin(a + arc * 0.42) * radius, "rgba(230,238,245,.52)", 7, 0.16, true);
+  if (f.id === "knight") addParticles(f.x, f.y, "rgba(255,220,110,.42)", 8, radius * 0.6, 0.35);
+}
+
+function followerSpiritConfig(f) {
+  if (!isSkeletonFollower(f)) return null;
+  return {
+    count: f.tier * 2,
+    radius: 34 + f.tier * 22,
+    hitRadius: 11 + f.tier * 2,
+    damage: (4 + f.tier * 3) * timeGrowth() * state.player.damage,
+    speed: 1.7 + f.tier * 0.25
+  };
+}
+
+function followerSpiritPoints(f, cfg) {
+  const points = [];
+  const t = state.time * cfg.speed + (f.x + f.y) * 0.003;
+  for (let i = 0; i < cfg.count; i++) {
+    const layer = i % 2;
+    const r = cfg.radius * (layer ? 1.22 : 0.78);
+    const a = (layer ? -t : t) + i * Math.PI * 2 / cfg.count;
+    points.push({ x: f.x + Math.cos(a) * r, y: f.y + Math.sin(a) * r, a, index: i, layer });
+  }
+  return points;
+}
+
+function updateFollowerSpiritOrbit(f, dt) {
+  const cfg = followerSpiritConfig(f);
+  if (!cfg) return;
+  const points = followerSpiritPoints(f, cfg);
+  for (const m of state.monsters) {
+    for (const g of points) {
+      if (Math.hypot(m.x - g.x, m.y - g.y) < m.r + cfg.hitRadius) {
+        hitMonster(m, cfg.damage * dt, "arcane");
+        if (f.id === "reaper") m.slow = Math.max(m.slow || 0, 0.2);
+      }
+    }
+  }
 }
 
 function fireFollowerFireball(f, target, damage) {
@@ -1263,6 +1782,29 @@ function updateProjectiles(dt) {
       }
       continue;
     }
+    if (pr.kind === "blackPlague") {
+      pr.spin += dt * 5;
+      pr.x += pr.vx * dt;
+      pr.y += pr.vy * dt;
+      pr.life -= dt;
+      if (Math.random() < 0.45) {
+        addLine(pr.x, pr.y, pr.x - pr.vx * 0.045 + rand(-16, 16), pr.y - pr.vy * 0.045 + rand(-16, 16), "rgba(180,80,255,.45)", rand(4, 9), 0.18, true);
+      }
+      let detonated = Math.hypot(pr.x - pr.tx, pr.y - pr.ty) < 26 || pr.life <= 0;
+      if (!detonated) {
+        for (const m of state.monsters) {
+          if (Math.hypot(pr.x - m.x, pr.y - m.y) < pr.r + m.r) {
+            detonated = true;
+            break;
+          }
+        }
+      }
+      if (detonated) {
+        explodeBlackPlague(pr);
+        state.projectiles.splice(i, 1);
+      }
+      continue;
+    }
     pr.x += pr.vx * dt;
     pr.y += pr.vy * dt;
     if (pr.kind === "furnaceFireball") {
@@ -1272,6 +1814,13 @@ function updateProjectiles(dt) {
         pr.trail = 0.055;
         const back = Math.atan2(pr.vy, pr.vx) + Math.PI + rand(-0.45, 0.45);
         addLine(pr.x, pr.y, pr.x + Math.cos(back) * rand(14, 30), pr.y + Math.sin(back) * rand(14, 30), "rgba(255,121,35,.42)", rand(2, 5), 0.14, true);
+      }
+    }
+    if (pr.kind === "fireballSkill") {
+      pr.spin += dt * 10;
+      if (Math.random() < 0.35) {
+        const back = Math.atan2(pr.vy, pr.vx) + Math.PI + rand(-0.32, 0.32);
+        addLine(pr.x, pr.y, pr.x + Math.cos(back) * rand(18, 38), pr.y + Math.sin(back) * rand(18, 38), "rgba(255,118,24,.45)", rand(4, 8), 0.16, true);
       }
     }
     pr.life -= dt;
@@ -1310,6 +1859,7 @@ function updateEnemyShots(dt) {
     s.py = s.y;
     s.x += s.vx * dt;
     s.y += s.vy * dt;
+    s.angle = Math.atan2(s.vy, s.vx);
     if (s.kind === "rock") s.spin = (s.spin || 0) + dt * 8;
     s.life -= dt;
     let hitFollower = null;
@@ -1342,6 +1892,10 @@ function updateZones(dt) {
     const z = state.zones[i];
     z.life -= dt;
     z.angle = (z.angle || 0) + (z.spin || 0) * dt;
+    if (z.followPlayer) {
+      z.x = state.player.x;
+      z.y = state.player.y;
+    }
     if (z.type === "movingSpiral") {
       const target = nearestEnemy(z, z.seek || 260);
       if (target) {
@@ -1354,6 +1908,7 @@ function updateZones(dt) {
       if (Math.random() < 0.25) addLine(z.x + rand(-12, 12), z.y + rand(-12, 12), z.x + rand(-42, 42), z.y + rand(-42, 42), z.element === "fire" ? "rgba(255,146,52,.32)" : "rgba(225,245,230,.25)", 3, 0.12, true);
     }
     z.r += (z.grow || 0) * dt * 45;
+    if (z.maxR) z.r = Math.min(z.r, z.maxR);
     if (z.type === "enemyPoison") {
       z.tick = (z.tick || 0) - dt;
       if (z.tick <= 0) {
@@ -1361,6 +1916,18 @@ function updateZones(dt) {
         damagePlayerAndFollowersCircle(z.x, z.y, z.r, 11 * timeGrowth(), "#83ff72");
       }
       if (Math.random() < 0.12) addParticles(z.x + rand(-z.r * 0.55, z.r * 0.55), z.y + rand(-z.r * 0.55, z.r * 0.55), "rgba(122,255,86,.36)", 2, 26, 1.2);
+    }
+    if (z.poisonDamage || z.blind) {
+      z.statusTick = (z.statusTick || 0) - dt;
+      if (z.statusTick <= 0) {
+        z.statusTick = 0.55;
+        for (const m of state.monsters) {
+          if (Math.hypot(m.x - z.x, m.y - z.y) < z.r + m.r) {
+            if (z.poisonDamage) applyPoison(m, z.poisonDamage, z.type === "blackPlagueFx" ? 6 : 4.5);
+            if (z.blind) applyBlind(m, 3.2);
+          }
+        }
+      }
     }
     if (z.damage > 0) {
       if (z.type === "cone") {
@@ -1414,12 +1981,14 @@ function updateMonsters(dt) {
       state.monsters.splice(i, 1);
       continue;
     }
+    updateDiseaseStatus(m, dt);
     const followerTarget = far > 360 ? nearestFollower(m, 430) : null;
     const target = followerTarget || p;
     const targetRadius = followerTarget ? 15 : p.r;
     const a = Math.atan2(target.y - m.y, target.x - m.x);
     const slow = m.slow ? 0.55 : 1;
     m.slow = Math.max(0, (m.slow || 0) - dt);
+    m.blind = Math.max(0, (m.blind || 0) - dt);
     m.hit = Math.max(0, m.hit - dt);
     m.attackCd = Math.max(0, (m.attackCd || 0) - dt);
     m.specialCd = Math.max(0, (m.specialCd || rand(1.3, 2.2)) - dt);
@@ -1485,11 +2054,11 @@ function updateMonsters(dt) {
         moveY = Math.sin(a + Math.PI / 2) * strafe;
       }
       const moveLen = Math.hypot(moveX, moveY) || 1;
-      m.x += (moveX / moveLen) * m.speed * slow * dt;
-      m.y += (moveY / moveLen) * m.speed * slow * dt;
+      m.x += (moveX / moveLen) * m.speed * slow * diseaseMoveMult(m) * dt;
+      m.y += (moveY / moveLen) * m.speed * slow * diseaseMoveMult(m) * dt;
     } else {
-      m.x += Math.cos(a) * m.speed * slow * dt;
-      m.y += Math.sin(a) * m.speed * slow * dt;
+      m.x += Math.cos(a) * m.speed * slow * diseaseMoveMult(m) * dt;
+      m.y += Math.sin(a) * m.speed * slow * diseaseMoveMult(m) * dt;
     }
     if (m.name === "独眼巨人" && m.specialCd <= 0) {
       const rangeToTarget = Math.hypot(target.x - m.x, target.y - m.y);
@@ -1502,15 +2071,25 @@ function updateMonsters(dt) {
       }
     }
     if (Math.hypot(target.x - m.x, target.y - m.y) < targetRadius + m.r && m.attackCd <= 0) {
-      const incoming = Math.max(1, 11 * timeGrowth() - (followerTarget ? 0 : effectiveDefense())) * (1 - (followerTarget ? 0 : p.groupReduce));
-      if (followerTarget) {
-        damageFollower(followerTarget, incoming);
-        if (m.name === "蝎狮") applyPoison(followerTarget, 4 * timeGrowth(), 6);
+      const incoming = Math.max(1, 11 * timeGrowth() * diseaseAttackMult(m) - (followerTarget ? 0 : effectiveDefense())) * (1 - (followerTarget ? 0 : p.groupReduce));
+      const missed = monsterAttackMisses(m);
+      if (missed) {
+        m.attackCd = m.kind === "boss" ? 0.55 : 0.85;
+        const push = Math.atan2(m.y - target.y, m.x - target.x);
+        m.x += Math.cos(push) * 22;
+        m.y += Math.sin(push) * 22;
+        continue;
       }
-      else if (p.hitGrace <= 0) {
-        p.hp -= incoming;
-        p.hitGrace = 0.45;
-        if (m.name === "蝎狮") applyPoison(p, 5 * timeGrowth(), 6);
+        if (followerTarget) {
+          damageFollower(followerTarget, incoming);
+          if (isZombieMonster(m)) applyDisease(followerTarget, 2.4 * timeGrowth(), 7);
+          if (m.name === "蝎狮") applyPoison(followerTarget, 4 * timeGrowth(), 6);
+        }
+        else if (p.hitGrace <= 0) {
+          p.hp -= incoming;
+          p.hitGrace = 0.45;
+          if (isZombieMonster(m)) applyDisease(p, 2.8 * timeGrowth(), 7);
+          if (m.name === "蝎狮") applyPoison(p, 5 * timeGrowth(), 6);
         addText(`-${Math.ceil(incoming)}`, p.x - 10, p.y - 28, "#ff7a66");
       }
       m.attackCd = m.kind === "boss" ? 0.55 : 0.85;
@@ -1524,7 +2103,7 @@ function updateMonsters(dt) {
       const shotTarget = far > 420 ? nearestFollower(m, 620) || p : p;
       const rangeToTarget = Math.hypot(shotTarget.x - m.x, shotTarget.y - m.y);
       if (m.shoot <= 0 && rangeToTarget < 620) {
-        fireEnemyShot(m, shotTarget);
+        if (!monsterAttackMisses(m)) fireEnemyShot(m, shotTarget);
         m.shoot = rand(2.2, 3.7);
       }
     }
@@ -1679,6 +2258,12 @@ function spawnFollower(src, x = state.player.x + rand(-28, 28), y = state.player
 }
 
 function followerMaxHp(src) {
+  if (src.id === "militia") return 82;
+  if (src.id === "swordsman") return 150;
+  if (src.id === "knight") return 270;
+  if (src.id === "skeleton") return 68;
+  if (src.id === "skeletonWarrior") return 128;
+  if (src.id === "reaper") return 230;
   const base = src.element === "earth" ? 95 : src.element === "fire" ? 78 : 72;
   return Math.floor(base * (1 + (src.tier - 1) * 0.85));
 }
@@ -1734,7 +2319,9 @@ function draw() {
   for (const pr of state.projectiles) drawProjectile(pr);
   for (const s of state.enemyShots) drawEnemyShot(s);
   for (const f of state.followers) drawFollower(f);
+  for (const f of state.followers) drawFollowerSpiritOrbit(f);
   for (const m of state.monsters) drawMonster(m);
+  drawSpiritOrbit();
   drawPlayer();
   ctx.restore();
   drawTopHud();
@@ -2053,6 +2640,89 @@ function shadeColor(hex, amount) {
   return `rgb(${r | 0},${g | 0},${b | 0})`;
 }
 
+function drawSpiritOrbit() {
+  const cfg = spiritOrbitConfig();
+  if (!cfg) return;
+  const img = effectImages.spiritTaming;
+  const points = spiritOrbitPoints(cfg);
+  const frames = [
+    { x: 260, y: 160, w: 220, h: 210 },
+    { x: 84, y: 274, w: 200, h: 220 },
+    { x: 512, y: 270, w: 190, h: 210 },
+    { x: 300, y: 780, w: 190, h: 210 }
+  ];
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.strokeStyle = "rgba(202,226,255,.55)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(state.player.x, state.player.y, cfg.inner, 0, Math.PI * 2);
+  ctx.arc(state.player.x, state.player.y, cfg.outer, 0, Math.PI * 2);
+  ctx.stroke();
+  for (const g of points) {
+    const size = g.layer ? 38 + cfg.level * 2.2 : 32 + cfg.level * 1.8;
+    ctx.save();
+    ctx.translate(g.x, g.y);
+    ctx.rotate(g.a + Math.PI / 2);
+    ctx.globalAlpha = g.layer ? 0.76 : 0.86;
+    if (img?.complete && img.naturalWidth) {
+      const f = frames[g.index % frames.length];
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, f.x, f.y, f.w, f.h, -size / 2, -size / 2, size, size);
+      ctx.imageSmoothingEnabled = true;
+    } else {
+      drawCircle(0, 0, size * 0.34, "rgba(215,235,255,.86)");
+      ctx.fillStyle = "#eaf6ff";
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.24, 0);
+      ctx.quadraticCurveTo(0, -size * 0.52, size * 0.26, 0);
+      ctx.quadraticCurveTo(size * 0.12, size * 0.3, 0, size * 0.52);
+      ctx.quadraticCurveTo(-size * 0.16, size * 0.24, -size * 0.24, 0);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawFollowerSpiritOrbit(f) {
+  const cfg = followerSpiritConfig(f);
+  if (!cfg) return;
+  const img = effectImages.spiritTaming;
+  const points = followerSpiritPoints(f, cfg);
+  const frames = [
+    { x: 260, y: 160, w: 220, h: 210 },
+    { x: 84, y: 274, w: 200, h: 220 },
+    { x: 512, y: 270, w: 190, h: 210 },
+    { x: 300, y: 780, w: 190, h: 210 }
+  ];
+  ctx.save();
+  ctx.globalAlpha = f.id === "reaper" ? 0.16 : 0.1;
+  ctx.strokeStyle = f.id === "reaper" ? "rgba(164,218,255,.62)" : "rgba(210,226,242,.45)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(f.x, f.y, cfg.radius * 0.78, 0, Math.PI * 2);
+  ctx.arc(f.x, f.y, cfg.radius * 1.22, 0, Math.PI * 2);
+  ctx.stroke();
+  for (const g of points) {
+    const size = 18 + f.tier * 5 + (g.layer ? 2 : 0);
+    ctx.save();
+    ctx.translate(g.x, g.y);
+    ctx.rotate(g.a + Math.PI / 2);
+    ctx.globalAlpha = f.id === "reaper" ? 0.74 : 0.58;
+    if (img?.complete && img.naturalWidth) {
+      const frame = frames[g.index % frames.length];
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, frame.x, frame.y, frame.w, frame.h, -size / 2, -size / 2, size, size);
+      ctx.imageSmoothingEnabled = true;
+    } else {
+      drawCircle(0, 0, size * 0.32, "rgba(220,238,255,.78)");
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 function drawPlayer() {
   const p = state.player;
   drawCircle(p.x, p.y, p.r + (p.ward ? 9 : 0), p.ward ? "rgba(125,190,255,.38)" : "rgba(255,255,255,.08)");
@@ -2096,20 +2766,30 @@ function drawMonster(m) {
 function drawFollower(f) {
   const file = followerAssetById[f.id];
   const img = file && followerImages[file];
+  if (f.id === "knight") {
+    ctx.save();
+    ctx.globalAlpha = 0.2 + Math.sin(state.time * 4) * 0.04;
+    ctx.strokeStyle = "rgba(255,220,110,.8)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, 92, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
   if (img && img.complete && img.naturalWidth) {
     const pulse = f.cast ? 1 + Math.sin(performance.now() / 45) * 0.1 + f.cast * 0.35 : 1;
-    const baseSize = f.id === "furnace" ? 46 : f.id === "balrog" ? 58 : f.id === "lotus" ? 62 : f.id === "giant" ? 72 : f.id === "golem" ? 60 : f.id === "rock" ? 48 : 34 + f.tier * 8;
+    const baseSize = f.id === "knight" ? 82 : f.id === "swordsman" ? 64 : f.id === "militia" ? 52 : f.id === "reaper" ? 72 : f.id === "skeletonWarrior" ? 62 : f.id === "skeleton" ? 50 : f.id === "furnace" ? 46 : f.id === "balrog" ? 58 : f.id === "lotus" ? 62 : f.id === "giant" ? 72 : f.id === "golem" ? 60 : f.id === "rock" ? 48 : 34 + f.tier * 8;
     const size = baseSize * pulse;
-    const lunge = (f.id === "rock" || f.id === "golem") && f.cast ? f.cast * 22 : 0;
+    const lunge = (f.id === "rock" || f.id === "golem" || isSkeletonFollower(f) || isHumanFollower(f)) && f.cast ? f.cast * 22 : 0;
     const drawX = f.x + Math.cos(f.face || 0) * lunge;
     const drawY = f.y + Math.sin(f.face || 0) * lunge;
     ctx.save();
     ctx.imageSmoothingEnabled = true;
-    ctx.shadowColor = f.id === "furnace" || f.id === "balrog" || f.id === "lotus" ? "rgba(255,112,32,.85)" : f.id === "rock" || f.id === "golem" || f.id === "giant" ? "rgba(90,62,38,.75)" : "rgba(85,225,255,.65)";
+    ctx.shadowColor = isHumanFollower(f) ? "rgba(255,218,118,.72)" : f.id === "reaper" || f.id === "skeletonWarrior" || f.id === "skeleton" ? "rgba(118,205,255,.78)" : f.id === "furnace" || f.id === "balrog" || f.id === "lotus" ? "rgba(255,112,32,.85)" : f.id === "rock" || f.id === "golem" || f.id === "giant" ? "rgba(90,62,38,.75)" : "rgba(85,225,255,.65)";
     ctx.shadowBlur = f.cast ? 24 : 14;
     if (f.cast) {
       ctx.globalAlpha = 0.78;
-      drawCircle(drawX, drawY, size * 0.42, f.id === "rock" || f.id === "golem" || f.id === "giant" ? "rgba(160,118,74,.24)" : "rgba(255,101,31,.26)");
+      drawCircle(drawX, drawY, size * 0.42, isHumanFollower(f) ? "rgba(255,220,120,.22)" : isSkeletonFollower(f) ? "rgba(150,210,255,.22)" : f.id === "rock" || f.id === "golem" || f.id === "giant" ? "rgba(160,118,74,.24)" : "rgba(255,101,31,.26)");
       ctx.globalAlpha = 1;
     }
     ctx.drawImage(img, drawX - size / 2, drawY - size / 2, size, size);
@@ -2183,6 +2863,24 @@ function drawZone(z) {
     ctx.arc(z.x, z.y, z.r, z.a - 0.55, z.a + 0.55);
     ctx.closePath();
     ctx.fill();
+  } else if (z.type === "fireBreathFx") {
+    const img = effectImages.fireBreath;
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    ctx.rotate((z.a || 0) + Math.PI / 2);
+    if (img?.complete && img.naturalWidth) {
+      ctx.globalAlpha = alpha * 0.72;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, -z.r * 0.72, -z.r * 0.08, z.r * 1.44, z.r * 1.08);
+      ctx.imageSmoothingEnabled = false;
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, z.r, -0.55, 0.55);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
   } else if (z.type === "coneVisual") {
     ctx.save();
     ctx.translate(z.x, z.y);
@@ -2220,6 +2918,47 @@ function drawZone(z) {
     ctx.moveTo(-length * 0.5, width * 0.35);
     ctx.lineTo(length * 0.5, width * 0.35);
     ctx.stroke();
+    ctx.restore();
+  } else if (z.type === "blizzardFx") {
+    const img = effectImages.blizzard;
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    ctx.rotate((z.angle || 0) * 0.35);
+    if (img?.complete && img.naturalWidth) {
+      ctx.globalAlpha = alpha * 0.58;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, -z.r, -z.r, z.r * 2, z.r * 2);
+      ctx.imageSmoothingEnabled = false;
+    } else {
+      drawCircle(0, 0, z.r, z.color);
+    }
+    ctx.restore();
+  } else if (z.type === "thunderCloudFx") {
+    const img = effectImages.thunderCloud;
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    if (img?.complete && img.naturalWidth) {
+      ctx.globalAlpha = alpha * 0.72;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, -z.r * 1.05, -z.r * 0.72, z.r * 2.1, z.r * 1.45);
+      ctx.imageSmoothingEnabled = false;
+    } else {
+      drawCircle(0, 0, z.r, "rgba(90,150,255,.28)");
+    }
+    ctx.restore();
+  } else if (z.type === "poisonCloudFx" || z.type === "enemyPoison" || z.type === "sandstormFx" || z.type === "blackPlagueFx") {
+    const img = z.type === "blackPlagueFx" ? effectImages.blackPlague : z.type === "sandstormFx" ? effectImages.sandstorm : effectImages.poisonCloud;
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    ctx.rotate((z.angle || 0) * (z.type === "sandstormFx" ? 0.45 : z.type === "blackPlagueFx" ? 0.5 : 0.35));
+    if (img?.complete && img.naturalWidth) {
+      ctx.globalAlpha = alpha * (z.type === "enemyPoison" ? 0.52 : z.type === "sandstormFx" ? 0.5 : z.type === "blackPlagueFx" ? 0.58 : 0.5);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, -z.r, -z.r, z.r * 2, z.r * 2);
+      ctx.imageSmoothingEnabled = false;
+    } else {
+      drawCircle(0, 0, z.r, z.color);
+    }
     ctx.restore();
   } else if (z.type === "spiral" || z.type === "movingSpiral") {
     ctx.save();
@@ -2272,6 +3011,26 @@ function drawEffect(e) {
     ctx.beginPath();
     ctx.arc(e.x, e.y, e.r * (0.4 + alpha), 0, Math.PI * 2);
     ctx.fill();
+  } else if (e.type === "chainSprite") {
+    const img = effectImages.chainLightning;
+    const dx = e.x2 - e.x1;
+    const dy = e.y2 - e.y1;
+    const len = Math.hypot(dx, dy);
+    ctx.translate((e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2);
+    ctx.rotate(Math.atan2(dy, dx));
+    if (img?.complete && img.naturalWidth) {
+      ctx.globalAlpha = alpha * 0.78;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, -len * 0.55, -len * 0.23, len * 1.1, len * 0.46);
+      ctx.imageSmoothingEnabled = false;
+    } else {
+      ctx.strokeStyle = "rgba(120,200,255,.9)";
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(-len / 2, 0);
+      ctx.lineTo(len / 2, 0);
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
@@ -2287,6 +3046,50 @@ function drawProjectile(pr) {
   }
   if (pr.kind === "furnaceFireball") {
     drawFurnaceFireball(pr);
+    return;
+  }
+  if (pr.kind === "fireballSkill") {
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,86,24,.42)";
+    ctx.lineWidth = 8;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(pr.px, pr.py);
+    ctx.lineTo(pr.x, pr.y);
+    ctx.stroke();
+    ctx.translate(pr.x, pr.y);
+    ctx.rotate((pr.angle || 0) + Math.PI / 4);
+    const img = effectImages.fireball;
+    if (img?.complete && img.naturalWidth) {
+      ctx.globalAlpha = 0.78;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, -30, -30, 60, 60);
+      ctx.imageSmoothingEnabled = false;
+    } else {
+      drawCircle(0, 0, pr.r + 4, "rgba(255,118,28,.92)");
+    }
+    ctx.restore();
+    return;
+  }
+  if (pr.kind === "blackPlague") {
+    ctx.save();
+    ctx.strokeStyle = "rgba(158,70,220,.38)";
+    ctx.lineWidth = 8;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(pr.px, pr.py);
+    ctx.lineTo(pr.x, pr.y);
+    ctx.stroke();
+    ctx.translate(pr.x, pr.y);
+    ctx.rotate((pr.spin || 0) + (pr.angle || 0));
+    ctx.shadowColor = "rgba(190,82,255,.85)";
+    ctx.shadowBlur = 18;
+    drawCircle(0, 0, pr.r + 5, "rgba(160,54,230,.86)");
+    ctx.fillStyle = "rgba(242,192,255,.9)";
+    ctx.beginPath();
+    ctx.arc(4, -3, pr.r * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
     return;
   }
   ctx.save();
@@ -2505,13 +3308,13 @@ function drawTopHud() {
 function syncHud() {
   const p = state.player;
   statsEl.innerHTML = `
-    <dt>生命</dt><dd>${Math.ceil(p.hp)} / ${p.maxHp}</dd>
-    <dt>等级</dt><dd>${p.level}</dd>
-    <dt>时间</dt><dd>${Math.floor(state.time)} 秒</dd>
-    <dt>成长</dt><dd>+${Math.round((timeGrowth() - 1) * 100)}%</dd>
-    <dt>随从上限</dt><dd>${state.followers.length} / ${followerLimit()}</dd>
-    <dt>地形</dt><dd>${state.terrain.name}</dd>
-    <dt>怪物</dt><dd>${state.monsters.length}</dd>
+    <dt>HP</dt><dd>${Math.ceil(p.hp)} / ${p.maxHp}</dd>
+    <dt>Level</dt><dd>${p.level}</dd>
+    <dt>Time</dt><dd>${Math.floor(state.time)}s</dd>
+    <dt>Growth</dt><dd>+${Math.round((timeGrowth() - 1) * 100)}%</dd>
+    <dt>Followers</dt><dd>${state.followers.length} / ${followerLimit()}</dd>
+    <dt>Aura</dt><dd>+${Math.round((p.followerAttackAura || 0) * 100)}% ATK</dd>
+    <dt>Monsters</dt><dd>${state.monsters.length}</dd>
   `;
   skillsEl.innerHTML = Object.values(state.skills).map(s => `<li><span>${skillBook[s.id].name}</span><b>Lv.${s.level}</b></li>`).join("");
   const followerSummary = Object.values(state.followers.reduce((acc, f) => {
@@ -2521,8 +3324,8 @@ function syncHud() {
     acc[f.id].maxHp += f.maxHp || 0;
     return acc;
   }, {}));
-  followersEl.innerHTML = followerSummary.length ? followerSummary.map(f => `<li><span>${f.name} ×${f.count}</span><b>T${f.tier} ${Math.ceil(f.hp)}/${Math.ceil(f.maxHp)}</b></li>`).join("") : "<li><span>暂无</span><b>-</b></li>";
-  itemsEl.innerHTML = [...state.items.slice(-8), ...state.artifacts.map(a => `神器:${a}`)].slice(-10).map(i => `<li><span>${i}</span><b></b></li>`).join("") || "<li><span>暂无</span><b>-</b></li>";
+  followersEl.innerHTML = followerSummary.length ? followerSummary.map(f => `<li><span>${f.name} x${f.count}</span><b>T${f.tier} ${Math.ceil(f.hp)}/${Math.ceil(f.maxHp)}</b></li>`).join("") : "<li><span>None</span><b>-</b></li>";
+  itemsEl.innerHTML = [...state.items.slice(-8), ...state.artifacts.map(a => `Artifact:${a}`)].slice(-10).map(i => `<li><span>${i}</span><b></b></li>`).join("") || "<li><span>None</span><b>-</b></li>";
 }
 
 function loop(now) {
@@ -2534,14 +3337,75 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-function start() {
-  state = newState();
-  state.running = true;
+function renderStartMenu() {
+  const save = loadSavedGame();
   startPanel.querySelector("h1").textContent = "Elemental Survival";
-  startPanel.querySelector("p").textContent = "元素法师 · 开放世界无限生存 · 特效增强版";
-  startBtn.textContent = "开始生存";
+  startPanel.querySelector("p").textContent = save
+    ? `发现存档：${save.className || "未知职业"} · ${Math.floor(save.time || 0)} 秒 · Lv.${save.player?.level || 1}`
+    : "开放世界无限生存 · 选择职业后开始";
+  if (classPanel) classPanel.classList.add("hidden");
+  if (!startActions) return;
+  startActions.innerHTML = "";
+  if (save) {
+    const continueBtn = document.createElement("button");
+    continueBtn.type = "button";
+    continueBtn.textContent = "继续游戏";
+    continueBtn.addEventListener("click", continueGame);
+    startActions.appendChild(continueBtn);
+  }
+  const newBtn = document.createElement("button");
+  newBtn.type = "button";
+  newBtn.textContent = save ? "从头开始" : "新游戏";
+  newBtn.addEventListener("click", showClassSelect);
+  startActions.appendChild(newBtn);
+}
+
+function showClassSelect() {
+  if (!classPanel || !startActions) {
+    startWithClass("elementMage");
+    return;
+  }
+  startActions.innerHTML = "";
+  classPanel.innerHTML = `<div class="class-title">选择职业</div>`;
+  for (const [id, cls] of Object.entries(classBook)) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "class-choice";
+    btn.innerHTML = `<b>${cls.name}</b><span>${cls.desc}</span>`;
+    btn.addEventListener("click", () => startWithClass(id));
+    classPanel.appendChild(btn);
+  }
+  const backBtn = document.createElement("button");
+  backBtn.type = "button";
+  backBtn.className = "secondary";
+  backBtn.textContent = "返回";
+  backBtn.addEventListener("click", renderStartMenu);
+  classPanel.appendChild(backBtn);
+  classPanel.classList.remove("hidden");
+  startPanel.querySelector("p").textContent = "从头开始会覆盖当前存档";
+}
+
+function startWithClass(classId) {
+  clearSave();
+  state = newState(classId);
+  state.running = true;
   startPanel.classList.add("hidden");
   levelPanel.classList.add("hidden");
+  if (classPanel) classPanel.classList.add("hidden");
+  saveGame();
+  syncHud();
+}
+
+function continueGame() {
+  const save = loadSavedGame();
+  if (!save) {
+    renderStartMenu();
+    return;
+  }
+  state = restoreState(save);
+  startPanel.classList.add("hidden");
+  levelPanel.classList.add("hidden");
+  if (classPanel) classPanel.classList.add("hidden");
   syncHud();
 }
 
@@ -2590,9 +3454,10 @@ if (moveStick) {
 pauseTouch?.addEventListener("click", () => {
   if (state?.running) state.paused = !state.paused;
 });
-startBtn.addEventListener("click", start);
+startBtn?.addEventListener("click", () => startWithClass("elementMage"));
 
 state = newState();
+renderStartMenu();
 draw();
 syncHud();
 requestAnimationFrame(loop);

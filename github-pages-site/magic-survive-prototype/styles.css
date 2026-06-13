@@ -176,6 +176,43 @@ li {
   text-align: center;
 }
 
+.start-actions,
+.class-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.class-panel.hidden {
+  display: none;
+}
+
+.class-title {
+  color: #fff7cc;
+  font-weight: 800;
+}
+
+.class-choice {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.075);
+  color: #f4fbf7;
+  text-align: left;
+}
+
+.class-choice span {
+  color: #bac9c1;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+button.secondary {
+  background: rgba(255, 255, 255, 0.14);
+  color: #f3f7f4;
+}
+
 .start-panel p {
   color: #b8c8bf;
 }
