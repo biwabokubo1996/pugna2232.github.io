@@ -62,7 +62,7 @@ arrowImage.src = "./assets/monsters/Arrow.png";
 const stoneImage = new Image();
 stoneImage.src = "./assets/monsters/StoneProjectile.png";
 const effectImages = {};
-for (const [id, file] of Object.entries({ fireBreath: "FireBreath.png", breathOfFire: "BreathOfFire.png", blizzard: "Blizzard.png", poisonCloud: "PoisonCloud.png", sandstorm: "Sandstorm.png", spiritTaming: "SpiritOrbit.png", blackPlague: "BlackPlague.png", virulentPlague: "VirulentPlague.png", chainLightning: "ChainLightning.png", thunderCloud: "ThunderCloud.png", forkLightning: "ForkLightning.png", fireball: "Fireball.png", slash: "Slash.png", dimensionalSlash: "DimensionalSlash.png", tornado: "Tornado.png", flameTornado: "FlameTornado.png", doom: "Doomsday.png", meteor: "Meteor.png", meteorExplosion: "MeteorExplosion.png", earthquake: "Earthquake.png", frostNova: "FrostNova.png", iceAge: "IceAge.png", lavaField: "LavaField.png", arrowRain: "ArrowRain.png", surge: "Surge.png", bloodSpear: "BloodSpear.png", painScream: "PainScream.png" })) {
+for (const [id, file] of Object.entries({ fireBreath: "FireBreath.png", breathOfFire: "BreathOfFire.png", blizzard: "Blizzard.png", absoluteZero: "AbsoluteZero.png", poisonCloud: "PoisonCloud.png", sandstorm: "Sandstorm.png", spiritTaming: "SpiritOrbit.png", blackPlague: "BlackPlague.png", virulentPlague: "VirulentPlague.png", chainLightning: "ChainLightning.png", thunderCloud: "ThunderCloud.png", forkLightning: "ForkLightning.png", fireball: "Fireball.png", slash: "Slash.png", dimensionalSlash: "DimensionalSlash.png", tornado: "Tornado.png", flameTornado: "FlameTornado.png", doom: "Doomsday.png", meteor: "Meteor.png", meteorExplosion: "MeteorExplosion.png", earthquake: "Earthquake.png", frostNova: "FrostNova.png", iceAge: "IceAge.png", lavaField: "LavaField.png", arrowRain: "ArrowRain.png", surge: "Surge.png", bloodSpear: "BloodSpear.png", painScream: "PainScream.png" })) {
   const img = new Image();
   img.src = `./assets/effects/${file}`;
   effectImages[id] = img;
@@ -191,7 +191,7 @@ const skillBook = {
   ward: { name: "Ward", element: "arcane", cd: 12, damage: 0, area: 0, type: "ward", desc: "Blocks ranged damage briefly" },
   flameTornado: { name: "Flame Tornado", element: "fire", cd: 2.0, damage: 42, area: 165, type: "orb", desc: "Large pulling fire tornado with burn" },
   doom: { name: "Doomsday Judgment", element: "fire", cd: 10.5, damage: 185, area: 760, type: "doom", desc: "Ultimate full-screen fire shockwave" },
-  absoluteZero: { name: "Absolute Zero", element: "ice", cd: 0, damage: 20, area: 210, type: "passiveAura", desc: "Permanent freezing aura" },
+  absoluteZero: { name: "Absolute Zero", element: "ice", cd: 0, damage: 44, area: 245, type: "absoluteZero", desc: "Permanent aura that follows you; first hit freezes enemies" },
   lightningStorm: { name: "Lightning Storm", element: "lightning", cd: 1.55, damage: 48, area: 330, type: "strike", desc: "Improved Thunder Cloud" },
   forkLightning: { name: "Fork Lightning", element: "lightning", cd: 2.35, damage: 86, area: 420, type: "forkLightning", desc: "Branching lightning from Lv.7 Fire Breath and Chain Lightning" },
   iceRing: { name: "Ice Ring", element: "ice", cd: 3.6, damage: 58, area: 180, type: "nova", desc: "Ring-shaped ice burst" },
@@ -816,7 +816,7 @@ function castSkill(s) {
     for (let w = 0; w < waves; w++) {
       const waveArea = area * (0.72 + w * 0.28);
       damageCircle(p.x, p.y, waveArea, dmg * (1 - w * 0.12), b.element, true);
-      state.zones.push({ x: p.x, y: p.y, r: waveArea, life: 0.55 + w * 0.12, maxLife: 0.55 + w * 0.12, delay: w * 0.09, damage: dmg * (1 - w * 0.12) * 0.16, element: b.element, type: "earthquakeFx", color: "rgba(180,128,84,.24)", grow: 1.45 + w * 0.22, spin: rand(-0.25, 0.25) });
+      state.zones.push({ x: p.x, y: p.y, r: waveArea, life: 0.55 + w * 0.12, maxLife: 0.55 + w * 0.12, delay: w * 0.09, damage: dmg * (1 - w * 0.12) * 0.34, impactDamage: dmg * (1 - w * 0.12) * 0.95, element: b.element, type: "earthquakeFx", color: "rgba(180,128,84,.24)", grow: 1.45 + w * 0.22, spin: rand(-0.25, 0.25) });
     }
     for (let i = 0; i < 5 + lvl * 2; i++) {
       const a = rand(0, Math.PI * 2);
@@ -1820,8 +1820,43 @@ function damageCircle(x, y, r, damage, element, slow) {
   for (const m of state.monsters) {
     if (Math.hypot(m.x - x, m.y - y) < r + m.r) {
       hitMonster(m, damage, element);
-      if (slow) m.slow = 1;
+      if (slow) {
+        m.slow = 1;
+        if (element === "ice") m.frozen = Math.max(m.frozen || 0, 1.15);
+      }
     }
+  }
+}
+
+function updateAbsoluteZero(dt) {
+  const s = state.skills.absoluteZero;
+  if (!s) return;
+  const p = state.player;
+  const b = skillBook.absoluteZero;
+  const lvl = clamp(s.level || 1, 1, 7);
+  const area = b.area * FUSION_AREA_MULT * skillAreaMultiplier(lvl) * p.area;
+  const damage = b.damage * SKILL_POWER_MULT * FUSION_DAMAGE_MULT * skillDamageMultiplier(lvl) * p.damage * (1 + (p.classDamageAura || 0)) * elementMult("ice") * dt;
+  for (const m of state.monsters) {
+    if (Math.hypot(m.x - p.x, m.y - p.y) >= area + m.r) continue;
+    hitMonster(m, damage, "ice");
+    m.slow = Math.max(m.slow || 0, 1);
+    if (!m.absoluteZeroTouched) {
+      m.absoluteZeroTouched = true;
+      m.frozen = Math.max(m.frozen || 0, 2.2);
+      addText("FROZEN", m.x - 25, m.y - 28, "#8fdcff");
+    }
+  }
+  let aura = state.zones.find(z => z.type === "absoluteZeroFx");
+  if (!aura) {
+    aura = {
+      x: p.x, y: p.y, r: area, life: 0.34, maxLife: 0.34, damage: 0,
+      element: "ice", type: "absoluteZeroFx", followPlayer: true,
+      spin: 1.8, grow: 0, color: "rgba(155,225,255,.22)"
+    };
+    state.zones.push(aura);
+  } else {
+    aura.r = area;
+    aura.life = aura.maxLife = 0.34;
   }
 }
 
@@ -1965,7 +2000,7 @@ function update(dt) {
       s.t = b.cd * p.cooldown * skillCooldownMultiplier(s.level);
     }
   }
-  if (state.skills.absoluteZero) damageCircle(p.x, p.y, skillBook.absoluteZero.area * FUSION_AREA_MULT * p.area, 6 * FUSION_DAMAGE_MULT * dt * 60, "ice", true);
+  updateAbsoluteZero(dt);
   updateSpiritOrbit(dt);
 
   updateFollowers(dt);
@@ -3060,6 +3095,11 @@ function updateZones(dt) {
     }
     z.life -= dt;
     z.angle = (z.angle || 0) + (z.spin || 0) * dt;
+    if (z.type === "earthquakeFx" && !z.impactDone) {
+      z.impactDone = true;
+      damageCircle(z.x, z.y, z.r, z.impactDamage || z.damage || 0, z.element, true);
+      addParticles(z.x, z.y, "rgba(255,184,94,.64)", 12, z.r * 0.38, 0.5);
+    }
     if (z.followPlayer) {
       z.x = state.player.x;
       z.y = state.player.y;
@@ -3202,6 +3242,7 @@ function updateMonsters(dt) {
     const a = Math.atan2(target.y - m.y, target.x - m.x);
     const slow = m.slow ? 0.55 : 1;
     m.slow = Math.max(0, (m.slow || 0) - dt);
+    m.frozen = Math.max(0, (m.frozen || 0) - dt);
     m.blind = Math.max(0, (m.blind || 0) - dt);
     m.fear = Math.max(0, (m.fear || 0) - dt);
     m.disarm = Math.max(0, (m.disarm || 0) - dt);
@@ -3461,11 +3502,12 @@ function openLevelChoices() {
       const doomFusion = id === "doom" && !state.skills.doom;
       const forkFusion = id === "forkLightning" && !state.skills.forkLightning;
       const plagueFusion = id === "virulentPlague" && !state.skills.virulentPlague;
+      const absoluteFusion = id === "absoluteZero" && !state.skills.absoluteZero;
       const iceAgeFusion = id === "iceAge" && !state.skills.iceAge;
       const breathFusion = id === "breathOfFire" && !state.skills.breathOfFire;
       const dimensionalFusion = id === "dimensionalSlash" && !state.skills.dimensionalSlash;
-      const title = fusion ? "Fusion: Flame Tornado" : doomFusion ? "Fusion: Doomsday Judgment" : forkFusion ? "Fusion: Fork Lightning" : plagueFusion ? "Fusion: Virulent Plague" : iceAgeFusion ? "Fusion: Ice Age" : breathFusion ? "Fusion: Breath of Fire" : dimensionalFusion ? "Fusion: Dimensional Slash" : current ? skillBook[id].name + " Lv." + Math.min(7, current + 1) : "Learn " + skillBook[id].name;
-      const desc = fusion ? "Consumes Lv.7 Fire Breath and Lv.7 Tornado." : doomFusion ? "Consumes Lv.7 Lava Field, Meteor, Earthquake and sacrifices 1 Red Lotus Beast." : forkFusion ? "Consumes Lv.7 Fire Breath and Lv.7 Chain Lightning." : plagueFusion ? "Consumes Lv.7 Poison Cloud and Lv.7 Black Plague." : iceAgeFusion ? "Consumes Lv.7 Arrow Rain and Lv.7 Frost Nova." : breathFusion ? "Consumes Lv.7 Pain Scream and Lv.7 Fire Breath." : dimensionalFusion ? "Consumes Lv.7 Earthquake and Lv.7 Cleave." : skillBook[id].desc;
+      const title = fusion ? "Fusion: Flame Tornado" : doomFusion ? "Fusion: Doomsday Judgment" : forkFusion ? "Fusion: Fork Lightning" : plagueFusion ? "Fusion: Virulent Plague" : absoluteFusion ? "Fusion: Absolute Zero" : iceAgeFusion ? "Fusion: Ice Age" : breathFusion ? "Fusion: Breath of Fire" : dimensionalFusion ? "Fusion: Dimensional Slash" : current ? skillBook[id].name + " Lv." + Math.min(7, current + 1) : "Learn " + skillBook[id].name;
+      const desc = fusion ? "Consumes Lv.7 Fire Breath and Lv.7 Tornado." : doomFusion ? "Consumes Lv.7 Lava Field, Meteor, Earthquake and sacrifices 1 Red Lotus Beast." : forkFusion ? "Consumes Lv.7 Fire Breath and Lv.7 Chain Lightning." : plagueFusion ? "Consumes Lv.7 Poison Cloud and Lv.7 Black Plague." : absoluteFusion ? "Consumes Lv.7 Blizzard and Lv.7 Frost Nova." : iceAgeFusion ? "Consumes Lv.7 Arrow Rain and Lv.7 Frost Nova." : breathFusion ? "Consumes Lv.7 Pain Scream and Lv.7 Fire Breath." : dimensionalFusion ? "Consumes Lv.7 Earthquake and Lv.7 Cleave." : skillBook[id].desc;
       choices.push({ title, desc, run: () => learnSkill(id) });
     } else {
       const f = pick(followerChoices);
@@ -3523,6 +3565,12 @@ function iceAgeAvailable() {
     && (state.skills.frostNova?.level || 0) >= 7;
 }
 
+function absoluteZeroAvailable() {
+  return !state.skills.absoluteZero
+    && (state.skills.blizzard?.level || 0) >= 7
+    && (state.skills.frostNova?.level || 0) >= 7;
+}
+
 function breathOfFireAvailable() {
   return !state.skills.breathOfFire
     && (state.skills.painScream?.level || 0) >= 7
@@ -3546,7 +3594,7 @@ function sacrificeRedLotusBeast() {
 }
 
 function skillChoicePool() {
-  const blocked = new Set(["absoluteZero", "lightningStorm", "iceRing"]);
+  const blocked = new Set(["lightningStorm", "iceRing"]);
   const pool = [];
   for (const id of Object.keys(skillBook)) {
     if (blocked.has(id)) continue;
@@ -3554,6 +3602,7 @@ function skillChoicePool() {
     if (id === "doom" && !state.skills.doom && !doomAvailable()) continue;
     if (id === "forkLightning" && !state.skills.forkLightning && !forkLightningAvailable()) continue;
     if (id === "virulentPlague" && !state.skills.virulentPlague && !virulentPlagueAvailable()) continue;
+    if (id === "absoluteZero" && !state.skills.absoluteZero && !absoluteZeroAvailable()) continue;
     if (id === "iceAge" && !state.skills.iceAge && !iceAgeAvailable()) continue;
     if (id === "breathOfFire" && !state.skills.breathOfFire && !breathOfFireAvailable()) continue;
     if (id === "dimensionalSlash" && !state.skills.dimensionalSlash && !dimensionalSlashAvailable()) continue;
@@ -3561,6 +3610,7 @@ function skillChoicePool() {
     if ((id === "fireBreath" || id === "chainLightning") && state.skills.forkLightning) continue;
     if ((id === "fireBreath" || id === "painScream") && state.skills.breathOfFire) continue;
     if ((id === "poisonCloud" || id === "blackPlague") && state.skills.virulentPlague) continue;
+    if ((id === "blizzard" || id === "frostNova") && state.skills.absoluteZero) continue;
     if ((id === "arrowRain" || id === "frostNova") && state.skills.iceAge) continue;
     if ((id === "lavaField" || id === "meteor" || id === "earthquake") && state.skills.doom) continue;
     if ((id === "earthquake" || id === "cleave") && state.skills.dimensionalSlash) continue;
@@ -3580,6 +3630,9 @@ function skillChoicePool() {
   }
   if (virulentPlagueAvailable()) {
     for (let i = 0; i < 8; i++) pool.push("virulentPlague");
+  }
+  if (absoluteZeroAvailable()) {
+    for (let i = 0; i < 8; i++) pool.push("absoluteZero");
   }
   if (iceAgeAvailable()) {
     for (let i = 0; i < 8; i++) pool.push("iceAge");
@@ -3636,6 +3689,15 @@ function learnSkill(id) {
     state.skills.virulentPlague = skillState("virulentPlague");
     addText("Fusion: Virulent Plague", state.player.x - 82, state.player.y - 66, "#b7ff62");
     addRing(state.player.x, state.player.y, 128, "rgba(145,255,64,.9)", 0.88);
+    return;
+  }
+  if (id === "absoluteZero" && !state.skills.absoluteZero) {
+    if (!absoluteZeroAvailable()) return;
+    delete state.skills.blizzard;
+    delete state.skills.frostNova;
+    state.skills.absoluteZero = skillState("absoluteZero");
+    addText("Fusion: Absolute Zero", state.player.x - 78, state.player.y - 66, "#aee9ff");
+    addRing(state.player.x, state.player.y, 138, "rgba(170,235,255,.92)", 0.92);
     return;
   }
   if (id === "iceAge" && !state.skills.iceAge) {
@@ -3741,7 +3803,6 @@ function awardArtifact(forcedName = null) {
 function checkFusions() {
   const has = id => state.skills[id]?.level >= 3;
   const add = id => { if (!state.skills[id]) { state.skills[id] = skillState(id); addText(`合成：${skillBook[id].name}`, 72, 165, "#ffd36b"); } };
-  if (has("blizzard") && has("frostNova")) add("absoluteZero");
   if (has("tornado") && has("thunderCloud")) add("lightningStorm");
   if (has("meteor") && has("frostNova")) add("iceRing");
 }
@@ -4286,9 +4347,26 @@ function drawMonster(m) {
     }
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(img, m.x - size / 2, m.y - size / 2, size, size);
+    if (m.frozen > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.46;
+      ctx.globalCompositeOperation = "multiply";
+      ctx.fillStyle = "#063b98";
+      ctx.beginPath();
+      ctx.ellipse(m.x, m.y, size * 0.44, size * 0.48, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = "rgba(115,205,255,.82)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(m.x, m.y, size * 0.45, size * 0.49, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
     ctx.imageSmoothingEnabled = true;
   } else {
-    drawCircle(m.x, m.y, m.r, m.hit ? "#fff3cf" : m.color);
+    drawCircle(m.x, m.y, m.r, m.frozen > 0 ? "#063b98" : m.hit ? "#fff3cf" : m.color);
   }
   ctx.fillStyle = "rgba(0,0,0,.45)";
   ctx.fillRect(m.x - m.r, m.y - m.r - 9, m.r * 2, 4);
@@ -4567,7 +4645,22 @@ function drawZone(z) {
     ctx.restore();
   } else if (z.type === "blizzardFx") {
     const img = effectImages.blizzard;
-    drawGroundDecal(img, z, alpha, { alpha: 0.54, w: 2.35, h: 2.35, spinScale: 0.35, grow: 0.12 });
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    if (img?.complete && img.naturalWidth) {
+      ctx.globalAlpha = alpha * 0.68;
+      ctx.globalCompositeOperation = "lighter";
+      ctx.imageSmoothingEnabled = true;
+      const w = z.r * 1.85;
+      const h = z.r * 2.45;
+      ctx.drawImage(img, -w * 0.5, -h * 0.64, w, h);
+      ctx.imageSmoothingEnabled = false;
+      ctx.globalCompositeOperation = "source-over";
+    } else {
+      ctx.fillStyle = "rgba(150,220,255,.24)";
+      ctx.fillRect(-z.r * 0.75, -z.r, z.r * 1.5, z.r * 1.8);
+    }
+    ctx.restore();
   } else if (z.type === "thunderCloudFx") {
     const img = effectImages.thunderCloud;
     ctx.save();
@@ -4633,6 +4726,8 @@ function drawZone(z) {
     drawGroundDecal(effectImages.earthquake, z, alpha, { alpha: 0.7, w: 2.45, h: 2.45, spinScale: 0.25, scale: 1.02, grow: z.grow || 1.2 });
   } else if (z.type === "frostNovaFx") {
     drawGroundDecal(effectImages.frostNova, z, alpha, { alpha: 0.74, w: 2.3, h: 2.3, spinScale: 0.2, scale: 1.0, grow: z.grow || 1.4 });
+  } else if (z.type === "absoluteZeroFx") {
+    drawGroundDecal(effectImages.absoluteZero, z, Math.min(0.82, alpha + 0.22), { alpha: 0.62, w: 2.25, h: 2.25, spinScale: 0.42, scale: 1.0, grow: 0.05 });
   } else if (z.type === "iceAgeFx") {
     drawGroundDecal(effectImages.iceAge, z, alpha, { alpha: 0.66, w: 2.55, h: 2.55, spinScale: 0.08, scale: 1.0, grow: z.grow || 0.35 });
   } else if (z.type === "arrowRainFx") {
