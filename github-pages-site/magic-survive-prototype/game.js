@@ -62,7 +62,7 @@ arrowImage.src = "./assets/monsters/Arrow.png";
 const stoneImage = new Image();
 stoneImage.src = "./assets/monsters/StoneProjectile.png";
 const effectImages = {};
-for (const [id, file] of Object.entries({ fireBreath: "FireBreath.png", blizzard: "Blizzard.png", poisonCloud: "PoisonCloud.png", sandstorm: "Sandstorm.png", spiritTaming: "SpiritOrbit.png", blackPlague: "BlackPlague.png", chainLightning: "ChainLightning.png", thunderCloud: "ThunderCloud.png", fireball: "Fireball.png", slash: "Slash.png", tornado: "Tornado.png", flameTornado: "FlameTornado.png", doom: "Doomsday.png", meteor: "Meteor.png", meteorExplosion: "MeteorExplosion.png", earthquake: "Earthquake.png", frostNova: "FrostNova.png", lavaField: "LavaField.png", arrowRain: "ArrowRain.png", surge: "Surge.png", bloodSpear: "BloodSpear.png" })) {
+for (const [id, file] of Object.entries({ fireBreath: "FireBreath.png", breathOfFire: "BreathOfFire.png", blizzard: "Blizzard.png", poisonCloud: "PoisonCloud.png", sandstorm: "Sandstorm.png", spiritTaming: "SpiritOrbit.png", blackPlague: "BlackPlague.png", virulentPlague: "VirulentPlague.png", chainLightning: "ChainLightning.png", thunderCloud: "ThunderCloud.png", forkLightning: "ForkLightning.png", fireball: "Fireball.png", slash: "Slash.png", dimensionalSlash: "DimensionalSlash.png", tornado: "Tornado.png", flameTornado: "FlameTornado.png", doom: "Doomsday.png", meteor: "Meteor.png", meteorExplosion: "MeteorExplosion.png", earthquake: "Earthquake.png", frostNova: "FrostNova.png", iceAge: "IceAge.png", lavaField: "LavaField.png", arrowRain: "ArrowRain.png", surge: "Surge.png", bloodSpear: "BloodSpear.png", painScream: "PainScream.png" })) {
   const img = new Image();
   img.src = `./assets/effects/${file}`;
   effectImages[id] = img;
@@ -79,7 +79,7 @@ for (const [id, file] of Object.entries({ blackMarket: "BlackMarketMerchant.png"
   img.src = `./assets/npcs/${file}`;
   npcImages[id] = img;
 }
-const followerAssetById = { furnace: "FurnaceSpirit.png", balrog: "Balrog.png", lotus: "RedLotusBeast.png", rock: "RockSpirit.png", golem: "Golem.png", giant: "MountainGiant.png", skeleton: "SkeletonFollower.png", skeletonWarrior: "SkeletonWarrior.png", reaper: "DeathReaper.png", militia: "Militia.png", swordsman: "Swordsman.png", knight: "Knight.png", rogueGirl: "RogueGirl.png", assassinGirl: "AssassinGirl.png", ninjaGirl: "NinjaGirl.png", pixie: "Pixie.png", flowerFairy: "FlowerFairy.png", fairyPrincess: "FairyPrincess.png", treantGuardian: "TreantGuardian.png" };
+const followerAssetById = { furnace: "FurnaceSpirit.png", balrog: "Balrog.png", lotus: "RedLotusBeast.png", rock: "RockSpirit.png", golem: "Golem.png", giant: "MountainGiant.png", skeleton: "SkeletonFollower.png", skeletonWarrior: "SkeletonWarrior.png", reaper: "DeathReaper.png", militia: "Militia.png", swordsman: "Swordsman.png", knight: "Knight.png", rogueGirl: "RogueGirl.png", assassinGirl: "AssassinGirl.png", ninjaGirl: "NinjaGirl.png", pixie: "Pixie.png", flowerFairy: "FlowerFairy.png", fairyPrincess: "FairyPrincess.png", ghostFollower: "GhostFollower.png", wraith: "Wraith.png", banshee: "Banshee.png", littleDemon: "LittleDemon.png", demonFollower: "DemonFollower.png", hellKing: "HellKing.png", treantGuardian: "TreantGuardian.png" };
 const followerImages = {};
 for (const file of new Set(Object.values(followerAssetById))) {
   const img = new Image();
@@ -144,7 +144,7 @@ function hashUnit(seed, salt) {
 }
 
 function timeGrowth() {
-  return 1 + Math.floor((state?.time || 0) / 600) * 0.1;
+  return 1 + Math.floor((state?.time || 0) / 60) * 0.1;
 }
 
 function followerLimit() {
@@ -160,10 +160,16 @@ function isElementMagic(element) {
 }
 
 const SKILL_POWER_MULT = 1.25;
+const FUSION_DAMAGE_MULT = 1.35;
+const FUSION_AREA_MULT = 1.25;
 const ENEMY_DAMAGE_MULT = 3;
 
+function isFusionSkill(id) {
+  return ["flameTornado", "doom", "absoluteZero", "lightningStorm", "iceRing", "forkLightning", "virulentPlague", "iceAge", "breathOfFire", "dimensionalSlash"].includes(id);
+}
+
 const skillBook = {
-  fireBreath: { name: "Fire Breath", element: "fire", cd: 0.62, damage: 16, area: 120, type: "cone", desc: "Cone damage with burn" },
+  fireBreath: { name: "Fire Breath", element: "fire", cd: 0.62, damage: 16, area: 165, type: "cone", desc: "Cone damage with burn" },
   tornado: { name: "Tornado", element: "wind", cd: 2.6, damage: 18, area: 95, type: "orb", desc: "Moving spiral wind" },
   meteor: { name: "Meteor", element: "fire", cd: 5.2, damage: 70, area: 120, type: "meteor", desc: "Large impact area" },
   lavaField: { name: "Lava Field", element: "fire", cd: 5.0, damage: 18, area: 155, type: "cloud", desc: "Burning lava ground" },
@@ -177,15 +183,21 @@ const skillBook = {
   chainLightning: { name: "Chain Lightning", element: "lightning", cd: 2.8, damage: 29, area: 250, type: "chain", desc: "Jumps between nearby enemies up to 2 x level" },
   poisonCloud: { name: "Poison Cloud", element: "poison", cd: 4.1, damage: 13, area: 145, type: "cloud", desc: "Growing poison field" },
   blackPlague: { name: "Black Plague", element: "poison", cd: 5.6, damage: 56, area: 150, type: "plagueBolt", desc: "Plague projectile that erupts into disease cloud" },
+  virulentPlague: { name: "Virulent Plague", element: "poison", cd: 5.2, damage: 62, area: 175, type: "virulentPlague", desc: "Splits into six spreading plague clouds with damage and slow" },
   sandstorm: { name: "Sandstorm", element: "wind", cd: 4.4, damage: 20, area: 185, type: "aura", desc: "Follows the player, blinds enemies" },
   cleave: { name: "Cleave", element: "physical", cd: 2.1, damage: 45, area: 115, type: "cleave", desc: "Sweeping melee slash in front of the caster" },
-  bloodSpear: { name: "Blood Spear", element: "physical", cd: 2.1, damage: 64, area: 150, type: "bloodRect", desc: "Carves a bloody rectangle in front of the caster" },
+  bloodSpear: { name: "Blood Spear", element: "physical", cd: 2.1, damage: 64, area: 220, type: "bloodRect", desc: "Carves a bloody rectangle in front of the caster" },
+  painScream: { name: "Pain Scream", element: "arcane", cd: 5.1, damage: 22, area: 210, type: "fearCone", desc: "Terrifies enemies and forces them to flee" },
   ward: { name: "Ward", element: "arcane", cd: 12, damage: 0, area: 0, type: "ward", desc: "Blocks ranged damage briefly" },
   flameTornado: { name: "Flame Tornado", element: "fire", cd: 2.0, damage: 42, area: 165, type: "orb", desc: "Large pulling fire tornado with burn" },
   doom: { name: "Doomsday Judgment", element: "fire", cd: 10.5, damage: 185, area: 760, type: "doom", desc: "Ultimate full-screen fire shockwave" },
   absoluteZero: { name: "Absolute Zero", element: "ice", cd: 0, damage: 20, area: 210, type: "passiveAura", desc: "Permanent freezing aura" },
   lightningStorm: { name: "Lightning Storm", element: "lightning", cd: 1.55, damage: 48, area: 330, type: "strike", desc: "Improved Thunder Cloud" },
-  iceRing: { name: "Ice Ring", element: "ice", cd: 3.6, damage: 58, area: 180, type: "nova", desc: "Ring-shaped ice burst" }
+  forkLightning: { name: "Fork Lightning", element: "lightning", cd: 2.35, damage: 86, area: 420, type: "forkLightning", desc: "Branching lightning from Lv.7 Fire Breath and Chain Lightning" },
+  iceRing: { name: "Ice Ring", element: "ice", cd: 3.6, damage: 58, area: 180, type: "nova", desc: "Ring-shaped ice burst" },
+  iceAge: { name: "Ice Age", element: "ice", cd: 6.2, damage: 86, area: 260, type: "iceAge", desc: "Ice arrows rain down and trigger many freezing Frost Novas" },
+  breathOfFire: { name: "Breath of Fire", element: "fire", cd: 2.45, damage: 64, area: 245, type: "fireBreathBarrage", desc: "Several wider Fire Breath waves from Lv.7 Pain Scream and Fire Breath" },
+  dimensionalSlash: { name: "Dimensional Slash", element: "arcane", cd: 6.8, damage: 165, area: 760, type: "dimensionalSlash", desc: "Full-screen spatial slash from Lv.7 Earthquake and Cleave" }
 };
 
 const followersBook = [
@@ -206,30 +218,95 @@ const followersBook = [
   { id: "ninjaGirl", name: "Ninja Girl", tier: 3, element: "poison", damage: 54, range: 138 },
   { id: "pixie", name: "Pixie", tier: 1, element: "poison", damage: 14, range: 230 },
   { id: "flowerFairy", name: "Flower Fairy", tier: 2, element: "poison", damage: 26, range: 250 },
-  { id: "fairyPrincess", name: "Fairy Princess", tier: 3, element: "poison", damage: 40, range: 270 }
+  { id: "fairyPrincess", name: "Fairy Princess", tier: 3, element: "poison", damage: 40, range: 270 },
+  { id: "ghostFollower", name: "Ghost", tier: 1, element: "arcane", damage: 17, range: 120 },
+  { id: "wraith", name: "Wraith", tier: 2, element: "arcane", damage: 31, range: 145 },
+  { id: "banshee", name: "Banshee", tier: 3, element: "arcane", damage: 46, range: 220 },
+  { id: "littleDemon", name: "Little Demon", tier: 1, element: "fire", damage: 18, range: 92 },
+  { id: "demonFollower", name: "Demon", tier: 2, element: "fire", damage: 34, range: 245 },
+  { id: "hellKing", name: "Hell King", tier: 3, element: "fire", damage: 56, range: 275 }
 ];
 
 const followerById = Object.fromEntries(followersBook.map(f => [f.id, f]));
 const followerByName = Object.fromEntries(followersBook.map(f => [f.name, f]));
-const followerEvolvesTo = { furnace: "balrog", balrog: "lotus", rock: "golem", golem: "giant", skeleton: "skeletonWarrior", skeletonWarrior: "reaper", militia: "swordsman", swordsman: "knight", rogueGirl: "assassinGirl", assassinGirl: "ninjaGirl", pixie: "flowerFairy", flowerFairy: "fairyPrincess" };
+const followerEvolvesTo = { furnace: "balrog", balrog: "lotus", rock: "golem", golem: "giant", skeleton: "skeletonWarrior", skeletonWarrior: "reaper", militia: "swordsman", swordsman: "knight", rogueGirl: "assassinGirl", assassinGirl: "ninjaGirl", pixie: "flowerFairy", flowerFairy: "fairyPrincess", ghostFollower: "wraith", wraith: "banshee", littleDemon: "demonFollower", demonFollower: "hellKing" };
 const followerChoices = followersBook.filter(f => f.tier === 1);
 
 const gearBook = [
-  { name: "星火法杖", desc: "攻击力+12%", apply: s => s.damage *= 1.12 },
-  { name: "扩散棱镜", desc: "范围+14%，攻击力+6%", apply: s => { s.area *= 1.14; s.damage *= 1.06; } },
-  { name: "疾咏指环", desc: "攻速+12%，范围+6%", apply: s => { s.cooldown *= 0.88; s.area *= 1.06; } },
-  { name: "冷月沙漏", desc: "冷却-12%，范围-4%", apply: s => { s.cooldown *= 0.88; s.area *= 0.96; } },
-  { name: "符文胸甲", desc: "防御力+3", apply: s => s.defense += 3 },
-  { name: "守望军旗", desc: "群体减伤+8%", apply: s => s.groupReduce += 0.08 },
-  { name: "踏风靴", desc: "移速+10%", apply: s => s.speed *= 1.1 },
-  { name: "焰纹宝珠", desc: "火伤+18%", apply: s => s.fire *= 1.18 },
-  { name: "霜银吊坠", desc: "冰伤+18%", apply: s => s.ice *= 1.18 },
-  { name: "复苏藤环", desc: "生命恢复+0.8/秒", apply: s => s.regen += 0.8 }
+  { name: "星火法杖", rarity: "uncommon", desc: "攻击力+12%", apply: s => s.damage *= 1.12 },
+  { name: "扩散棱镜", rarity: "rare", desc: "范围+14%，攻击力+6%", apply: s => { s.area *= 1.14; s.damage *= 1.06; } },
+  { name: "疾咏指环", rarity: "epic", desc: "攻速+12%，范围+6%", apply: s => { s.cooldown *= 0.88; s.area *= 1.06; } },
+  { name: "冷月沙漏", rarity: "rare", desc: "冷却-12%，范围-4%", apply: s => { s.cooldown *= 0.88; s.area *= 0.96; } },
+  { name: "符文胸甲", rarity: "common", desc: "防御力+3", apply: s => s.defense += 3 },
+  { name: "守望军旗", rarity: "uncommon", desc: "群体减伤+8%", apply: s => s.groupReduce += 0.08 },
+  { name: "踏风靴", rarity: "common", desc: "移速+10%", apply: s => s.speed *= 1.1 },
+  { name: "焰纹宝珠", rarity: "rare", desc: "火伤+18%", apply: s => s.fire *= 1.18 },
+  { name: "霜银吊坠", rarity: "rare", desc: "冰伤+18%", apply: s => s.ice *= 1.18 },
+  { name: "复苏藤环", rarity: "common", desc: "生命恢复+0.8/秒", apply: s => s.regen += 0.8 },
+  { name: "Chronos Amulet", rarity: "epic", icon: "ChronosAmulet.png", desc: "Cooldown -10%", apply: s => { s.cooldown *= 0.9; } },
+  { name: "Time Pocket Watch", rarity: "rare", icon: "TimePocketWatch.png", desc: "Cooldown -6%", apply: s => { s.cooldown *= 0.94; } },
+  { name: "Time Sand", rarity: "common", icon: "TimeSand.png", desc: "Cooldown -3%", apply: s => { s.cooldown *= 0.97; } },
+  { name: "Mana Source", rarity: "rare", icon: "ManaSource.png", desc: "All friendly skill cooldown -3%", apply: s => { s.cooldown *= 0.97; s.followerCooldown = (s.followerCooldown || 1) * 0.97; } },
+  { name: "War Horn", rarity: "rare", icon: "WarHorn.png", desc: "Follower attack aura +12%", apply: s => { s.followerAttackAuraGear = (s.followerAttackAuraGear || 0) + 0.12; } },
+  { name: "War Drum", rarity: "common", icon: "WarDrum.png", desc: "Follower move speed aura +10%", apply: s => { s.followerMoveAura = (s.followerMoveAura || 0) + 0.1; } },
+  { name: "牧灵之笛", rarity: "common", desc: "Spirit Taming ghosts +4", apply: s => { s.spiritBonus = (s.spiritBonus || 0) + 4; } },
+  { name: "回春法杖", rarity: "rare", desc: "Area healing +2 HP/sec", apply: s => { s.healAura = (s.healAura || 0) + 2; s.healAuraRange = Math.max(s.healAuraRange || 0, 190); } },
+  { name: "蝎狮尾针", rarity: "legendary", desc: "Dead enemies have 75% chance to explode", apply: s => { s.deathExplosionChance = Math.min(1, (s.deathExplosionChance || 0) + 0.75); } },
+  { name: "增幅器", rarity: "rare", desc: "Magic area +10%", apply: s => { s.area *= 1.1; } },
+  { name: "火药", rarity: "common", desc: "Magic area +5%", apply: s => { s.area *= 1.05; } },
+  { name: "放射元素", rarity: "epic", desc: "Magic area +15%, duration +10%", apply: s => { s.area *= 1.15; s.duration = (s.duration || 1) * 1.1; } }
 ];
+
+const gearRarityInfo = {
+  common: { label: "普通", weight: 56, color: "#e5e7eb" },
+  uncommon: { label: "优秀", weight: 30, color: "#8df29f" },
+  rare: { label: "稀有", weight: 11, color: "#83c7ff" },
+  epic: { label: "史诗", weight: 3, color: "#d58cff" },
+  legendary: { label: "传说", weight: 1, color: "#ffb84d" }
+};
+
+function ownedGearNames() {
+  const gear = new Set(state?.gear || []);
+  for (const item of state?.items || []) {
+    for (const entry of gearBook) {
+      if (item === entry.name || item.includes(entry.name)) gear.add(entry.name);
+    }
+  }
+  return gear;
+}
+
+function pickGearByRarity(excluded = new Set()) {
+  const owned = ownedGearNames();
+  const pool = gearBook.filter(gear => !owned.has(gear.name) && !excluded.has(gear.name));
+  if (!pool.length) return null;
+  const total = pool.reduce((sum, gear) => sum + (gearRarityInfo[gear.rarity]?.weight || 1), 0);
+  let roll = Math.random() * total;
+  for (const gear of pool) {
+    roll -= gearRarityInfo[gear.rarity]?.weight || 1;
+    if (roll <= 0) return gear;
+  }
+  return pool[pool.length - 1];
+}
+
+function gearTitle(gear) {
+  const rarity = gearRarityInfo[gear.rarity] || gearRarityInfo.common;
+  return `[${rarity.label}] ${gear.name}`;
+}
+
+function applyUniqueGear(gear, source = "") {
+  if (!gear) return false;
+  state.gear = state.gear || [];
+  if (state.gear.includes(gear.name)) return false;
+  gear.apply(state.player);
+  state.gear.push(gear.name);
+  state.items.push(source ? `${source}: ${gearTitle(gear)}` : gearTitle(gear));
+  return true;
+}
 
 const artifactBook = [
   { name: "荆棘王冠", desc: "群体反伤", apply: s => s.thorns += 10 },
   { name: "永恒沙漏", desc: "大幅减冷却", apply: s => s.cooldown *= 0.72 },
+  { name: "Chronos Clock", desc: "Cooldown -15%, skill duration +10%", apply: s => { s.cooldown *= 0.85; s.duration = (s.duration || 1) * 1.1; } },
   { name: "审判之眼", desc: "暴击+15%，爆伤+50%", apply: s => { s.crit += 0.15; s.critMul += 0.5; } },
   { name: "泰坦心脏", desc: "最大生命+150", apply: s => { s.maxHp += 150; s.hp += 150; } },
   { name: "星界罗盘", desc: "魔法范围+28%", apply: s => s.area *= 1.28 },
@@ -367,13 +444,14 @@ function newState(classId = "elementMage") {
     terrain: terrainAt(W / 2, H / 2),
     player: {
       x: W / 2, y: H / 2, r: 16, hp: 180, maxHp: 180, xp: 0, next: 32, level: 1,
-      speed: 205, damage: 1, area: 1, cooldown: 1, defense: 0, groupReduce: 0,
+      speed: 205, damage: 1, area: 1, cooldown: 1, followerCooldown: 1, duration: 1, defense: 0, groupReduce: 0,
       fire: 1, ice: 1, wind: 1, earth: 1, lightning: 1, arcane: 1, poison: 1,
-      regen: 0.7, crit: 0.05, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, ward: 0, hitGrace: 0
+      regen: 0.7, crit: 0.05, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, ward: 0, hitGrace: 0
     },
     skills: Object.fromEntries(selectedClass.skills.map(id => [id, skillState(id)])),
     followers: [],
     items: [],
+    gear: [],
     artifacts: [],
     blackMarket: { x: W / 2 + 280, y: H / 2 - 150, r: 88, wasNear: false },
     worldBosses: Object.fromEntries(Object.entries(WORLD_BOSS_SITES).map(([id, site]) => [id, { ...site, spawned: false, defeated: false }])),
@@ -399,11 +477,11 @@ function saveGame() {
   if (!storageAvailable() || !state?.running || state.player.hp <= 0) return;
   const cleanMonster = m => ({
     x: m.x, y: m.y, r: m.r, name: m.name, color: m.color,
-    hp: m.hp, maxHp: m.maxHp, speed: m.speed, xp: m.xp,
+    hp: m.hp, maxHp: m.maxHp, baseMaxHp: m.baseMaxHp || m.maxHp || m.hp, speed: m.speed, xp: m.xp,
     tag: m.tag, kind: m.kind, worldBoss: !!m.worldBoss,
     hit: 0, shoot: m.shoot || 0, attackMul: m.attackMul || 1,
     attackCd: m.attackCd || 0, specialCd: m.specialCd || 0,
-    slow: m.slow || 0, poison: m.poison || null, disease: m.disease || null, blind: m.blind || 0
+    slow: m.slow || 0, poison: m.poison || null, disease: m.disease || null, burn: m.burn || null, blind: m.blind || 0, fear: m.fear || 0, disarm: m.disarm || 0
   });
   const save = {
     version: 1,
@@ -417,6 +495,7 @@ function saveGame() {
     skills: state.skills,
     followers: state.followers,
     items: state.items,
+    gear: state.gear || [],
     artifacts: state.artifacts,
     worldBosses: state.worldBosses,
     blackMarket: state.blackMarket,
@@ -466,10 +545,11 @@ function restoreState(save) {
   restored.skills = save.skills || restored.skills;
   restored.followers = (save.followers || []).map(f => ({ ...f, hitGrace: 0, t: f.t || rand(0, 1) }));
   restored.items = save.items || [];
+  restored.gear = save.gear || [];
   restored.artifacts = save.artifacts || [];
   restored.blackMarket = { ...restored.blackMarket, ...(save.blackMarket || {}), wasNear: false };
   restored.worldBosses = { ...restored.worldBosses, ...(save.worldBosses || {}) };
-  restored.monsters = (save.monsters || []).map(m => ({ ...m, hit: 0, charge: null }));
+  restored.monsters = (save.monsters || []).map(m => ({ ...m, baseMaxHp: m.baseMaxHp || (m.maxHp || m.hp || 1) / timeGrowth(), hit: 0, charge: null }));
   restored.gems = save.gems || [];
   restored.chests = save.chests || [];
   restored.heals = save.heals || [];
@@ -517,7 +597,18 @@ function skillAreaMultiplier(level) {
 }
 
 function skillCooldownMultiplier(level) {
-  return Math.max(0.38, 1 - (level - 1) * 0.035);
+  return 1;
+}
+
+function skillDurationMultiplier() {
+  return state?.player?.duration || 1;
+}
+
+function scaleSkillDuration(zone) {
+  const mult = skillDurationMultiplier();
+  if (zone.life) zone.life *= mult;
+  if (zone.maxLife) zone.maxLife *= mult;
+  return zone;
 }
 
 function addText(text, x, y, color = "#fff") {
@@ -550,13 +641,14 @@ function spawnMonster(kind = "normal") {
   const pos = edge === 0 ? { x: camX + rand(0, W), y: camY - margin } : edge === 1 ? { x: camX + W + margin, y: camY + rand(0, H) } : edge === 2 ? { x: camX + rand(0, W), y: camY + H + margin } : { x: camX - margin, y: camY + rand(0, H) };
   const src = kind === "boss" ? pick(bossBook) : kind === "elite" ? pick(eliteBook) : pickMonster();
   const growth = timeGrowth();
-  const scale = (kind === "boss" ? 1 + state.time / 260 : kind === "elite" ? 1.8 : wave) * growth;
+  const baseScale = kind === "boss" ? 1 + state.time / 260 : kind === "elite" ? 1.8 : wave;
+  const scale = baseScale * growth;
   const radius = src[0] === "比蒙巨兽" ? 58 : src[0] === "海德拉" ? 54 : kind === "boss" ? 38 : src[0] === "独眼巨人" ? 42 : kind === "elite" ? 28 : 16;
   state.monsters.push({
     x: pos.x, y: pos.y, r: radius,
-    name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale,
+    name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale, baseMaxHp: src[2] * baseScale,
     speed: src[3] * terrainMod("monsterSpeed") * (kind === "boss" ? 0.65 : 1),
-    xp: src[4], tag: src[5], kind, hit: 0, shoot: rand(1, 3), attackMul: growth
+    xp: src[4], tag: src[5], kind, hit: 0, shoot: rand(1, 3), attackMul: 1
   });
   if (kind === "boss") addText(`${src[0]} 降临`, W / 2 - 60, 88, "#ffd36b");
 }
@@ -565,14 +657,15 @@ function spawnBossAt(name, x, y, worldBoss = false) {
   if (name === "Typhon") {
     const src = ["Typhon", "#4e315f", 3600, 38, 1200, "typhon"];
     const growth = timeGrowth();
-    const scale = (1.75 + state.time / 330) * growth;
+    const baseScale = 1.75 + state.time / 330;
+    const scale = baseScale * growth;
     const radius = 82;
     const m = {
       x, y, r: radius,
-      name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale,
+      name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale, baseMaxHp: src[2] * baseScale,
       speed: src[3] * terrainMod("monsterSpeed") * 0.62,
       xp: src[4], tag: src[5], kind: "boss", worldBoss,
-      hit: 0, shoot: rand(1, 3), attackMul: growth * 1.25, specialCd: rand(0.8, 1.6)
+      hit: 0, shoot: rand(1, 3), attackMul: 1.25, specialCd: rand(0.8, 1.6)
     };
     state.monsters.push(m);
     addText("Typhon awakens", x - 70, y - radius - 42, "#ff9a46");
@@ -582,14 +675,15 @@ function spawnBossAt(name, x, y, worldBoss = false) {
   const src = bossBook.find(b => b[0] === name) || (name === "奇美拉" ? ["奇美拉", "#a777ba", 1350, 46, 420] : null);
   if (!src) return null;
   const growth = timeGrowth();
-  const scale = (1.25 + state.time / 420) * growth;
+  const baseScale = 1.25 + state.time / 420;
+  const scale = baseScale * growth;
   const radius = name === "奇美拉" ? 60 : name === "比蒙巨兽" ? 58 : name === "海德拉" ? 54 : 38;
   const m = {
     x, y, r: radius,
-    name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale,
+    name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale, baseMaxHp: src[2] * baseScale,
     speed: src[3] * terrainMod("monsterSpeed") * 0.72,
     xp: src[4], tag: src[5] || "boss", kind: "boss", worldBoss,
-    hit: 0, shoot: rand(1, 3), attackMul: growth, specialCd: rand(1.2, 2.4)
+    hit: 0, shoot: rand(1, 3), attackMul: 1, specialCd: rand(1.2, 2.4)
   };
   state.monsters.push(m);
   addText(`${name} 苏醒`, x - 52, y - radius - 36, "#ffd36b");
@@ -637,8 +731,10 @@ function castSkill(s) {
   const b = skillBook[s.id];
   const p = state.player;
   const lvl = s.level;
-  const dmg = b.damage * SKILL_POWER_MULT * skillDamageMultiplier(lvl) * p.damage * (1 + (p.classDamageAura || 0)) * diseaseAttackMult(p) * elementMult(b.element);
-  const area = b.area * skillAreaMultiplier(lvl) * areaMult(b.element);
+  const fusionDamage = isFusionSkill(s.id) ? FUSION_DAMAGE_MULT : 1;
+  const fusionArea = isFusionSkill(s.id) ? FUSION_AREA_MULT : 1;
+  const dmg = b.damage * SKILL_POWER_MULT * fusionDamage * skillDamageMultiplier(lvl) * p.damage * (1 + (p.classDamageAura || 0)) * diseaseAttackMult(p) * elementMult(b.element);
+  const area = b.area * fusionArea * skillAreaMultiplier(lvl) * areaMult(b.element);
 
   if (b.type === "bolt") {
     const target = nearestEnemy(p);
@@ -656,9 +752,26 @@ function castSkill(s) {
   } else if (b.type === "bloodRect") {
     const target = nearestEnemy(p) || { x: p.x + 1, y: p.y };
     castBloodRectangle(p, target, area, dmg, lvl);
+  } else if (b.type === "fearCone") {
+    const target = nearestEnemy(p) || { x: p.x + 1, y: p.y };
+    castPainScream(p, target, area, dmg, lvl);
+  } else if (b.type === "fireBreathBarrage") {
+    const target = nearestEnemy(p) || { x: p.x + 1, y: p.y };
+    castFireBreathBarrage(p, target, area, dmg, lvl);
   } else if (b.type === "bloodSpear") {
     const target = nearestEnemy(p) || { x: p.x + 1, y: p.y };
     fireBloodSpear(p.x, p.y, target.x, target.y, dmg, lvl);
+  } else if (b.type === "forkLightning") {
+    const target = nearestEnemy(p, area) || { x: p.x + 1, y: p.y };
+    castForkLightning(p, target, lvl, area, dmg);
+  } else if (b.type === "virulentPlague") {
+    const target = nearestEnemy(p, 620) || { x: p.x + 140, y: p.y };
+    castVirulentPlague(target.x, target.y, lvl, area, dmg);
+  } else if (b.type === "iceAge") {
+    const target = nearestEnemy(p, 680) || { x: p.x + 160, y: p.y };
+    castIceAge(target.x, target.y, lvl, area, dmg);
+  } else if (b.type === "dimensionalSlash") {
+    castDimensionalSlash(p, area, dmg, lvl);
   } else if (b.type === "line") {
     const target = nearestEnemy(p);
     if (!target) return;
@@ -667,7 +780,7 @@ function castSkill(s) {
   } else if (b.type === "cone") {
     const target = nearestEnemy(p) || { x: p.x + 1, y: p.y };
     const ang = Math.atan2(target.y - p.y, target.x - p.x);
-    state.zones.push({ x: p.x, y: p.y, a: ang, r: area, life: 0.32, maxLife: 0.32, damage: dmg * 0.13, element: b.element, type: s.id === "fireBreath" ? "fireBreathFx" : "cone", color: "rgba(255,111,49,.28)", grow: 1.2 });
+    state.zones.push(scaleSkillDuration({ x: p.x, y: p.y, a: ang, arc: s.id === "fireBreath" ? 0.72 : 0.55, r: area, life: 0.34, maxLife: 0.34, damage: dmg * 0.15, element: b.element, type: s.id === "fireBreath" ? "fireBreathFx" : "cone", color: "rgba(255,111,49,.28)", grow: 1.2, burnDamage: s.id === "fireBreath" ? dmg * 0.08 : 0, burnVulnerable: s.id === "fireBreath" ? 0.12 + lvl * 0.012 : 0 }));
     addParticles(p.x + Math.cos(ang) * 45, p.y + Math.sin(ang) * 45, "rgba(255,180,84,.9)", 12, 55, 0.35);
   } else if (b.type === "meteor") {
     const target = nearestEnemy(p) || { x: rand(120, W - 120), y: rand(90, H - 90) };
@@ -676,11 +789,11 @@ function castSkill(s) {
     spawnMeteorProjectile(x, y, area, dmg, "playerMeteor");
   } else if (b.type === "aura" || b.type === "cloud") {
     const target = nearestEnemy(p, 500) || p;
-    state.zones.push({ x: s.id === "sandstorm" ? p.x : target.x, y: s.id === "sandstorm" ? p.y : target.y, followPlayer: s.id === "sandstorm", r: s.id === "poisonCloud" ? area * 0.58 : s.id === "lavaField" ? area * 0.42 : area, maxR: s.id === "lavaField" ? area * 1.35 : area, life: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, maxLife: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, damage: dmg * (s.id === "lavaField" ? 0.28 : 0.22), element: b.element, type: s.id === "blizzard" ? "blizzardFx" : s.id === "poisonCloud" ? "poisonCloudFx" : s.id === "sandstorm" ? "sandstormFx" : s.id === "lavaField" ? "lavaFieldFx" : b.element === "wind" ? "spiral" : "dot", color: b.element === "ice" ? "rgba(150,220,255,.22)" : b.element === "poison" ? "rgba(103,212,95,.20)" : b.element === "fire" ? "rgba(255,94,28,.22)" : "rgba(214,190,92,.20)", spin: s.id === "blizzard" ? 2.2 : s.id === "poisonCloud" ? 1.6 : s.id === "sandstorm" ? 2.8 : s.id === "lavaField" ? 0.9 : b.element === "wind" ? 5 : -1, grow: s.id === "poisonCloud" ? 1.5 : s.id === "lavaField" ? 0.85 : 0.05, poisonDamage: b.element === "poison" ? dmg * 0.16 : 0, burnVulnerable: s.id === "lavaField" ? 0.14 + lvl * 0.015 : 0, blind: s.id === "sandstorm" });
+    state.zones.push(scaleSkillDuration({ x: s.id === "sandstorm" ? p.x : target.x, y: s.id === "sandstorm" ? p.y : target.y, followPlayer: s.id === "sandstorm", r: s.id === "poisonCloud" ? area * 0.58 : s.id === "lavaField" ? area * 0.42 : area, maxR: s.id === "lavaField" ? area * 1.35 : area, life: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, maxLife: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, damage: dmg * (s.id === "lavaField" ? 0.28 : 0.22), element: b.element, type: s.id === "blizzard" ? "blizzardFx" : s.id === "poisonCloud" ? "poisonCloudFx" : s.id === "sandstorm" ? "sandstormFx" : s.id === "lavaField" ? "lavaFieldFx" : b.element === "wind" ? "spiral" : "dot", color: b.element === "ice" ? "rgba(150,220,255,.22)" : b.element === "poison" ? "rgba(103,212,95,.20)" : b.element === "fire" ? "rgba(255,94,28,.22)" : "rgba(214,190,92,.20)", spin: s.id === "blizzard" ? 2.2 : s.id === "poisonCloud" ? 1.6 : s.id === "sandstorm" ? 2.8 : s.id === "lavaField" ? 0.9 : b.element === "wind" ? 5 : -1, grow: s.id === "poisonCloud" ? 1.5 : s.id === "lavaField" ? 0.85 : 0.05, poisonDamage: b.element === "poison" ? dmg * 0.16 : 0, burnVulnerable: s.id === "lavaField" ? 0.14 + lvl * 0.015 : 0, blind: s.id === "sandstorm" }));
     if (b.element === "poison") addParticles(target.x, target.y, "rgba(128,255,105,.65)", 18, area * 0.45, 2.4);
   } else if (b.type === "nova") {
     damageCircle(p.x, p.y, area, dmg, b.element, true);
-    state.zones.push({ x: p.x, y: p.y, r: area, life: 0.48, maxLife: 0.48, damage: 0, element: b.element, type: "frostNovaFx", color: "rgba(165,230,255,.25)", grow: 1.65, spin: rand(0, Math.PI * 2) });
+    state.zones.push(scaleSkillDuration({ x: p.x, y: p.y, r: area, life: 0.48, maxLife: 0.48, damage: 0, element: b.element, type: "frostNovaFx", color: "rgba(165,230,255,.25)", grow: 1.65, spin: rand(0, Math.PI * 2) }));
     addParticles(p.x, p.y, "rgba(190,245,255,.85)", 20, area * 0.48, 0.55);
   } else if (b.type === "strike" || b.type === "chain") {
     if (b.type === "chain") castChainLightning(p, lvl, area, dmg, b.element);
@@ -703,7 +816,7 @@ function castSkill(s) {
     for (let w = 0; w < waves; w++) {
       const waveArea = area * (0.72 + w * 0.28);
       damageCircle(p.x, p.y, waveArea, dmg * (1 - w * 0.12), b.element, true);
-      state.zones.push({ x: p.x, y: p.y, r: waveArea, life: 0.55 + w * 0.12, maxLife: 0.55 + w * 0.12, delay: w * 0.09, damage: 0, element: b.element, type: "earthquakeFx", color: "rgba(180,128,84,.24)", grow: 1.45 + w * 0.22, spin: rand(-0.25, 0.25) });
+      state.zones.push({ x: p.x, y: p.y, r: waveArea, life: 0.55 + w * 0.12, maxLife: 0.55 + w * 0.12, delay: w * 0.09, damage: dmg * (1 - w * 0.12) * 0.16, element: b.element, type: "earthquakeFx", color: "rgba(180,128,84,.24)", grow: 1.45 + w * 0.22, spin: rand(-0.25, 0.25) });
     }
     for (let i = 0; i < 5 + lvl * 2; i++) {
       const a = rand(0, Math.PI * 2);
@@ -714,7 +827,7 @@ function castSkill(s) {
   } else if (b.type === "orb") {
     const target = nearestEnemy(p) || p;
     const a = Math.atan2(target.y - p.y, target.x - p.x);
-    state.zones.push({
+    state.zones.push(scaleSkillDuration({
       x: p.x + Math.cos(a) * 45,
       y: p.y + Math.sin(a) * 45,
       vx: Math.cos(a) * 170,
@@ -731,7 +844,7 @@ function castSkill(s) {
       pullMul: s.id === "flameTornado" ? 1.85 : 1,
       burnDamage: s.id === "flameTornado" ? dmg * 0.18 : 0,
       burnVulnerable: s.id === "flameTornado" ? 0.18 + lvl * 0.018 : 0
-    });
+    }));
     addRing(target.x, target.y, area * 0.45, s.id === "flameTornado" ? "rgba(255,160,78,.65)" : "rgba(220,255,245,.55)", 0.6);
   } else if (b.type === "ward") {
     p.ward = 4 + lvl * 0.4;
@@ -793,7 +906,7 @@ function castFireballVolley(origin, target, level, damage) {
 
 function castArrowRain(x, y, area, damage, level) {
   damageCircle(x, y, area, damage, "physical", false);
-  state.zones.push({
+  state.zones.push(scaleSkillDuration({
     x,
     y,
     r: area,
@@ -805,7 +918,7 @@ function castArrowRain(x, y, area, damage, level) {
     color: "rgba(255,170,56,.22)",
     grow: 0.35,
     spin: rand(-0.2, 0.2)
-  });
+  }));
   const drops = 7 + level * 3;
   for (let i = 0; i < drops; i++) {
     const a = rand(0, Math.PI * 2);
@@ -814,6 +927,81 @@ function castArrowRain(x, y, area, damage, level) {
     const ty = y + Math.sin(a) * rr * 0.55;
     addLine(tx - 12, ty - rand(110, 180), tx, ty, "rgba(255,180,56,.75)", rand(3, 6), 0.32, true);
   }
+}
+
+function castIceAge(x, y, level, area, damage) {
+  const drops = 10 + level * 5;
+  state.zones.push(scaleSkillDuration({
+    x,
+    y,
+    r: area * 1.05,
+    life: 1.05,
+    maxLife: 1.05,
+    damage: damage * 0.02,
+    element: "ice",
+    type: "iceAgeFx",
+    color: "rgba(150,220,255,.26)",
+    grow: 0.18,
+    spin: rand(-0.1, 0.1)
+  }));
+  for (let i = 0; i < drops; i++) {
+    const a = rand(0, Math.PI * 2);
+    const rr = Math.sqrt(Math.random()) * area;
+    const tx = x + Math.cos(a) * rr;
+    const ty = y + Math.sin(a) * rr * 0.68;
+    const delay = i * 0.035 + rand(0, 0.22);
+    addLine(tx - rand(8, 22), ty - rand(180, 280), tx, ty, "rgba(158,220,255,.86)", rand(4, 8), 0.36 + delay, true);
+    state.zones.push(scaleSkillDuration({
+      x: tx,
+      y: ty,
+      r: area * rand(0.18, 0.3),
+      life: 0.42,
+      maxLife: 0.42,
+      delay,
+      damage: damage * 0.24,
+      element: "ice",
+      type: "frostNovaFx",
+      color: "rgba(165,230,255,.28)",
+      grow: 1.85,
+      spin: rand(0, Math.PI * 2)
+    }));
+    if (i % 3 === 0) addParticles(tx, ty, "rgba(190,245,255,.78)", 4, 22, 0.65 + delay);
+  }
+  addRing(x, y, area * 1.05, "rgba(145,220,255,.75)", 0.95);
+}
+
+function castDimensionalSlash(origin, area, damage, level) {
+  const radius = Math.max(area, Math.max(W, H) * 0.86);
+  const slashDamage = damage * (1.08 + level * 0.08);
+  for (const m of state.monsters) {
+    hitMonster(m, slashDamage, "arcane");
+  }
+  state.zones.push(scaleSkillDuration({
+    x: origin.x,
+    y: origin.y,
+    r: radius,
+    life: 0.95,
+    maxLife: 0.95,
+    damage: 0,
+    element: "arcane",
+    type: "dimensionalSlashFx",
+    color: "rgba(181,82,255,.35)",
+    angle: -0.58 + rand(-0.12, 0.12),
+    grow: 0.15,
+    spin: 0.05
+  }));
+  addRing(origin.x, origin.y, radius * 0.72, "rgba(185,92,255,.78)", 0.9);
+  for (let i = 0; i < 10 + level * 2; i++) {
+    const a = -0.58 + rand(-0.55, 0.55);
+    const ox = Math.cos(a + Math.PI / 2) * rand(-radius * 0.45, radius * 0.45);
+    const oy = Math.sin(a + Math.PI / 2) * rand(-radius * 0.45, radius * 0.45);
+    const sx = origin.x + ox - Math.cos(a) * radius * rand(0.25, 0.85);
+    const sy = origin.y + oy - Math.sin(a) * radius * rand(0.25, 0.85);
+    const ex = origin.x + ox + Math.cos(a) * radius * rand(0.35, 0.95);
+    const ey = origin.y + oy + Math.sin(a) * radius * rand(0.35, 0.95);
+    addLine(sx, sy, ex, ey, "rgba(196,96,255,.76)", rand(4, 10), 0.52, true);
+  }
+  addParticles(origin.x, origin.y, "rgba(190,96,255,.62)", 34, radius * 0.38, 0.85);
 }
 
 function castPlayerCleave(origin, target, area, damage, level) {
@@ -838,7 +1026,7 @@ function castBloodRectangle(origin, target, area, damage, level) {
   const sideX = -forwardY;
   const sideY = forwardX;
   const length = area * (1.28 + level * 0.06);
-  const width = 68 + level * 11;
+  const width = 96 + level * 16;
   for (const m of state.monsters) {
     const dx = m.x - origin.x;
     const dy = m.y - origin.y;
@@ -850,7 +1038,7 @@ function castBloodRectangle(origin, target, area, damage, level) {
   }
   const cx = origin.x + forwardX * length * 0.5;
   const cy = origin.y + forwardY * length * 0.5;
-  state.zones.push({
+  state.zones.push(scaleSkillDuration({
     x: cx,
     y: cy,
     r: width,
@@ -864,8 +1052,90 @@ function castBloodRectangle(origin, target, area, damage, level) {
     color: "rgba(200,22,64,.28)",
     angle,
     grow: 0.65
-  });
+  }));
   addLine(origin.x + forwardX * 22, origin.y + forwardY * 22, origin.x + forwardX * length, origin.y + forwardY * length, "rgba(255,55,92,.72)", 10, 0.18, true);
+}
+
+function applyFear(target, seconds) {
+  target.fear = Math.max(target.fear || 0, seconds);
+  target.slow = Math.max(target.slow || 0, seconds * 0.35);
+}
+
+function castPainScream(origin, target, area, damage, level) {
+  const angle = Math.atan2(target.y - origin.y, target.x - origin.x);
+  const forwardX = Math.cos(angle);
+  const forwardY = Math.sin(angle);
+  const sideX = -forwardY;
+  const sideY = forwardX;
+  const length = area * (1.25 + level * 0.08);
+  const width = area * (0.72 + level * 0.04);
+  for (const m of state.monsters) {
+    const dx = m.x - origin.x;
+    const dy = m.y - origin.y;
+    const forward = dx * forwardX + dy * forwardY;
+    const side = Math.abs(dx * sideX + dy * sideY);
+    const maxSide = (width * 0.22) + (forward / length) * width * 0.48;
+    if (forward > -m.r && forward < length + m.r && side < maxSide + m.r) {
+      hitMonster(m, damage * 0.55, "arcane");
+      applyFear(m, 1.35 + level * 0.24);
+    }
+  }
+  state.zones.push(scaleSkillDuration({
+    x: origin.x + forwardX * length * 0.5,
+    y: origin.y + forwardY * length * 0.5,
+    r: width,
+    length,
+    width,
+    life: 0.58,
+    maxLife: 0.58,
+    damage: 0,
+    element: "arcane",
+    type: "painScreamFx",
+    color: "rgba(224,67,255,.30)",
+    angle,
+    grow: 0.9
+  }));
+  addParticles(origin.x + forwardX * 58, origin.y + forwardY * 58, "rgba(238,86,255,.78)", 16, area * 0.32, 0.55);
+}
+
+function castFireBreathBarrage(origin, target, area, damage, level) {
+  const baseAngle = Math.atan2(target.y - origin.y, target.x - origin.x);
+  const waves = 3 + Math.floor(level / 2);
+  for (let i = 0; i < waves; i++) {
+    const waveAngle = baseAngle + (i - (waves - 1) * 0.5) * 0.08;
+    const waveArea = area * (1.02 + i * 0.06);
+    const delay = i * 0.16;
+    state.zones.push(scaleSkillDuration({
+      x: origin.x,
+      y: origin.y,
+      a: waveAngle,
+      arc: 0.9,
+      r: waveArea,
+      life: 0.38,
+      maxLife: 0.38,
+      delay,
+      damage: damage * 0.18,
+      element: "fire",
+      type: "fireBreathFx",
+      effect: "breathOfFire",
+      color: "rgba(255,96,36,.32)",
+      grow: 1.45,
+      burnDamage: damage * 0.16,
+      burnVulnerable: 0.18 + level * 0.016,
+      widthMul: 1.72,
+      heightMul: 1.18,
+      alphaMul: 0.76
+    }));
+    addParticles(
+      origin.x + Math.cos(waveAngle) * (58 + i * 8),
+      origin.y + Math.sin(waveAngle) * (58 + i * 8),
+      "rgba(255,174,72,.72)",
+      10 + level,
+      waveArea * 0.18,
+      0.42 + delay
+    );
+  }
+  addText("Breath of Fire", origin.x - 54, origin.y - 58, "#ffb35a");
 }
 
 function fireBloodSpear(x, y, tx, ty, damage, level) {
@@ -879,7 +1149,7 @@ function fireBloodSpear(x, y, tx, ty, damage, level) {
     vx: Math.cos(a) * (560 + level * 18),
     vy: Math.sin(a) * (560 + level * 18),
     damage: damage * 0.95,
-    r: 13,
+    r: 20,
     element: "physical",
     color: "rgba(255,42,60,.9)",
     life: 1.25,
@@ -949,6 +1219,39 @@ function explodeBlackPlague(pr) {
   addRing(pr.x, pr.y, pr.area, "rgba(205,92,255,.84)", 0.52);
 }
 
+function castVirulentPlague(x, y, level, area, damage) {
+  damageCircle(x, y, area * 0.82, damage * 0.75, "poison", true);
+  addRing(x, y, area * 0.95, "rgba(145,255,72,.82)", 0.58);
+  addParticles(x, y, "rgba(172,255,74,.74)", 18 + level * 3, area * 0.42, 0.7);
+  const pieces = 6;
+  const base = rand(0, Math.PI * 2);
+  for (let i = 0; i < pieces; i++) {
+    const a = base + i * Math.PI * 2 / pieces;
+    const speed = 58 + level * 8;
+    const r = area * (0.46 + level * 0.035);
+    state.zones.push(scaleSkillDuration({
+      x: x + Math.cos(a) * area * 0.18,
+      y: y + Math.sin(a) * area * 0.18,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed,
+      r,
+      maxR: r * 1.36,
+      life: 4.2 + level * 0.22,
+      maxLife: 4.2 + level * 0.22,
+      damage: damage * 0.28,
+      element: "poison",
+      type: "virulentPlagueFx",
+      color: "rgba(140,255,62,.22)",
+      spin: (i % 2 ? 1 : -1) * (1.8 + level * 0.1),
+      grow: 0.38,
+      poisonDamage: damage * 0.18,
+      slow: 0.38,
+      diseaseDamage: damage * 0.035
+    }));
+  }
+  addText("Virulent Plague", x - 54, y - 42, "#b7ff62");
+}
+
 function castChainLightning(origin, level, range, damage, element) {
   let current = nearestEnemy(origin, range);
   if (!current) return;
@@ -974,6 +1277,59 @@ function castChainLightning(origin, level, range, damage, element) {
     }
     current = next;
   }
+}
+
+function castForkLightning(origin, target, level, range, damage) {
+  const angle = Math.atan2(target.y - origin.y, target.x - origin.x);
+  const length = range * (0.95 + level * 0.04);
+  const width = range * (0.55 + level * 0.035);
+  const branches = 3 + Math.floor(level / 2);
+  const hit = new Set();
+  const ox = origin.x + Math.cos(angle) * length * 0.42;
+  const oy = origin.y + Math.sin(angle) * length * 0.42;
+
+  for (const m of state.monsters) {
+    const dx = m.x - origin.x;
+    const dy = m.y - origin.y;
+    const forward = Math.cos(angle) * dx + Math.sin(angle) * dy;
+    const side = Math.abs(-Math.sin(angle) * dx + Math.cos(angle) * dy);
+    const taper = 0.25 + clamp(forward / Math.max(1, length), 0, 1) * 0.75;
+    if (forward > -m.r && forward < length + m.r && side < width * taper + m.r) {
+      hit.add(m);
+    }
+  }
+  for (const m of hit) {
+    hitMonster(m, damage * 1.16, "lightning");
+    m.slow = Math.max(m.slow || 0, 0.18);
+  }
+
+  state.zones.push({
+    x: ox,
+    y: oy,
+    r: width,
+    length,
+    width,
+    angle,
+    life: 0.42,
+    maxLife: 0.42,
+    damage: 0,
+    element: "lightning",
+    type: "forkLightningFx",
+    color: "rgba(94,174,255,.35)",
+    grow: 0.2
+  });
+  addLightning(origin.x, origin.y, target.x, target.y);
+  for (let i = 0; i < branches; i++) {
+    const t = 0.25 + i / Math.max(1, branches - 1) * 0.62;
+    const baseX = origin.x + Math.cos(angle) * length * t;
+    const baseY = origin.y + Math.sin(angle) * length * t;
+    const side = (i % 2 ? 1 : -1) * rand(width * 0.35, width * 0.9);
+    const endX = baseX + Math.cos(angle) * rand(length * 0.08, length * 0.18) - Math.sin(angle) * side;
+    const endY = baseY + Math.sin(angle) * rand(length * 0.08, length * 0.18) + Math.cos(angle) * side;
+    addLightning(baseX, baseY, endX, endY);
+    addLine(baseX, baseY, endX, endY, "rgba(100,205,255,.9)", 6, 0.24, true);
+  }
+  addParticles(target.x, target.y, "rgba(110,210,255,.88)", 12 + level * 2, width * 0.45, 0.38);
 }
 
 function fireEnemyShot(m, p) {
@@ -1469,14 +1825,29 @@ function damageCircle(x, y, r, damage, element, slow) {
   }
 }
 
+function maybeTriggerDeathExplosion(m) {
+  const chance = state.player.deathExplosionChance || 0;
+  if (chance <= 0 || Math.random() >= chance) return;
+  const radius = 105 + (m.r || 16) * 0.8;
+  const damage = 78 * state.player.damage * elementMult("poison");
+  damageCircle(m.x, m.y, radius, damage, "poison", true);
+  state.zones.push({
+    x: m.x, y: m.y, r: radius * 0.5, maxR: radius, life: 0.55, maxLife: 0.55,
+    damage: 0, element: "poison", type: "virulentPlagueFx",
+    color: "rgba(166,255,70,.24)", grow: 1.8, spin: 2.2
+  });
+  addRing(m.x, m.y, radius, "rgba(166,255,70,.65)", 0.55);
+  addParticles(m.x, m.y, "rgba(176,255,78,.5)", 18, radius * 0.45, 0.75);
+}
+
 function spiritOrbitConfig() {
   const s = state.skills.spiritTaming;
   if (!s) return null;
   const b = skillBook.spiritTaming;
   const lvl = clamp(s.level, 1, 7);
-  const count = lvl * 2;
+  const count = lvl * 2 + (state.player.spiritBonus || 0);
   const area = b.area * skillAreaMultiplier(lvl) * state.player.area;
-  const damage = b.damage * SKILL_POWER_MULT * skillDamageMultiplier(lvl) * state.player.damage * (1 + (state.player.classDamageAura || 0)) * elementMult(b.element);
+  const damage = b.damage * SKILL_POWER_MULT * 2 * skillDamageMultiplier(lvl) * state.player.damage * (1 + (state.player.classDamageAura || 0)) * elementMult(b.element);
   return {
     level: lvl,
     count,
@@ -1538,6 +1909,20 @@ function update(dt) {
   updatePoisonStatus(p, dt);
   updateDiseaseStatus(p, dt);
   p.hp = Math.min(p.maxHp, p.hp + p.regen * dt);
+  if (p.healAura > 0) {
+    const healRange = p.healAuraRange || 190;
+    p.hp = Math.min(p.maxHp, p.hp + p.healAura * dt);
+    for (const f of state.followers) {
+      if (f.hp > 0 && Math.hypot(f.x - p.x, f.y - p.y) <= healRange) {
+        f.hp = Math.min(f.maxHp, f.hp + p.healAura * dt);
+      }
+    }
+    p.healAuraFx = (p.healAuraFx || 0) - dt;
+    if (p.healAuraFx <= 0) {
+      p.healAuraFx = 1;
+      addRing(p.x, p.y, healRange, "rgba(118,255,158,.45)", 0.8);
+    }
+  }
   if (state.healTimer <= 0) {
     spawnHeal();
     state.healTimer = rand(14, 26);
@@ -1580,7 +1965,7 @@ function update(dt) {
       s.t = b.cd * p.cooldown * skillCooldownMultiplier(s.level);
     }
   }
-  if (state.skills.absoluteZero) damageCircle(p.x, p.y, skillBook.absoluteZero.area * p.area, 6 * dt * 60, "ice", true);
+  if (state.skills.absoluteZero) damageCircle(p.x, p.y, skillBook.absoluteZero.area * FUSION_AREA_MULT * p.area, 6 * FUSION_DAMAGE_MULT * dt * 60, "ice", true);
   updateSpiritOrbit(dt);
 
   updateFollowers(dt);
@@ -1787,7 +2172,7 @@ function openBlackMarket() {
   const offers = [];
   const followerPool = [...followerChoices].sort(() => Math.random() - 0.5).slice(0, 3);
   followerPool.forEach((f, index) => {
-    const cost = 70 + f.tier * 25 + index * 12;
+    const cost = (70 + f.tier * 25 + index * 12) * 10;
     const next = followerEvolvesTo[f.id] ? followerById[followerEvolvesTo[f.id]].name : "higher tier";
     offers.push({
       title: `${f.name} - ${cost} Gold`,
@@ -1795,13 +2180,23 @@ function openBlackMarket() {
       run: () => buyFollowerOffer(f, cost)
     });
   });
+  const marketGear = new Set();
   for (let i = 0; i < 3; i++) {
-    const gear = pick(gearBook);
-    const cost = 90 + i * 22;
+    const gear = pickGearByRarity(marketGear);
+    if (!gear) break;
+    marketGear.add(gear.name);
+    const cost = (90 + i * 22) * 10;
     offers.push({
-      title: `${gear.name} - ${cost} Gold`,
+      title: `${gearTitle(gear)} - ${cost} Gold`,
       desc: gear.desc,
       run: () => buyGearOffer(gear, cost)
+    });
+  }
+  if (!marketGear.size) {
+    offers.push({
+      title: "Gear Sold Out",
+      desc: "You already own every non-duplicate gear item.",
+      run: () => false
     });
   }
   offers.push({
@@ -1850,10 +2245,12 @@ function buyGearOffer(gear, cost) {
     addText("Need more Gold", state.player.x - 42, state.player.y - 46, "#ffd36b");
     return false;
   }
+  if (!applyUniqueGear(gear, "Black Market")) {
+    addText("Already owned", state.player.x - 42, state.player.y - 46, "#ffd36b");
+    return false;
+  }
   state.gold -= cost;
-  gear.apply(state.player);
-  state.items.push(`Black Market: ${gear.name}`);
-  addText(`Bought ${gear.name}`, state.player.x - 56, state.player.y - 48, "#ffd36b");
+  addText(`Bought ${gearTitle(gear)}`, state.player.x - 56, state.player.y - 48, gearRarityInfo[gear.rarity]?.color || "#ffd36b");
   addRing(state.player.x, state.player.y, 52, "rgba(255,211,107,.85)", 0.45);
   return false;
 }
@@ -1861,7 +2258,12 @@ function buyGearOffer(gear, cost) {
 function updateFollowers(dt) {
   const p = state.player;
   p.followerDefense = state.followers.reduce((sum, f) => sum + (f.id === "golem" ? 3 : f.id === "giant" ? 6 : 0), 0);
-  p.followerAttackAura = Math.min(0.75, state.followers.filter(f => f.id === "knight" && f.hp > 0).length * 0.18);
+  p.followerAttackAura = Math.min(0.95, state.followers.filter(f => f.id === "knight" && f.hp > 0).length * 0.18 + (p.followerAttackAuraGear || 0));
+  state.mergeCheck = Math.max(0, (state.mergeCheck || 0) - dt);
+  if (state.mergeCheck <= 0) {
+    state.mergeCheck = 0.35;
+    for (const id of Object.keys(followerEvolvesTo)) resolveFollowerMerge(id);
+  }
   for (let i = state.followers.length - 1; i >= 0; i--) {
     const f = state.followers[i];
     const grownMax = Math.floor((f.baseMaxHp || f.maxHp || followerMaxHp(f)) * timeGrowth());
@@ -1884,7 +2286,7 @@ function updateFollowers(dt) {
     if (f.tempLife != null) {
       f.tempLife -= dt;
       if (f.tempLife <= 0) {
-        addText("Treant fades", f.x - 28, f.y - 28, "#b8e88d");
+        addText(`${f.name} fades`, f.x - 28, f.y - 28, f.element === "fire" ? "#ff9b58" : "#b8e88d");
         state.followers.splice(i, 1);
         continue;
       }
@@ -1894,15 +2296,17 @@ function updateFollowers(dt) {
     updateDiseaseStatus(f, dt);
     updateFollowerSpiritOrbit(f, dt);
     updateFairyFollowerSkills(f, dt);
+    updateGhostFollowerSkills(f, dt);
+    updateDemonFollowerSkills(f, dt);
     const target = f.id === "ninjaGirl" ? (nearestPriorityEnemy(f, f.range + 260, m => m.tag === "ranged") || nearestEnemy(f, f.range + 210)) : nearestEnemy(f, f.range + 170);
     const home = { x: p.x + ((i % 3) - 1) * 34, y: p.y + 42 + Math.floor(i / 3) * 18 };
     const moveTarget = target || home;
-    const desired = target ? (isFairyFollower(f) ? Math.max(165, target.r + 130) : f.id === "golem" || f.id === "giant" ? Math.max(125, target.r + 92) : isRogueFollower(f) ? Math.max(42, target.r + 24) : Math.max(58, target.r + 34)) : 0;
+    const desired = target ? (isFairyFollower(f) || f.id === "demonFollower" || f.id === "hellKing" ? Math.max(165, target.r + 130) : f.id === "banshee" ? Math.max(150, target.r + 120) : f.id === "golem" || f.id === "giant" ? Math.max(125, target.r + 92) : isRogueFollower(f) ? Math.max(42, target.r + 24) : Math.max(58, target.r + 34)) : 0;
     const dx = moveTarget.x - f.x;
     const dy = moveTarget.y - f.y;
     const d = Math.hypot(dx, dy) || 1;
-    const speedBoost = isRogueFollower(f) ? (f.id === "ninjaGirl" ? 1.65 : f.id === "assassinGirl" ? 1.45 : 1.35) : isFairyFollower(f) ? 1.2 : 1;
-    const speed = (target ? 185 : 230) * speedBoost * diseaseMoveMult(f);
+    const speedBoost = isRogueFollower(f) ? (f.id === "ninjaGirl" ? 1.65 : f.id === "assassinGirl" ? 1.45 : 1.35) : isGhostFollower(f) ? 1.28 : isFairyFollower(f) ? 1.2 : f.id === "littleDemon" ? 1.32 : isDemonFollower(f) ? 1.12 : 1;
+    const speed = (target ? 185 : 230) * speedBoost * (1 + (p.followerMoveAura || 0)) * diseaseMoveMult(f);
     if (!target || d > desired) {
       f.x += (dx / d) * speed * dt;
       f.y += (dy / d) * speed * dt;
@@ -1915,7 +2319,7 @@ function updateFollowers(dt) {
     if (f.t <= 0) {
       const attackTarget = f.id === "ninjaGirl" ? (nearestPriorityEnemy(f, f.range + 70, m => m.tag === "ranged") || nearestEnemy(f, f.range)) : nearestEnemy(f, f.range);
       if (attackTarget) followerAttack(f, attackTarget);
-      f.t = f.id === "ninjaGirl" ? 0.72 : f.id === "assassinGirl" ? 0.78 : f.id === "rogueGirl" ? 0.82 : f.id === "fairyPrincess" ? 0.95 : f.id === "flowerFairy" ? 1.05 : f.id === "pixie" ? 0.9 : f.id === "knight" ? 0.9 : f.id === "swordsman" ? 0.88 : f.id === "militia" ? 0.98 : f.id === "reaper" ? 0.86 : f.id === "skeletonWarrior" ? 0.92 : f.id === "skeleton" ? 0.98 : f.id === "treantGuardian" ? 1.12 : f.id === "golem" ? 1.15 : f.id === "giant" ? 1.25 : f.id === "lotus" ? 1.65 : f.id === "balrog" ? 1.05 : 0.95;
+      f.t = f.id === "hellKing" ? 1.28 : f.id === "demonFollower" ? 0.92 : f.id === "littleDemon" ? 0.78 : f.id === "ninjaGirl" ? 0.72 : f.id === "assassinGirl" ? 0.78 : f.id === "rogueGirl" ? 0.82 : f.id === "banshee" ? 1.0 : f.id === "wraith" ? 0.84 : f.id === "ghostFollower" ? 0.9 : f.id === "fairyPrincess" ? 0.95 : f.id === "flowerFairy" ? 1.05 : f.id === "pixie" ? 0.9 : f.id === "knight" ? 0.9 : f.id === "swordsman" ? 0.88 : f.id === "militia" ? 0.98 : f.id === "reaper" ? 0.86 : f.id === "skeletonWarrior" ? 0.92 : f.id === "skeleton" ? 0.98 : f.id === "treantGuardian" ? 1.12 : f.id === "golem" ? 1.15 : f.id === "giant" ? 1.25 : f.id === "lotus" ? 1.65 : f.id === "balrog" ? 1.05 : 0.95;
     }
   }
 }
@@ -1936,6 +2340,14 @@ function isFairyFollower(f) {
   return f.id === "pixie" || f.id === "flowerFairy" || f.id === "fairyPrincess";
 }
 
+function isGhostFollower(f) {
+  return f.id === "ghostFollower" || f.id === "wraith" || f.id === "banshee";
+}
+
+function isDemonFollower(f) {
+  return f.id === "littleDemon" || f.id === "demonFollower" || f.id === "hellKing";
+}
+
 function nearestPriorityEnemy(from, range = 9999, predicate = null) {
   let best = null;
   let bd = range;
@@ -1953,6 +2365,10 @@ function nearestPriorityEnemy(from, range = 9999, predicate = null) {
 function followerAttack(f, target) {
   const p = state.player;
   const damage = f.damage * timeGrowth() * p.damage * diseaseAttackMult(f) * (1 + (f.tier - 1) * 0.18) * (1 + (p.followerAttackAura || 0) + (p.classFollowerAttackAura || 0));
+  if (isGhostFollower(f)) {
+    ghostStrike(f, target, damage);
+    return;
+  }
   if (isRogueFollower(f)) {
     rogueStrike(f, target, damage);
     return;
@@ -1974,6 +2390,13 @@ function followerAttack(f, target) {
     f.cast = 0.28 + f.tier * 0.07;
     f.face = Math.atan2(target.y - f.y, target.x - f.x);
     fireFairyBolt(f, target, damage);
+    return;
+  }
+  if (isDemonFollower(f)) {
+    f.cast = 0.32 + f.tier * 0.08;
+    f.face = Math.atan2(target.y - f.y, target.x - f.x);
+    if (f.id === "littleDemon") demonClaw(f, target, damage);
+    else fireFollowerFireball(f, target, damage * (f.id === "hellKing" ? 1.35 : 1.12));
     return;
   }
   if (f.id === "treantGuardian") {
@@ -2080,6 +2503,23 @@ function rogueStrike(f, target, damage) {
   target.y += Math.sin(a) * 6;
 }
 
+function applyDisarm(target, seconds) {
+  target.disarm = Math.max(target.disarm || 0, seconds);
+  addText("缴械", target.x - 18, target.y - target.r - 18, "#dbeafe");
+}
+
+function ghostStrike(f, target, damage) {
+  const a = Math.atan2(target.y - f.y, target.x - f.x);
+  f.cast = 0.32 + f.tier * 0.07;
+  f.face = a;
+  hitMonster(target, damage * (f.id === "banshee" ? 1.18 : f.id === "wraith" ? 1.08 : 1), "arcane");
+  if (f.id === "wraith" || f.id === "banshee") applyDisarm(target, f.id === "banshee" ? 1.55 : 1.15);
+  target.slow = Math.max(target.slow || 0, 0.25);
+  addLine(f.x, f.y, target.x, target.y, "rgba(210,232,255,.52)", 6 + f.tier, 0.16, true);
+  addRing(target.x, target.y, 28 + f.tier * 10, "rgba(190,218,255,.48)", 0.24);
+  addParticles(target.x, target.y, "rgba(218,238,255,.58)", 7 + f.tier * 2, 36 + f.tier * 8, 0.34);
+}
+
 function humanCleave(f, target, damage) {
   const a = Math.atan2(target.y - f.y, target.x - f.x);
   const radius = f.id === "knight" ? 86 : 64;
@@ -2158,7 +2598,63 @@ function updateFairyFollowerSkills(f, dt) {
   if (!target) return;
   if (f.id === "flowerFairy" || f.id === "fairyPrincess") castFairyPoisonCloud(f, target);
   if (f.id === "fairyPrincess") summonTreantGuardian(f, target);
-  f.skillCd = f.id === "fairyPrincess" ? 6.4 : 5.2;
+  f.skillCd = (f.id === "fairyPrincess" ? 6.4 : 5.2) * (state.player.followerCooldown || 1);
+}
+
+function updateGhostFollowerSkills(f, dt) {
+  if (f.id !== "banshee") return;
+  f.skillCd = Math.max(0, (f.skillCd || rand(2.0, 4.0)) - dt);
+  if (f.skillCd > 0) return;
+  const target = nearestEnemy(f, 520);
+  if (!target) return;
+  f.cast = 0.55;
+  f.face = Math.atan2(target.y - f.y, target.x - f.x);
+  castPainScream(f, target, 205 + f.tier * 25, f.damage * timeGrowth() * state.player.damage * 1.2, 3);
+  f.skillCd = 6.2 * (state.player.followerCooldown || 1);
+}
+
+function updateDemonFollowerSkills(f, dt) {
+  if (f.id !== "hellKing") return;
+  f.skillCd = Math.max(0, (f.skillCd || rand(2.8, 5.2)) - dt);
+  if (f.skillCd > 0) return;
+  const target = nearestEnemy(f, 620) || nearestEnemy(state.player, 720);
+  summonHellDemon(f, target || state.player);
+  f.skillCd = 7.2 * (state.player.followerCooldown || 1);
+}
+
+function demonClaw(f, target, damage) {
+  const a = Math.atan2(target.y - f.y, target.x - f.x);
+  hitMonster(target, damage * 1.12, "fire");
+  applyBurn(target, damage * 0.08, 3.2);
+  target.x += Math.cos(a) * 12;
+  target.y += Math.sin(a) * 12;
+  addLine(f.x, f.y, target.x, target.y, "rgba(255,108,42,.72)", 6, 0.14, true);
+  addParticles(target.x, target.y, "rgba(255,112,42,.72)", 5, 24, 0.3);
+}
+
+function summonHellDemon(f, target) {
+  if (state.followers.filter(x => x.id === "littleDemon" && x.summoner === f).length >= 3) return;
+  const src = followerById.littleDemon;
+  const maxHp = Math.floor((70 + f.tier * 28) * timeGrowth());
+  const a = Math.atan2((target?.y || state.player.y) - f.y, (target?.x || state.player.x) - f.x);
+  const demon = {
+    ...src,
+    x: f.x + Math.cos(a) * 62 + rand(-20, 20),
+    y: f.y + Math.sin(a) * 62 + rand(-20, 20),
+    hp: maxHp,
+    maxHp,
+    baseMaxHp: maxHp,
+    damage: src.damage + 8 + f.tier * 5,
+    hitGrace: 0.8,
+    t: rand(0.1, 0.5),
+    autoChess: true,
+    summoned: true,
+    summoner: f,
+    tempLife: 26
+  };
+  state.followers.push(demon);
+  addRing(demon.x, demon.y, 58, "rgba(255,84,32,.86)", 0.58);
+  addText("Summon Demon", demon.x - 46, demon.y - 42, "#ff9b58");
 }
 
 function fireFairyBolt(f, target, damage) {
@@ -2568,6 +3064,13 @@ function updateZones(dt) {
       z.x = state.player.x;
       z.y = state.player.y;
     }
+    if (z.type === "virulentPlagueFx") {
+      z.x += (z.vx || 0) * dt;
+      z.y += (z.vy || 0) * dt;
+      z.vx = (z.vx || 0) * (1 - Math.min(0.45, dt * 0.18));
+      z.vy = (z.vy || 0) * (1 - Math.min(0.45, dt * 0.18));
+      if (Math.random() < 0.18) addParticles(z.x + rand(-z.r * 0.28, z.r * 0.28), z.y + rand(-z.r * 0.28, z.r * 0.28), "rgba(166,255,70,.42)", 2, z.r * 0.24, 0.9);
+    }
     if (z.type === "movingSpiral") {
       const target = nearestEnemy(z, z.seek || 260);
       if (target) {
@@ -2602,26 +3105,28 @@ function updateZones(dt) {
       }
       if (Math.random() < 0.12) addParticles(z.x + rand(-z.r * 0.55, z.r * 0.55), z.y + rand(-z.r * 0.55, z.r * 0.55), "rgba(122,255,86,.36)", 2, 26, 1.2);
     }
-    if (z.poisonDamage || z.blind || z.burnVulnerable || z.burnDamage) {
+    if (z.poisonDamage || z.blind || z.burnVulnerable || z.burnDamage || z.slow || z.diseaseDamage) {
       z.statusTick = (z.statusTick || 0) - dt;
       if (z.statusTick <= 0) {
         z.statusTick = 0.55;
         for (const m of state.monsters) {
           if (Math.hypot(m.x - z.x, m.y - z.y) < z.r + m.r) {
-            if (z.poisonDamage) applyPoison(m, z.poisonDamage, z.type === "blackPlagueFx" ? 6 : 4.5);
+            if (z.poisonDamage) applyPoison(m, z.poisonDamage, z.type === "blackPlagueFx" || z.type === "virulentPlagueFx" ? 6 : 4.5);
             if (z.blind) applyBlind(m, 3.2);
             if (z.burnVulnerable) applyBurnVulnerability(m, 3.8, z.burnVulnerable);
             if (z.burnDamage) applyBurn(m, z.burnDamage, 4.2);
+            if (z.slow) m.slow = Math.max(m.slow || 0, z.slow);
+            if (z.diseaseDamage) applyDisease(m, z.diseaseDamage, 7);
           }
         }
       }
     }
     if (z.damage > 0) {
-      if (z.type === "cone") {
+      if (z.type === "cone" || z.type === "fireBreathFx") {
         for (const m of state.monsters) {
           const a = Math.atan2(m.y - z.y, m.x - z.x);
           const diff = Math.abs(Math.atan2(Math.sin(a - z.a), Math.cos(a - z.a)));
-          if (diff < 0.55 && Math.hypot(m.x - z.x, m.y - z.y) < z.r) hitMonster(m, z.damage * dt * 60, z.element);
+          if (diff < (z.arc || 0.55) && Math.hypot(m.x - z.x, m.y - z.y) < z.r) hitMonster(m, z.damage * dt * 60, z.element);
         }
       } else {
         damageCircle(z.x, z.y, z.r, z.damage * dt * 12, z.element, z.element === "ice");
@@ -2657,9 +3162,17 @@ function updateMonsters(dt) {
       state.monsters.splice(i, 1);
       continue;
     }
+    if (!m.baseMaxHp) m.baseMaxHp = (m.maxHp || m.hp || 1) / timeGrowth();
+    const grownMax = m.baseMaxHp * timeGrowth();
+    if (grownMax > (m.maxHp || 0)) {
+      m.hp += grownMax - (m.maxHp || 0);
+      m.maxHp = grownMax;
+    }
+    m.attackMul = m.tag === "typhon" ? 1.25 : 1;
     if (m.hp <= 0) {
+      maybeTriggerDeathExplosion(m);
       if (Math.random() < 0.72 || m.kind !== "normal") state.gems.push({ x: m.x, y: m.y, r: m.kind === "boss" ? 10 : 6, xp: m.xp });
-      if (Math.random() < (m.kind === "normal" ? 0.045 : m.kind === "elite" ? 0.18 : 0.35)) state.chests.push({ x: m.x + rand(-10, 10), y: m.y + rand(-10, 10), r: 12, pulse: rand(0, Math.PI * 2) });
+      if (Math.random() < (m.kind === "normal" ? 0.015 : m.kind === "elite" ? 0.07 : 0.18)) state.chests.push({ x: m.x + rand(-10, 10), y: m.y + rand(-10, 10), r: 12, pulse: rand(0, Math.PI * 2) });
       addGold(monsterGoldValue(m), m.x, m.y);
       if (m.worldBoss && m.tag === "typhon") {
         const site = state.worldBosses?.typhon;
@@ -2672,7 +3185,10 @@ function updateMonsters(dt) {
       } else if (m.kind === "boss") awardArtifact();
       if (state.classId === "necromancer" && Math.random() < classLevel() * 0.01) {
         const skeleton = followerById.skeleton;
-        if (skeleton) spawnFollower(skeleton, m.x, m.y, false);
+        if (skeleton) {
+          const f = spawnFollower(skeleton, m.x, m.y, false);
+          if (f) resolveFollowerMerge(f.id);
+        }
       }
       state.monsters.splice(i, 1);
       continue;
@@ -2687,6 +3203,8 @@ function updateMonsters(dt) {
     const slow = m.slow ? 0.55 : 1;
     m.slow = Math.max(0, (m.slow || 0) - dt);
     m.blind = Math.max(0, (m.blind || 0) - dt);
+    m.fear = Math.max(0, (m.fear || 0) - dt);
+    m.disarm = Math.max(0, (m.disarm || 0) - dt);
     m.hit = Math.max(0, m.hit - dt);
     m.attackCd = Math.max(0, (m.attackCd || 0) - dt);
     m.specialCd = Math.max(0, (m.specialCd || rand(1.3, 2.2)) - dt);
@@ -2753,7 +3271,10 @@ function updateMonsters(dt) {
       if (updateChimeraCharge(m, target, dt)) continue;
     }
     const targetDistance = Math.hypot(target.x - m.x, target.y - m.y);
-    if (m.tag === "ranged") {
+    if (m.fear > 0) {
+      m.x -= Math.cos(a) * m.speed * 1.45 * slow * diseaseMoveMult(m) * dt;
+      m.y -= Math.sin(a) * m.speed * 1.45 * slow * diseaseMoveMult(m) * dt;
+    } else if (m.tag === "ranged") {
       const keepDistance = m.name === "暗精灵" ? 360 : 310;
       const strafe = Math.sin(state.time * 1.8 + m.x * 0.01) * 0.42;
       let moveX = 0;
@@ -2785,7 +3306,7 @@ function updateMonsters(dt) {
         m.specialCd = rand(2.8, 3.8);
       }
     }
-    if (Math.hypot(target.x - m.x, target.y - m.y) < targetRadius + m.r && m.attackCd <= 0) {
+    if (Math.hypot(target.x - m.x, target.y - m.y) < targetRadius + m.r && m.attackCd <= 0 && (m.disarm || 0) <= 0) {
       const incoming = Math.max(1, 11 * ENEMY_DAMAGE_MULT * timeGrowth() * diseaseAttackMult(m) - (followerTarget ? 0 : effectiveDefense())) * (1 - (followerTarget ? 0 : effectiveGroupReduce()));
       const missed = monsterAttackMisses(m);
       if (missed) {
@@ -2813,7 +3334,7 @@ function updateMonsters(dt) {
       m.y += Math.sin(push) * 22;
       if (!followerTarget && p.thorns) m.hp -= p.thorns * 2;
     }
-    if (m.tag === "ranged") {
+    if (m.tag === "ranged" && (m.disarm || 0) <= 0) {
       m.shoot -= dt;
       const shotTarget = far > 420 ? nearestFollower(m, 620) || p : p;
       const rangeToTarget = Math.hypot(shotTarget.x - m.x, shotTarget.y - m.y);
@@ -2870,10 +3391,15 @@ function updateChests(dt) {
     c.pulse += dt * 5;
     const d = Math.hypot(p.x - c.x, p.y - c.y);
     if (d < p.r + c.r + 10) {
-      const g = pick(gearBook);
-      g.apply(p);
-      state.items.push(g.name);
-      addText(`宝箱：${g.name}`, c.x - 36, c.y - 20, "#ffd36b");
+      const g = pickGearByRarity();
+      if (g && applyUniqueGear(g)) {
+        addText(`宝箱：${gearTitle(g)}`, c.x - 36, c.y - 20, gearRarityInfo[g.rarity]?.color || "#ffd36b");
+      } else {
+        const bonusGold = 80 + Math.floor(state.time / 60) * 12;
+        state.gold = (state.gold || 0) + bonusGold;
+        state.items.push(`Chest: ${bonusGold} Gold`);
+        addText(`Chest: +${bonusGold} Gold`, c.x - 36, c.y - 20, "#ffd36b");
+      }
       addRing(c.x, c.y, 42, "rgba(255,211,107,.9)", 0.45);
       addParticles(c.x, c.y, "rgba(255,226,132,.9)", 16, 32, 0.55);
       state.chests.splice(i, 1);
@@ -2911,6 +3437,10 @@ function gainXp(v) {
   while (p.xp >= p.next) {
     p.xp -= p.next;
     p.level++;
+    const hpGain = 10 + Math.floor(p.level * 1.5);
+    p.maxHp += hpGain;
+    p.hp = Math.min(p.maxHp, p.hp + hpGain);
+    p.damage *= 1.045;
     p.next = Math.floor(p.next * 1.22 + 12);
     openLevelChoices();
   }
@@ -2928,8 +3458,14 @@ function openLevelChoices() {
       usedSkillChoices.add(id);
       const current = state.skills[id]?.level || 0;
       const fusion = id === "flameTornado" && !state.skills.flameTornado;
-      const title = fusion ? "Fusion: Flame Tornado" : current ? skillBook[id].name + " Lv." + Math.min(7, current + 1) : "Learn " + skillBook[id].name;
-      const desc = fusion ? "Consumes Lv.7 Fire Breath and Lv.7 Tornado." : skillBook[id].desc;
+      const doomFusion = id === "doom" && !state.skills.doom;
+      const forkFusion = id === "forkLightning" && !state.skills.forkLightning;
+      const plagueFusion = id === "virulentPlague" && !state.skills.virulentPlague;
+      const iceAgeFusion = id === "iceAge" && !state.skills.iceAge;
+      const breathFusion = id === "breathOfFire" && !state.skills.breathOfFire;
+      const dimensionalFusion = id === "dimensionalSlash" && !state.skills.dimensionalSlash;
+      const title = fusion ? "Fusion: Flame Tornado" : doomFusion ? "Fusion: Doomsday Judgment" : forkFusion ? "Fusion: Fork Lightning" : plagueFusion ? "Fusion: Virulent Plague" : iceAgeFusion ? "Fusion: Ice Age" : breathFusion ? "Fusion: Breath of Fire" : dimensionalFusion ? "Fusion: Dimensional Slash" : current ? skillBook[id].name + " Lv." + Math.min(7, current + 1) : "Learn " + skillBook[id].name;
+      const desc = fusion ? "Consumes Lv.7 Fire Breath and Lv.7 Tornado." : doomFusion ? "Consumes Lv.7 Lava Field, Meteor, Earthquake and sacrifices 1 Red Lotus Beast." : forkFusion ? "Consumes Lv.7 Fire Breath and Lv.7 Chain Lightning." : plagueFusion ? "Consumes Lv.7 Poison Cloud and Lv.7 Black Plague." : iceAgeFusion ? "Consumes Lv.7 Arrow Rain and Lv.7 Frost Nova." : breathFusion ? "Consumes Lv.7 Pain Scream and Lv.7 Fire Breath." : dimensionalFusion ? "Consumes Lv.7 Earthquake and Lv.7 Cleave." : skillBook[id].desc;
       choices.push({ title, desc, run: () => learnSkill(id) });
     } else {
       const f = pick(followerChoices);
@@ -2957,13 +3493,77 @@ function flameTornadoAvailable() {
   return !state.skills.flameTornado && (state.skills.fireBreath?.level || 0) >= 7 && (state.skills.tornado?.level || 0) >= 7;
 }
 
+function hasRedLotusBeast() {
+  return state.followers.some(f => f.id === "lotus" && f.hp > 0);
+}
+
+function doomAvailable() {
+  return !state.skills.doom
+    && (state.skills.lavaField?.level || 0) >= 7
+    && (state.skills.meteor?.level || 0) >= 7
+    && (state.skills.earthquake?.level || 0) >= 7
+    && hasRedLotusBeast();
+}
+
+function forkLightningAvailable() {
+  return !state.skills.forkLightning
+    && (state.skills.fireBreath?.level || 0) >= 7
+    && (state.skills.chainLightning?.level || 0) >= 7;
+}
+
+function virulentPlagueAvailable() {
+  return !state.skills.virulentPlague
+    && (state.skills.poisonCloud?.level || 0) >= 7
+    && (state.skills.blackPlague?.level || 0) >= 7;
+}
+
+function iceAgeAvailable() {
+  return !state.skills.iceAge
+    && (state.skills.arrowRain?.level || 0) >= 7
+    && (state.skills.frostNova?.level || 0) >= 7;
+}
+
+function breathOfFireAvailable() {
+  return !state.skills.breathOfFire
+    && (state.skills.painScream?.level || 0) >= 7
+    && (state.skills.fireBreath?.level || 0) >= 7;
+}
+
+function dimensionalSlashAvailable() {
+  return !state.skills.dimensionalSlash
+    && (state.skills.earthquake?.level || 0) >= 7
+    && (state.skills.cleave?.level || 0) >= 7;
+}
+
+function sacrificeRedLotusBeast() {
+  const index = state.followers.findIndex(f => f.id === "lotus" && f.hp > 0);
+  if (index < 0) return false;
+  const f = state.followers[index];
+  addText("Sacrifice: Red Lotus Beast", f.x - 78, f.y - 42, "#ff9b42");
+  addRing(f.x, f.y, 92, "rgba(255,84,24,.92)", 0.85);
+  state.followers.splice(index, 1);
+  return true;
+}
+
 function skillChoicePool() {
-  const blocked = new Set(["doom", "absoluteZero", "lightningStorm", "iceRing"]);
+  const blocked = new Set(["absoluteZero", "lightningStorm", "iceRing"]);
   const pool = [];
   for (const id of Object.keys(skillBook)) {
     if (blocked.has(id)) continue;
     if (id === "flameTornado" && !state.skills.flameTornado && !flameTornadoAvailable()) continue;
+    if (id === "doom" && !state.skills.doom && !doomAvailable()) continue;
+    if (id === "forkLightning" && !state.skills.forkLightning && !forkLightningAvailable()) continue;
+    if (id === "virulentPlague" && !state.skills.virulentPlague && !virulentPlagueAvailable()) continue;
+    if (id === "iceAge" && !state.skills.iceAge && !iceAgeAvailable()) continue;
+    if (id === "breathOfFire" && !state.skills.breathOfFire && !breathOfFireAvailable()) continue;
+    if (id === "dimensionalSlash" && !state.skills.dimensionalSlash && !dimensionalSlashAvailable()) continue;
     if ((id === "fireBreath" || id === "tornado") && state.skills.flameTornado) continue;
+    if ((id === "fireBreath" || id === "chainLightning") && state.skills.forkLightning) continue;
+    if ((id === "fireBreath" || id === "painScream") && state.skills.breathOfFire) continue;
+    if ((id === "poisonCloud" || id === "blackPlague") && state.skills.virulentPlague) continue;
+    if ((id === "arrowRain" || id === "frostNova") && state.skills.iceAge) continue;
+    if ((id === "lavaField" || id === "meteor" || id === "earthquake") && state.skills.doom) continue;
+    if ((id === "earthquake" || id === "cleave") && state.skills.dimensionalSlash) continue;
     const current = state.skills[id]?.level || 0;
     if (current >= 7) continue;
     const weight = current > 0 ? 4 : 1;
@@ -2971,6 +3571,24 @@ function skillChoicePool() {
   }
   if (flameTornadoAvailable()) {
     for (let i = 0; i < 8; i++) pool.push("flameTornado");
+  }
+  if (doomAvailable()) {
+    for (let i = 0; i < 8; i++) pool.push("doom");
+  }
+  if (forkLightningAvailable()) {
+    for (let i = 0; i < 8; i++) pool.push("forkLightning");
+  }
+  if (virulentPlagueAvailable()) {
+    for (let i = 0; i < 8; i++) pool.push("virulentPlague");
+  }
+  if (iceAgeAvailable()) {
+    for (let i = 0; i < 8; i++) pool.push("iceAge");
+  }
+  if (breathOfFireAvailable()) {
+    for (let i = 0; i < 8; i++) pool.push("breathOfFire");
+  }
+  if (dimensionalSlashAvailable()) {
+    for (let i = 0; i < 8; i++) pool.push("dimensionalSlash");
   }
   return pool;
 }
@@ -2987,6 +3605,64 @@ function learnSkill(id) {
     state.skills.flameTornado = skillState("flameTornado");
     addText("Fusion: Flame Tornado", state.player.x - 68, state.player.y - 56, "#ffb35a");
     addRing(state.player.x, state.player.y, 96, "rgba(255,110,36,.9)", 0.75);
+    return;
+  }
+  if (id === "doom" && !state.skills.doom) {
+    if (!doomAvailable() || !sacrificeRedLotusBeast()) {
+      addText("Doomsday needs Lv.7 Lava, Meteor, Quake and Red Lotus Beast", state.player.x - 140, state.player.y - 58, "#ffb35a");
+      return;
+    }
+    delete state.skills.lavaField;
+    delete state.skills.meteor;
+    delete state.skills.earthquake;
+    state.skills.doom = skillState("doom");
+    addText("Fusion: Doomsday Judgment", state.player.x - 88, state.player.y - 72, "#ff7038");
+    addRing(state.player.x, state.player.y, 160, "rgba(255,82,30,.95)", 1.1);
+    return;
+  }
+  if (id === "forkLightning" && !state.skills.forkLightning) {
+    if (!forkLightningAvailable()) return;
+    delete state.skills.fireBreath;
+    delete state.skills.chainLightning;
+    state.skills.forkLightning = skillState("forkLightning");
+    addText("Fusion: Fork Lightning", state.player.x - 74, state.player.y - 62, "#7fd4ff");
+    addRing(state.player.x, state.player.y, 118, "rgba(94,184,255,.9)", 0.82);
+    return;
+  }
+  if (id === "virulentPlague" && !state.skills.virulentPlague) {
+    if (!virulentPlagueAvailable()) return;
+    delete state.skills.poisonCloud;
+    delete state.skills.blackPlague;
+    state.skills.virulentPlague = skillState("virulentPlague");
+    addText("Fusion: Virulent Plague", state.player.x - 82, state.player.y - 66, "#b7ff62");
+    addRing(state.player.x, state.player.y, 128, "rgba(145,255,64,.9)", 0.88);
+    return;
+  }
+  if (id === "iceAge" && !state.skills.iceAge) {
+    if (!iceAgeAvailable()) return;
+    delete state.skills.arrowRain;
+    delete state.skills.frostNova;
+    state.skills.iceAge = skillState("iceAge");
+    addText("Fusion: Ice Age", state.player.x - 62, state.player.y - 66, "#9fe7ff");
+    addRing(state.player.x, state.player.y, 132, "rgba(145,220,255,.9)", 0.9);
+    return;
+  }
+  if (id === "breathOfFire" && !state.skills.breathOfFire) {
+    if (!breathOfFireAvailable()) return;
+    delete state.skills.painScream;
+    delete state.skills.fireBreath;
+    state.skills.breathOfFire = skillState("breathOfFire");
+    addText("Fusion: Breath of Fire", state.player.x - 78, state.player.y - 66, "#ffb35a");
+    addRing(state.player.x, state.player.y, 126, "rgba(255,104,38,.9)", 0.88);
+    return;
+  }
+  if (id === "dimensionalSlash" && !state.skills.dimensionalSlash) {
+    if (!dimensionalSlashAvailable()) return;
+    delete state.skills.earthquake;
+    delete state.skills.cleave;
+    state.skills.dimensionalSlash = skillState("dimensionalSlash");
+    addText("Fusion: Dimensional Slash", state.player.x - 88, state.player.y - 68, "#c67cff");
+    addRing(state.player.x, state.player.y, 145, "rgba(185,92,255,.9)", 0.95);
     return;
   }
   if (!state.skills[id]) state.skills[id] = skillState(id);
@@ -3020,6 +3696,12 @@ function followerMaxHp(src) {
   if (src.id === "skeleton") return 68;
   if (src.id === "skeletonWarrior") return 128;
   if (src.id === "reaper") return 230;
+  if (src.id === "ghostFollower") return 58;
+  if (src.id === "wraith") return 112;
+  if (src.id === "banshee") return 205;
+  if (src.id === "littleDemon") return 72;
+  if (src.id === "demonFollower") return 145;
+  if (src.id === "hellKing") return 265;
   const base = src.element === "earth" ? 95 : src.element === "fire" ? 78 : 72;
   return Math.floor(base * (1 + (src.tier - 1) * 0.85));
 }
@@ -3042,8 +3724,15 @@ function resolveFollowerMerge(startId) {
 }
 
 function awardArtifact(forcedName = null) {
-  const a = forcedName ? artifactBook.find(item => item.name === forcedName) : pick(artifactBook);
-  if (!a) return;
+  const owned = new Set(state.artifacts || []);
+  const pool = artifactBook.filter(item => !owned.has(item.name));
+  const a = forcedName ? artifactBook.find(item => item.name === forcedName && !owned.has(item.name)) : pick(pool);
+  if (!a) {
+    const bonusGold = 420 + Math.floor(state.time / 60) * 35;
+    state.gold = (state.gold || 0) + bonusGold;
+    addText(`Artifact duplicate: +${bonusGold} Gold`, 72, 105, "#ffd36b");
+    return;
+  }
   a.apply(state.player);
   state.artifacts.push(a.name);
   addText(`神器：${a.name}`, 72, 105, "#ffd36b");
@@ -3052,7 +3741,6 @@ function awardArtifact(forcedName = null) {
 function checkFusions() {
   const has = id => state.skills[id]?.level >= 3;
   const add = id => { if (!state.skills[id]) { state.skills[id] = skillState(id); addText(`合成：${skillBook[id].name}`, 72, 165, "#ffd36b"); } };
-  if (has("meteor") && has("tornado") && has("earthquake")) add("doom");
   if (has("blizzard") && has("frostNova")) add("absoluteZero");
   if (has("tornado") && has("thunderCloud")) add("lightningStorm");
   if (has("meteor") && has("frostNova")) add("iceRing");
@@ -3628,21 +4316,23 @@ function drawFollower(f) {
   }
   if (img && img.complete && img.naturalWidth) {
     const pulse = f.cast ? 1 + Math.sin(performance.now() / 45) * 0.1 + f.cast * 0.35 : 1;
-    const baseSize = f.id === "ninjaGirl" ? 70 : f.id === "assassinGirl" ? 64 : f.id === "rogueGirl" ? 58 : f.id === "knight" ? 82 : f.id === "swordsman" ? 64 : f.id === "militia" ? 52 : f.id === "reaper" ? 72 : f.id === "skeletonWarrior" ? 62 : f.id === "skeleton" ? 50 : f.id === "furnace" ? 46 : f.id === "balrog" ? 58 : f.id === "lotus" ? 62 : f.id === "giant" ? 72 : f.id === "golem" ? 60 : f.id === "rock" ? 48 : 34 + f.tier * 8;
+    const baseSize = f.id === "hellKing" ? 86 : f.id === "demonFollower" ? 72 : f.id === "littleDemon" ? 50 : f.id === "banshee" ? 70 : f.id === "wraith" ? 62 : f.id === "ghostFollower" ? 46 : f.id === "ninjaGirl" ? 70 : f.id === "assassinGirl" ? 64 : f.id === "rogueGirl" ? 58 : f.id === "knight" ? 82 : f.id === "swordsman" ? 64 : f.id === "militia" ? 52 : f.id === "reaper" ? 72 : f.id === "skeletonWarrior" ? 62 : f.id === "skeleton" ? 50 : f.id === "furnace" ? 46 : f.id === "balrog" ? 58 : f.id === "lotus" ? 62 : f.id === "giant" ? 72 : f.id === "golem" ? 60 : f.id === "rock" ? 48 : 34 + f.tier * 8;
     const size = baseSize * pulse;
     const lunge = (f.id === "rock" || f.id === "golem" || isSkeletonFollower(f) || isHumanFollower(f)) && f.cast ? f.cast * 22 : 0;
     const drawX = f.x + Math.cos(f.face || 0) * lunge;
     const drawY = f.y + Math.sin(f.face || 0) * lunge;
     ctx.save();
     ctx.imageSmoothingEnabled = true;
-    ctx.shadowColor = isHumanFollower(f) ? "rgba(255,218,118,.72)" : f.id === "reaper" || f.id === "skeletonWarrior" || f.id === "skeleton" ? "rgba(118,205,255,.78)" : f.id === "furnace" || f.id === "balrog" || f.id === "lotus" ? "rgba(255,112,32,.85)" : f.id === "rock" || f.id === "golem" || f.id === "giant" ? "rgba(90,62,38,.75)" : "rgba(85,225,255,.65)";
+    ctx.shadowColor = isHumanFollower(f) ? "rgba(255,218,118,.72)" : isGhostFollower(f) ? "rgba(190,226,255,.82)" : f.id === "reaper" || f.id === "skeletonWarrior" || f.id === "skeleton" ? "rgba(118,205,255,.78)" : f.id === "furnace" || f.id === "balrog" || f.id === "lotus" || isDemonFollower(f) ? "rgba(255,112,32,.85)" : f.id === "rock" || f.id === "golem" || f.id === "giant" ? "rgba(90,62,38,.75)" : "rgba(85,225,255,.65)";
     ctx.shadowBlur = f.cast ? 24 : 14;
     if (f.cast) {
       ctx.globalAlpha = 0.78;
-      drawCircle(drawX, drawY, size * 0.42, isHumanFollower(f) ? "rgba(255,220,120,.22)" : isSkeletonFollower(f) ? "rgba(150,210,255,.22)" : f.id === "rock" || f.id === "golem" || f.id === "giant" ? "rgba(160,118,74,.24)" : "rgba(255,101,31,.26)");
+      drawCircle(drawX, drawY, size * 0.42, isHumanFollower(f) ? "rgba(255,220,120,.22)" : isGhostFollower(f) ? "rgba(190,226,255,.22)" : isSkeletonFollower(f) ? "rgba(150,210,255,.22)" : f.id === "rock" || f.id === "golem" || f.id === "giant" ? "rgba(160,118,74,.24)" : isDemonFollower(f) ? "rgba(255,70,30,.28)" : "rgba(255,101,31,.26)");
       ctx.globalAlpha = 1;
     }
+    if (isGhostFollower(f)) ctx.globalAlpha = 0.88;
     ctx.drawImage(img, drawX - size / 2, drawY - size / 2, size, size);
+    ctx.globalAlpha = 1;
     drawFollowerHealth(f, drawX, drawY, size);
     ctx.restore();
     return;
@@ -3737,14 +4427,16 @@ function drawZone(z) {
     ctx.closePath();
     ctx.fill();
   } else if (z.type === "fireBreathFx") {
-    const img = effectImages.fireBreath;
+    const img = effectImages[z.effect || "fireBreath"];
     ctx.save();
     ctx.translate(z.x, z.y);
     ctx.rotate(z.a || 0);
     if (img?.complete && img.naturalWidth) {
-      ctx.globalAlpha = alpha * 0.72;
+      const widthMul = z.widthMul || 1.44;
+      const heightMul = z.heightMul || 1.08;
+      ctx.globalAlpha = alpha * (z.alphaMul || 0.72);
       ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(img, -z.r * 0.2, -z.r * 0.54, z.r * 1.44, z.r * 1.08);
+      ctx.drawImage(img, -z.r * 0.2, -z.r * heightMul * 0.5, z.r * widthMul, z.r * heightMul);
       ctx.imageSmoothingEnabled = false;
     } else {
       ctx.beginPath();
@@ -3775,6 +4467,9 @@ function drawZone(z) {
     ctx.lineTo(z.r * 1.15, z.r * 0.32);
     ctx.stroke();
     ctx.restore();
+  } else if (z.type === "doomFx") {
+    drawGroundDecal(effectImages.doom, z, alpha, { alpha: 0.74, w: 2.15, h: 2.15, spinScale: 0.12, scale: 1.05, grow: z.grow || 1.8 });
+    return;
   } else if (z.type === "rectWave") {
     const length = z.length || 260;
     const width = z.width || z.r || 90;
@@ -3808,6 +4503,27 @@ function drawZone(z) {
       ctx.fillRect(-length * 0.5, -width * 0.5, length, width);
     }
     ctx.restore();
+  } else if (z.type === "painScreamFx") {
+    const img = effectImages.painScream;
+    const length = z.length || 280;
+    const width = z.width || z.r || 130;
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    ctx.rotate(z.angle || 0);
+    if (img?.complete && img.naturalWidth) {
+      ctx.globalAlpha = alpha * 0.72;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, -length * 0.52, -width * 0.66, length * 1.14, width * 1.32);
+      ctx.imageSmoothingEnabled = false;
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(-length * 0.5, 0);
+      ctx.lineTo(length * 0.52, -width * 0.5);
+      ctx.lineTo(length * 0.58, width * 0.5);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
   } else if (z.type === "surgeFx") {
     const img = effectImages.surge;
     const length = z.length || 300;
@@ -3822,6 +4538,31 @@ function drawZone(z) {
       ctx.imageSmoothingEnabled = false;
     } else {
       ctx.fillRect(-length * 0.5, -width * 0.5, length, width);
+    }
+    ctx.restore();
+  } else if (z.type === "forkLightningFx") {
+    const img = effectImages.forkLightning;
+    const length = z.length || z.r * 2.6;
+    const width = z.width || z.r;
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    ctx.rotate((z.angle || 0) + Math.PI / 2);
+    if (img?.complete && img.naturalWidth) {
+      ctx.globalAlpha = alpha * 0.74;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, -width * 0.62, -length * 0.56, width * 1.24, length * 1.12);
+      ctx.imageSmoothingEnabled = false;
+    } else {
+      ctx.strokeStyle = "rgba(122,210,255,.86)";
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(0, -length * 0.52);
+      ctx.lineTo(0, length * 0.5);
+      ctx.moveTo(0, -length * 0.04);
+      ctx.lineTo(-width * 0.45, length * 0.32);
+      ctx.moveTo(0, -length * 0.1);
+      ctx.lineTo(width * 0.45, length * 0.26);
+      ctx.stroke();
     }
     ctx.restore();
   } else if (z.type === "blizzardFx") {
@@ -3840,9 +4581,9 @@ function drawZone(z) {
       drawCircle(0, 0, z.r, "rgba(90,150,255,.28)");
     }
     ctx.restore();
-  } else if (z.type === "poisonCloudFx" || z.type === "enemyPoison" || z.type === "sandstormFx" || z.type === "blackPlagueFx" || z.type === "lavaFieldFx") {
-    const img = z.type === "blackPlagueFx" ? effectImages.blackPlague : z.type === "sandstormFx" ? effectImages.sandstorm : z.type === "lavaFieldFx" ? effectImages.lavaField : effectImages.poisonCloud;
-    drawGroundDecal(img, z, alpha, { alpha: z.type === "enemyPoison" ? 0.5 : z.type === "sandstormFx" ? 0.48 : z.type === "blackPlagueFx" ? 0.56 : z.type === "lavaFieldFx" ? 0.62 : 0.5, w: 2.28, h: 2.28, spinScale: z.type === "sandstormFx" ? 0.45 : z.type === "blackPlagueFx" ? 0.5 : 0.35, grow: z.type === "poisonCloudFx" ? 0.18 : z.type === "lavaFieldFx" ? 0.05 : 0.1 });
+  } else if (z.type === "poisonCloudFx" || z.type === "enemyPoison" || z.type === "sandstormFx" || z.type === "blackPlagueFx" || z.type === "virulentPlagueFx" || z.type === "lavaFieldFx") {
+    const img = z.type === "virulentPlagueFx" ? effectImages.virulentPlague : z.type === "blackPlagueFx" ? effectImages.blackPlague : z.type === "sandstormFx" ? effectImages.sandstorm : z.type === "lavaFieldFx" ? effectImages.lavaField : effectImages.poisonCloud;
+    drawGroundDecal(img, z, alpha, { alpha: z.type === "enemyPoison" ? 0.5 : z.type === "sandstormFx" ? 0.48 : z.type === "blackPlagueFx" ? 0.56 : z.type === "virulentPlagueFx" ? 0.62 : z.type === "lavaFieldFx" ? 0.62 : 0.5, w: z.type === "virulentPlagueFx" ? 2.55 : 2.28, h: z.type === "virulentPlagueFx" ? 2.55 : 2.28, spinScale: z.type === "sandstormFx" ? 0.45 : z.type === "blackPlagueFx" || z.type === "virulentPlagueFx" ? 0.5 : 0.35, grow: z.type === "poisonCloudFx" ? 0.18 : z.type === "virulentPlagueFx" ? 0.12 : z.type === "lavaFieldFx" ? 0.05 : 0.1 });
   } else if (z.type === "slashFx") {
     const img = effectImages.slash;
     ctx.save();
@@ -3861,6 +4602,30 @@ function drawZone(z) {
       ctx.stroke();
     }
     ctx.restore();
+  } else if (z.type === "dimensionalSlashFx") {
+    const img = effectImages.dimensionalSlash;
+    const size = z.r * 2.2;
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    ctx.rotate(z.angle || -0.58);
+    if (img?.complete && img.naturalWidth) {
+      ctx.globalAlpha = alpha * 0.82;
+      ctx.globalCompositeOperation = "lighter";
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, -size * 0.52, -size * 0.32, size * 1.04, size * 0.64);
+      ctx.imageSmoothingEnabled = false;
+      ctx.globalCompositeOperation = "source-over";
+    } else {
+      ctx.strokeStyle = "rgba(202,104,255,.82)";
+      ctx.lineWidth = 18;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.45, size * 0.22);
+      ctx.lineTo(size * 0.45, -size * 0.22);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = alpha * 0.22;
+    drawCircle(z.x, z.y, z.r * 0.6, "rgba(122,72,255,.18)");
   } else if (z.type === "meteorExplosionFx") {
     const img = effectImages.meteorExplosion;
     drawGroundDecal(img, z, alpha, { alpha: 0.72, w: 2.35, h: 2.35, spinScale: 0.15, scale: 1.1, grow: z.grow || 1.6 });
@@ -3868,12 +4633,14 @@ function drawZone(z) {
     drawGroundDecal(effectImages.earthquake, z, alpha, { alpha: 0.7, w: 2.45, h: 2.45, spinScale: 0.25, scale: 1.02, grow: z.grow || 1.2 });
   } else if (z.type === "frostNovaFx") {
     drawGroundDecal(effectImages.frostNova, z, alpha, { alpha: 0.74, w: 2.3, h: 2.3, spinScale: 0.2, scale: 1.0, grow: z.grow || 1.4 });
+  } else if (z.type === "iceAgeFx") {
+    drawGroundDecal(effectImages.iceAge, z, alpha, { alpha: 0.66, w: 2.55, h: 2.55, spinScale: 0.08, scale: 1.0, grow: z.grow || 0.35 });
   } else if (z.type === "arrowRainFx") {
     drawGroundDecal(effectImages.arrowRain, z, alpha, { alpha: 0.72, w: 2.25, h: 2.25, spinScale: 0.15, scale: 1.0, grow: z.grow || 0.8 });
   } else if (z.type === "spiral" || z.type === "movingSpiral") {
     const spiralImg = z.element === "fire" ? effectImages.flameTornado : effectImages.tornado;
     if (z.type === "movingSpiral" && spiralImg?.complete && spiralImg.naturalWidth) {
-      drawGroundDecal(spiralImg, z, alpha, { alpha: z.element === "fire" ? 0.72 : 0.66, w: 2.45, h: 2.45, spinScale: 0.5, scale: 1.0, grow: 0.05 });
+      drawGroundDecal(spiralImg, z, alpha, { alpha: z.element === "fire" ? 0.72 : 0.66, w: 2.35, h: 2.35, spinScale: 0.5, scale: 1.0, grow: 0.05 });
       return;
     }
     ctx.save();
@@ -3975,7 +4742,7 @@ function drawProjectile(pr) {
     ctx.lineTo(pr.x, pr.y);
     ctx.stroke();
     ctx.translate(pr.x, pr.y);
-    ctx.rotate((pr.angle || 0) + Math.PI / 4);
+    ctx.rotate(pr.angle || 0);
     const img = effectImages.fireball;
     if (img?.complete && img.naturalWidth) {
       ctx.globalAlpha = 0.78;
@@ -4003,7 +4770,7 @@ function drawProjectile(pr) {
     if (img?.complete && img.naturalWidth) {
       ctx.globalAlpha = 0.74;
       ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(img, -48, -30, 96, 60);
+      ctx.drawImage(img, -66, -42, 132, 84);
       ctx.imageSmoothingEnabled = false;
     } else {
       drawCircle(0, 0, pr.r + 4, "rgba(255,42,60,.86)");
@@ -4134,7 +4901,7 @@ function drawLotusMeteor(pr) {
   ctx.lineTo(pr.x, pr.y);
   ctx.stroke();
   ctx.translate(pr.x, pr.y);
-  ctx.rotate((pr.angle || 0) - Math.PI * 0.25);
+  ctx.rotate((pr.angle || 0) + Math.PI * 1.25);
   ctx.shadowColor = "rgba(255,98,24,.95)";
   ctx.shadowBlur = 22;
   const img = effectImages.meteor;
@@ -4273,7 +5040,22 @@ function syncHud() {
     return acc;
   }, {}));
   followersEl.innerHTML = followerSummary.length ? followerSummary.map(f => `<li><span>${f.name} x${f.count}</span><b>T${f.tier} ${Math.ceil(f.hp)}/${Math.ceil(f.maxHp)}</b></li>`).join("") : "<li><span>None</span><b>-</b></li>";
-  itemsEl.innerHTML = [...state.items.slice(-8), ...state.artifacts.map(a => `Artifact:${a}`)].slice(-10).map(i => `<li><span>${i}</span><b></b></li>`).join("") || "<li><span>None</span><b>-</b></li>";
+  renderPlainItemList([...state.items.slice(-8), ...state.artifacts.map(a => `Artifact:${a}`)].slice(-10));
+}
+
+function renderPlainItemList(items) {
+  itemsEl.innerHTML = "";
+  const rows = items.length ? items : ["None"];
+  for (const item of rows) {
+    const li = document.createElement("li");
+    const span = document.createElement("span");
+    span.textContent = String(item).replace(/<[^>]*>/g, "");
+    const b = document.createElement("b");
+    b.textContent = item === "None" ? "-" : "";
+    li.appendChild(span);
+    li.appendChild(b);
+    itemsEl.appendChild(li);
+  }
 }
 
 function loop(now) {
