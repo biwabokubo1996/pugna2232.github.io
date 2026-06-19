@@ -159,7 +159,8 @@ li {
 }
 
 .start-panel,
-.level-panel {
+.level-panel,
+.guide-panel {
   position: absolute;
   inset: auto;
   width: min(520px, calc(100% - 44px));
@@ -178,10 +179,94 @@ li {
   text-align: center;
 }
 
+.guide-panel {
+  width: min(760px, calc(100% - 44px));
+  max-height: calc(100% - 44px);
+  overflow: auto;
+  z-index: 12;
+}
+
+.guide-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.guide-head strong {
+  color: #fff7cc;
+  font-size: 20px;
+}
+
+.guide-content {
+  display: grid;
+  gap: 14px;
+  text-align: left;
+}
+
+.guide-section {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.guide-section h3 {
+  margin: 0 0 8px;
+  color: #dff4e8;
+  font-size: 15px;
+}
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.guide-card {
+  padding: 9px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.22);
+  color: #dce7e1;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.guide-card b {
+  display: block;
+  margin-bottom: 3px;
+  color: #fff7cc;
+  font-size: 13px;
+}
+
 .start-actions,
 .class-panel {
   display: grid;
   gap: 10px;
+}
+
+.language-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(150px, 190px);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #dfeae3;
+  font-size: 13px;
+  text-align: left;
+}
+
+.language-row select {
+  min-height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: rgba(10, 13, 15, 0.92);
+  color: #f6fbf8;
+  font: inherit;
 }
 
 .class-panel.hidden {

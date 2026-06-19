@@ -1,4 +1,4 @@
-const canvas = document.querySelector("#game");
+﻿const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
 const statsEl = document.querySelector("#stats");
 const skillsEl = document.querySelector("#skills");
@@ -10,6 +10,18 @@ const startPanel = document.querySelector("#startPanel");
 const startBtn = document.querySelector("#startBtn");
 const startActions = document.querySelector("#startActions");
 const classPanel = document.querySelector("#classPanel");
+const guidePanel = document.querySelector("#guidePanel");
+const guideContent = document.querySelector("#guideContent");
+const closeGuide = document.querySelector("#closeGuide");
+const languageSelect = document.querySelector("#languageSelect");
+const languageLabel = document.querySelector("#languageLabel");
+const levelPanelTitle = document.querySelector("#levelPanelTitle");
+const levelPanelClass = document.querySelector("#levelPanelClass");
+const guideTitle = document.querySelector("#guideTitle");
+const statsTitle = document.querySelector("#statsTitle");
+const skillsTitle = document.querySelector("#skillsTitle");
+const followersTitle = document.querySelector("#followersTitle");
+const itemsTitle = document.querySelector("#itemsTitle");
 const moveStick = document.querySelector("#moveStick");
 const moveKnob = moveStick?.querySelector("span");
 const pauseTouch = document.querySelector("#pauseTouch");
@@ -18,6 +30,7 @@ const W = canvas.width;
 const H = canvas.height;
 const TILE = 520;
 const SAVE_KEY = "elemental-survival-save-v1";
+const LANG_KEY = "elemental-survival-language";
 const BASE_FOLLOWER_LIMIT = 7;
 const WORLD_BOSS_SITES = {
   chimera: { id: "chimera", name: "奇美拉巢穴", boss: "奇美拉", x: 1850, y: -980, r: 130 }
@@ -25,6 +38,409 @@ const WORLD_BOSS_SITES = {
 WORLD_BOSS_SITES.typhon = { id: "typhon", name: "Typhon Rift", boss: "Typhon", x: -2300, y: 1500, r: 170 };
 const keys = new Set();
 const touchMove = { x: 0, y: 0, active: false, pointerId: null };
+let guideWasPaused = false;
+const i18n = {
+  en: {
+    title: "Elemental Survival",
+    language: "Language",
+    levelUp: "Level Up",
+    class: "Class",
+    status: "Status",
+    skills: "Skills",
+    followers: "Followers",
+    items: "Items / Artifacts",
+    guideTitle: "Game Guide",
+    close: "Close",
+    continue: "Continue",
+    newRun: "New Run",
+    startNewRun: "Start New Run",
+    guideButton: "Guide / Codex",
+    runComplete: "Run Complete",
+    unknownClass: "Unknown Class",
+    startSubtitle: "Open-world survival. Choose a class, build followers, fuse skills, and hunt bosses.",
+    saveFound: "Save found: {className} - {seconds}s - Lv.{level}",
+    runSummary: "{className} survived {seconds}s - Lv.{level} - {kills} kills - {gold} gold",
+    chooseClass: "Choose Class",
+    back: "Back",
+    overwriteSave: "Starting a new run will overwrite the current save.",
+    paused: "Paused",
+    resumeHint: "Space to resume · G for guide",
+    none: "None",
+    artifactLabel: "Artifact: {name}",
+    terrainLine: "{name} · {note}",
+    statClass: "Class",
+    statHp: "HP",
+    statLevel: "Level",
+    statTime: "Time",
+    statGold: "Gold",
+    statGrowth: "Growth",
+    statFollowers: "Followers",
+    statInnate: "Innate",
+    statAura: "Aura",
+    statMonsters: "Monsters",
+    controlsGoal: "Controls and Goal",
+    movement: "Movement",
+    movementBody: "WASD or arrow keys. Mobile uses the left joystick.",
+    pause: "Pause",
+    pauseBody: "Space or the mobile pause button. Press G to open this guide.",
+    blackMarket: "Black Market",
+    blackMarketBody: "Approach the merchant and press E to buy followers and gear with gold.",
+    survivalLoop: "Survival Loop",
+    survivalLoopBody: "Kill enemies, collect gems, level skills or followers, open chests, and hunt bosses for artifacts.",
+    classes: "Classes",
+    fusionSkills: "Fusion Skills",
+    gearRarity: "Gear Rarity",
+    rarity_common: "Common",
+    rarity_uncommon: "Uncommon",
+    rarity_rare: "Rare",
+    rarity_epic: "Epic",
+    rarity_legendary: "Legendary",
+    skillExamples: "Skill Examples",
+    dropWeight: "Drop weight {weight}. Gear is unique and will not appear twice.",
+    skillFallback: "Skill"
+  },
+  "zh-CN": {
+    title: "元素生存",
+    language: "语言",
+    levelUp: "升级选择",
+    class: "职业",
+    status: "状态",
+    skills: "技能",
+    followers: "随从",
+    items: "装备 / 神器",
+    guideTitle: "游戏指南",
+    close: "关闭",
+    continue: "继续游戏",
+    newRun: "重新开始",
+    startNewRun: "开始新游戏",
+    guideButton: "指南 / 图鉴",
+    runComplete: "生存结束",
+    unknownClass: "未知职业",
+    startSubtitle: "开放世界无限生存。选择职业，培养随从，合成技能，挑战 Boss。",
+    saveFound: "发现存档：{className} - {seconds}秒 - Lv.{level}",
+    runSummary: "{className} 生存 {seconds} 秒 - Lv.{level} - 击杀 {kills} - 金币 {gold}",
+    chooseClass: "选择职业",
+    back: "返回",
+    overwriteSave: "开始新游戏会覆盖当前存档。",
+    paused: "已暂停",
+    resumeHint: "空格继续 · G 打开指南",
+    none: "无",
+    artifactLabel: "神器：{name}",
+    terrainLine: "{name} · {note}",
+    statClass: "职业",
+    statHp: "生命",
+    statLevel: "等级",
+    statTime: "时间",
+    statGold: "金币",
+    statGrowth: "成长",
+    statFollowers: "随从",
+    statInnate: "先天",
+    statAura: "光环",
+    statMonsters: "怪物",
+    controlsGoal: "操作与目标",
+    movement: "移动",
+    movementBody: "WASD 或方向键移动，手机使用左侧摇杆。",
+    pause: "暂停",
+    pauseBody: "空格或手机暂停键。按 G 打开指南。",
+    blackMarket: "黑市",
+    blackMarketBody: "靠近黑市商人并按 E，可以用金币购买随从和装备。",
+    survivalLoop: "生存循环",
+    survivalLoopBody: "击杀敌人、收集经验、升级技能或随从、开宝箱、猎杀 Boss 获得神器。",
+    classes: "职业",
+    fusionSkills: "合成技能",
+    gearRarity: "装备稀有度",
+    rarity_common: "普通",
+    rarity_uncommon: "优秀",
+    rarity_rare: "稀有",
+    rarity_epic: "史诗",
+    rarity_legendary: "传说",
+    skillExamples: "技能示例",
+    dropWeight: "掉落权重 {weight}。装备唯一，不会重复出现。",
+    skillFallback: "技能"
+  },
+  "zh-TW": {
+    title: "元素生存",
+    language: "語言",
+    levelUp: "升級選擇",
+    class: "職業",
+    status: "狀態",
+    skills: "技能",
+    followers: "隨從",
+    items: "裝備 / 神器",
+    guideTitle: "遊戲指南",
+    close: "關閉",
+    continue: "繼續遊戲",
+    newRun: "重新開始",
+    startNewRun: "開始新遊戲",
+    guideButton: "指南 / 圖鑑",
+    runComplete: "生存結束",
+    unknownClass: "未知職業",
+    startSubtitle: "開放世界無限生存。選擇職業，培養隨從，合成技能，挑戰 Boss。",
+    saveFound: "發現存檔：{className} - {seconds}秒 - Lv.{level}",
+    runSummary: "{className} 生存 {seconds} 秒 - Lv.{level} - 擊殺 {kills} - 金幣 {gold}",
+    chooseClass: "選擇職業",
+    back: "返回",
+    overwriteSave: "開始新遊戲會覆蓋目前存檔。",
+    paused: "已暫停",
+    resumeHint: "空格繼續 · G 開啟指南",
+    none: "無",
+    artifactLabel: "神器：{name}",
+    terrainLine: "{name} · {note}",
+    statClass: "職業",
+    statHp: "生命",
+    statLevel: "等級",
+    statTime: "時間",
+    statGold: "金幣",
+    statGrowth: "成長",
+    statFollowers: "隨從",
+    statInnate: "先天",
+    statAura: "光環",
+    statMonsters: "怪物",
+    controlsGoal: "操作與目標",
+    movement: "移動",
+    movementBody: "WASD 或方向鍵移動，手機使用左側搖桿。",
+    pause: "暫停",
+    pauseBody: "空格或手機暫停鍵。按 G 開啟指南。",
+    blackMarket: "黑市",
+    blackMarketBody: "靠近黑市商人並按 E，可以用金幣購買隨從和裝備。",
+    survivalLoop: "生存循環",
+    survivalLoopBody: "擊殺敵人、收集經驗、升級技能或隨從、開寶箱、獵殺 Boss 獲得神器。",
+    classes: "職業",
+    fusionSkills: "合成技能",
+    gearRarity: "裝備稀有度",
+    rarity_common: "普通",
+    rarity_uncommon: "優秀",
+    rarity_rare: "稀有",
+    rarity_epic: "史詩",
+    rarity_legendary: "傳說",
+    skillExamples: "技能範例",
+    dropWeight: "掉落權重 {weight}。裝備唯一，不會重複出現。",
+    skillFallback: "技能"
+  },
+  ja: {
+    title: "エレメンタルサバイバル",
+    language: "言語",
+    levelUp: "レベルアップ",
+    class: "クラス",
+    status: "状態",
+    skills: "スキル",
+    followers: "従者",
+    items: "装備 / 神器",
+    guideTitle: "ゲームガイド",
+    close: "閉じる",
+    continue: "続きから",
+    newRun: "新規ラン",
+    startNewRun: "新しく始める",
+    guideButton: "ガイド / 図鑑",
+    runComplete: "ラン終了",
+    unknownClass: "不明なクラス",
+    startSubtitle: "オープンワールドで生き残り、従者を育て、スキルを融合し、Boss を狩ろう。",
+    saveFound: "セーブあり：{className} - {seconds}秒 - Lv.{level}",
+    runSummary: "{className} 生存 {seconds}秒 - Lv.{level} - 撃破 {kills} - Gold {gold}",
+    chooseClass: "クラス選択",
+    back: "戻る",
+    overwriteSave: "新しく始めると現在のセーブは上書きされます。",
+    paused: "一時停止",
+    resumeHint: "Spaceで再開 · Gでガイド",
+    none: "なし",
+    artifactLabel: "神器：{name}",
+    terrainLine: "{name} · {note}",
+    statClass: "クラス",
+    statHp: "HP",
+    statLevel: "レベル",
+    statTime: "時間",
+    statGold: "Gold",
+    statGrowth: "成長",
+    statFollowers: "従者",
+    statInnate: "固有",
+    statAura: "オーラ",
+    statMonsters: "敵",
+    controlsGoal: "操作と目標",
+    movement: "移動",
+    movementBody: "WASD または矢印キー。モバイルでは左スティックを使います。",
+    pause: "一時停止",
+    pauseBody: "Space またはモバイルの停止ボタン。Gでガイドを開きます。",
+    blackMarket: "闇市",
+    blackMarketBody: "商人に近づいて E を押すと、Gold で従者や装備を購入できます。",
+    survivalLoop: "サバイバルの流れ",
+    survivalLoopBody: "敵を倒し、経験値を集め、スキルや従者を育て、宝箱を開け、Boss から神器を入手します。",
+    classes: "クラス",
+    fusionSkills: "融合スキル",
+    gearRarity: "装備レア度",
+    rarity_common: "ノーマル",
+    rarity_uncommon: "アンコモン",
+    rarity_rare: "レア",
+    rarity_epic: "エピック",
+    rarity_legendary: "レジェンド",
+    skillExamples: "スキル例",
+    dropWeight: "ドロップ重み {weight}。装備は一意で重複しません。",
+    skillFallback: "スキル"
+  },
+  ko: {
+    title: "엘리멘탈 서바이벌",
+    language: "언어",
+    levelUp: "레벨 업",
+    class: "직업",
+    status: "상태",
+    skills: "스킬",
+    followers: "추종자",
+    items: "장비 / 유물",
+    guideTitle: "게임 가이드",
+    close: "닫기",
+    continue: "이어하기",
+    newRun: "새 런",
+    startNewRun: "새로 시작",
+    guideButton: "가이드 / 도감",
+    runComplete: "런 종료",
+    unknownClass: "알 수 없는 직업",
+    startSubtitle: "오픈 월드에서 생존하고, 추종자를 키우고, 스킬을 융합하고, Boss 를 사냥하세요.",
+    saveFound: "저장 발견: {className} - {seconds}초 - Lv.{level}",
+    runSummary: "{className} 생존 {seconds}초 - Lv.{level} - 처치 {kills} - Gold {gold}",
+    chooseClass: "직업 선택",
+    back: "뒤로",
+    overwriteSave: "새로 시작하면 현재 저장이 덮어쓰기 됩니다.",
+    paused: "일시정지",
+    resumeHint: "Space 재개 · G 가이드",
+    none: "없음",
+    artifactLabel: "유물: {name}",
+    terrainLine: "{name} · {note}",
+    statClass: "직업",
+    statHp: "HP",
+    statLevel: "레벨",
+    statTime: "시간",
+    statGold: "Gold",
+    statGrowth: "성장",
+    statFollowers: "추종자",
+    statInnate: "고유",
+    statAura: "오라",
+    statMonsters: "몬스터",
+    controlsGoal: "조작과 목표",
+    movement: "이동",
+    movementBody: "WASD 또는 방향키. 모바일은 왼쪽 조이스틱을 사용합니다.",
+    pause: "일시정지",
+    pauseBody: "Space 또는 모바일 일시정지 버튼. G로 가이드를 엽니다.",
+    blackMarket: "암시장",
+    blackMarketBody: "상인에게 다가가 E를 누르면 Gold 로 추종자와 장비를 살 수 있습니다.",
+    survivalLoop: "생존 흐름",
+    survivalLoopBody: "적을 처치하고 경험치를 모아 스킬 또는 추종자를 성장시키며, 상자를 열고 Boss 를 사냥해 유물을 얻습니다.",
+    classes: "직업",
+    fusionSkills: "융합 스킬",
+    gearRarity: "장비 희귀도",
+    rarity_common: "일반",
+    rarity_uncommon: "고급",
+    rarity_rare: "희귀",
+    rarity_epic: "영웅",
+    rarity_legendary: "전설",
+    skillExamples: "스킬 예시",
+    dropWeight: "드롭 가중치 {weight}. 장비는 고유하며 중복되지 않습니다.",
+    skillFallback: "스킬"
+  },
+  es: {
+    title: "Supervivencia Elemental",
+    language: "Idioma",
+    levelUp: "Subir Nivel",
+    class: "Clase",
+    status: "Estado",
+    skills: "Habilidades",
+    followers: "Seguidores",
+    items: "Equipo / Artefactos",
+    guideTitle: "Guia del Juego",
+    close: "Cerrar",
+    continue: "Continuar",
+    newRun: "Nueva Partida",
+    startNewRun: "Empezar",
+    guideButton: "Guia / Codice",
+    runComplete: "Partida Terminada",
+    unknownClass: "Clase Desconocida",
+    startSubtitle: "Supervivencia en mundo abierto. Elige una clase, crea seguidores, fusiona habilidades y caza Bosses.",
+    saveFound: "Guardado encontrado: {className} - {seconds}s - Nv.{level}",
+    runSummary: "{className} sobrevivio {seconds}s - Nv.{level} - {kills} bajas - {gold} oro",
+    chooseClass: "Elegir Clase",
+    back: "Volver",
+    overwriteSave: "Empezar una partida nueva sobrescribira el guardado actual.",
+    paused: "Pausa",
+    resumeHint: "Espacio para seguir · G para guia",
+    none: "Nada",
+    artifactLabel: "Artefacto: {name}",
+    terrainLine: "{name} · {note}",
+    statClass: "Clase",
+    statHp: "Vida",
+    statLevel: "Nivel",
+    statTime: "Tiempo",
+    statGold: "Oro",
+    statGrowth: "Crecimiento",
+    statFollowers: "Seguidores",
+    statInnate: "Innato",
+    statAura: "Aura",
+    statMonsters: "Monstruos",
+    controlsGoal: "Controles y Objetivo",
+    movement: "Movimiento",
+    movementBody: "WASD o flechas. En movil usa el joystick izquierdo.",
+    pause: "Pausa",
+    pauseBody: "Espacio o el boton de pausa movil. Pulsa G para abrir la guia.",
+    blackMarket: "Mercado Negro",
+    blackMarketBody: "Acercate al mercader y pulsa E para comprar seguidores y equipo con oro.",
+    survivalLoop: "Bucle de Supervivencia",
+    survivalLoopBody: "Mata enemigos, recoge gemas, mejora habilidades o seguidores, abre cofres y caza Bosses para obtener artefactos.",
+    classes: "Clases",
+    fusionSkills: "Habilidades Fusionadas",
+    gearRarity: "Rareza de Equipo",
+    rarity_common: "Comun",
+    rarity_uncommon: "Poco Comun",
+    rarity_rare: "Raro",
+    rarity_epic: "Epico",
+    rarity_legendary: "Legendario",
+    skillExamples: "Ejemplos de Habilidad",
+    dropWeight: "Peso de botin {weight}. El equipo es unico y no aparece dos veces.",
+    skillFallback: "Habilidad"
+  }
+};
+let currentLang = loadLanguage();
+
+function loadLanguage() {
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved && i18n[saved]) return saved;
+  } catch {}
+  const browserLang = (typeof navigator !== "undefined" && navigator.language) || "en";
+  if (browserLang.startsWith("zh-TW") || browserLang.startsWith("zh-HK")) return "zh-TW";
+  if (browserLang.startsWith("zh")) return "zh-CN";
+  if (browserLang.startsWith("ja")) return "ja";
+  if (browserLang.startsWith("ko")) return "ko";
+  if (browserLang.startsWith("es")) return "es";
+  return "en";
+}
+
+function t(key, vars = {}) {
+  const table = i18n[currentLang] || i18n.en;
+  const raw = table[key] ?? i18n.en[key] ?? key;
+  return raw.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? "");
+}
+
+function applyStaticLanguage() {
+  if (document.documentElement) document.documentElement.lang = currentLang;
+  if (languageSelect) languageSelect.value = currentLang;
+  if (languageLabel) languageLabel.textContent = t("language");
+  if (levelPanelTitle) levelPanelTitle.textContent = t("levelUp");
+  if (levelPanelClass) levelPanelClass.textContent = state?.className || t("class");
+  if (guideTitle) guideTitle.textContent = t("guideTitle");
+  if (closeGuide) closeGuide.textContent = t("close");
+  if (statsTitle) statsTitle.textContent = t("status");
+  if (skillsTitle) skillsTitle.textContent = t("skills");
+  if (followersTitle) followersTitle.textContent = t("followers");
+  if (itemsTitle) itemsTitle.textContent = t("items");
+  if (pauseTouch) pauseTouch.textContent = "II";
+}
+
+function setLanguage(lang) {
+  if (!i18n[lang]) return;
+  currentLang = lang;
+  try { localStorage.setItem(LANG_KEY, lang); } catch {}
+  applyStaticLanguage();
+  if (startPanel && !startPanel.classList.contains("hidden")) renderStartMenu();
+  if (guidePanel && !guidePanel.classList.contains("hidden")) renderGuideContent();
+  if (statsEl && state?.player) syncHud();
+}
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = list => list[Math.floor(Math.random() * list.length)];
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -115,7 +531,7 @@ const terrains = [
 ];
 
 function terrainAt(x, y) {
-  const region = 1680;
+  const region = 1880;
   const rx = Math.floor(x / region);
   const ry = Math.floor(y / region);
   let best = null;
@@ -124,10 +540,20 @@ function terrainAt(x, y) {
       const cx = rx + ox;
       const cy = ry + oy;
       const seed = hash2(cx, cy);
-      const centerX = (cx + 0.5 + (hashUnit(seed, 1) - 0.5) * 0.34) * region;
-      const centerY = (cy + 0.5 + (hashUnit(seed, 2) - 0.5) * 0.34) * region;
-      const wobble = Math.sin((x + seed % 313) * 0.0017) * 105 + Math.cos((y - seed % 197) * 0.0015) * 105 + Math.sin((x + y) * 0.0011 + seed) * 70;
-      const score = Math.hypot(x - centerX, y - centerY) + wobble;
+      const centerX = (cx + 0.5 + (hashUnit(seed, 1) - 0.5) * 0.42) * region;
+      const centerY = (cy + 0.5 + (hashUnit(seed, 2) - 0.5) * 0.42) * region;
+      const angle = hashUnit(seed, 9) * Math.PI * 2;
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const along = Math.cos(angle) * dx + Math.sin(angle) * dy;
+      const across = -Math.sin(angle) * dx + Math.cos(angle) * dy;
+      const stretch = 0.72 + hashUnit(seed, 10) * 0.62;
+      const wobble =
+        Math.sin((x + seed % 313) * 0.00135) * 145 +
+        Math.cos((y - seed % 197) * 0.0012) * 125 +
+        Math.sin((x * 0.7 + y * 1.25) * 0.001 + seed) * 92 +
+        Math.cos((x - y) * 0.00062 + seed * 0.13) * 54;
+      const score = Math.hypot(along * stretch, across / stretch) + wobble;
       if (!best || score < best.score) best = { score, seed };
     }
   }
@@ -166,6 +592,8 @@ const SKILL_POWER_MULT = 1.25;
 const FUSION_DAMAGE_MULT = 1.35;
 const FUSION_AREA_MULT = 1.25;
 const ENEMY_DAMAGE_MULT = 3;
+const PLAYER_SIZE_MULT = 1.22;
+const MONSTER_SIZE_MULT = 1.2;
 
 function isFusionSkill(id) {
   return ["flameTornado", "doom", "absoluteZero", "lightningStorm", "iceRing", "forkLightning", "virulentPlague", "iceAge", "breathOfFire", "dimensionalSlash"].includes(id);
@@ -252,12 +680,17 @@ const gearBook = [
   { name: "Mana Source", rarity: "rare", icon: "ManaSource.png", desc: "All friendly skill cooldown -3%", apply: s => { s.cooldown *= 0.97; s.followerCooldown = (s.followerCooldown || 1) * 0.97; } },
   { name: "War Horn", rarity: "rare", icon: "WarHorn.png", desc: "Follower attack aura +12%", apply: s => { s.followerAttackAuraGear = (s.followerAttackAuraGear || 0) + 0.12; } },
   { name: "War Drum", rarity: "common", icon: "WarDrum.png", desc: "Follower move speed aura +10%", apply: s => { s.followerMoveAura = (s.followerMoveAura || 0) + 0.1; } },
+  { name: "The Art of War", rarity: "rare", desc: "Follower limit +1", apply: s => { s.followerLimitBonus = (s.followerLimitBonus || 0) + 1; } },
+  { name: "Arcane Ring", rarity: "common", desc: "Magic damage +10%", apply: s => { s.damage *= 1.1; } },
+  { name: "Fire Spirit Orb", rarity: "rare", desc: "Fire magic damage +20%", apply: s => { s.fire *= 1.2; } },
+  { name: "Ice Crystal", rarity: "rare", desc: "Ice magic damage +20%", apply: s => { s.ice *= 1.2; } },
   { name: "牧灵之笛", rarity: "common", desc: "Spirit Taming ghosts +4", apply: s => { s.spiritBonus = (s.spiritBonus || 0) + 4; } },
   { name: "回春法杖", rarity: "rare", desc: "Area healing +2 HP/sec", apply: s => { s.healAura = (s.healAura || 0) + 2; s.healAuraRange = Math.max(s.healAuraRange || 0, 190); } },
   { name: "蝎狮尾针", rarity: "legendary", desc: "Dead enemies have 75% chance to explode", apply: s => { s.deathExplosionChance = Math.min(1, (s.deathExplosionChance || 0) + 0.75); } },
   { name: "增幅器", rarity: "rare", desc: "Magic area +10%", apply: s => { s.area *= 1.1; } },
   { name: "火药", rarity: "common", desc: "Magic area +5%", apply: s => { s.area *= 1.05; } },
-  { name: "放射元素", rarity: "epic", desc: "Magic area +15%, duration +10%", apply: s => { s.area *= 1.15; s.duration = (s.duration || 1) * 1.1; } }
+  { name: "放射元素", rarity: "epic", desc: "Magic area +15%, duration +10%", apply: s => { s.area *= 1.15; s.duration = (s.duration || 1) * 1.1; } },
+  { name: "空间扭曲外套", rarity: "epic", desc: "50% chance to reflect ranged attacks", apply: s => { s.rangedReflectChance = Math.max(s.rangedReflectChance || 0, 0.5); } }
 ];
 
 const gearRarityInfo = {
@@ -267,6 +700,10 @@ const gearRarityInfo = {
   epic: { label: "史诗", weight: 3, color: "#d58cff" },
   legendary: { label: "传说", weight: 1, color: "#ffb84d" }
 };
+
+function rarityLabel(id) {
+  return t(`rarity_${id}`) || gearRarityInfo[id]?.label || id;
+}
 
 function ownedGearNames() {
   const gear = new Set(state?.gear || []);
@@ -293,7 +730,7 @@ function pickGearByRarity(excluded = new Set()) {
 
 function gearTitle(gear) {
   const rarity = gearRarityInfo[gear.rarity] || gearRarityInfo.common;
-  return `[${rarity.label}] ${gear.name}`;
+  return `[${rarityLabel(gear.rarity)}] ${gear.name}`;
 }
 
 function applyUniqueGear(gear, source = "") {
@@ -422,6 +859,17 @@ const classBook = {
     }
   }
 };
+
+const fusionRecipes = [
+  ["Flame Tornado", "Tornado Lv.7 + Fire Breath Lv.7", "Large pull field with burn damage."],
+  ["Doomsday Judgment", "Lava Field Lv.7 + Meteor Lv.7 + Earthquake Lv.7 + sacrifice Red Lotus Beast", "Full-screen fire shockwave."],
+  ["Fork Lightning", "Fire Breath Lv.7 + Chain Lightning Lv.7", "High-damage forked lightning fusion."],
+  ["Virulent Plague", "Poison Cloud Lv.7 + Black Plague Lv.7", "Splits into 6 spreading plague clouds."],
+  ["Absolute Zero", "Blizzard Lv.7 + Frost Nova Lv.7", "Permanent aura that follows the player and freezes first-hit enemies."],
+  ["Ice Age", "Arrow Rain Lv.7 + Frost Nova Lv.7", "Ice arrows fall and trigger frost nova bursts."],
+  ["Breath of Fire", "Pain Scream Lv.7 + Fire Breath Lv.7", "Wider fire breath released in several waves."],
+  ["Dimensional Slash", "Earthquake Lv.7 + Cleave Lv.7", "Full-screen dimensional slash."]
+];
 let state;
 
 function newState(classId = "elementMage") {
@@ -446,10 +894,10 @@ function newState(classId = "elementMage") {
     texts: [],
     terrain: terrainAt(W / 2, H / 2),
     player: {
-      x: W / 2, y: H / 2, r: 16, hp: 180, maxHp: 180, xp: 0, next: 32, level: 1,
+      x: W / 2, y: H / 2, r: Math.round(16 * PLAYER_SIZE_MULT), hp: 180, maxHp: 180, xp: 0, next: 32, level: 1,
       speed: 205, damage: 1, area: 1, cooldown: 1, followerCooldown: 1, duration: 1, defense: 0, groupReduce: 0,
       fire: 1, ice: 1, wind: 1, earth: 1, lightning: 1, arcane: 1, poison: 1,
-      regen: 0.7, crit: 0.05, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, ward: 0, hitGrace: 0
+      regen: 0.7, crit: 0.05, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, rangedReflectChance: 0, ward: 0, hitGrace: 0
     },
     skills: Object.fromEntries(selectedClass.skills.map(id => [id, skillState(id)])),
     followers: [],
@@ -487,7 +935,7 @@ function saveGame() {
     slow: m.slow || 0, poison: m.poison || null, disease: m.disease || null, burn: m.burn || null, blind: m.blind || 0, fear: m.fear || 0, disarm: m.disarm || 0
   });
   const save = {
-    version: 1,
+    version: 2,
     savedAt: Date.now(),
     classId: state.classId,
     className: state.className,
@@ -520,7 +968,7 @@ function loadSavedGame() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
     const save = JSON.parse(raw);
-    if (!save || save.version !== 1 || !save.player || save.player.hp <= 0) return null;
+    if (!save || ![1, 2].includes(save.version) || !save.player || save.player.hp <= 0) return null;
     return save;
   } catch {
     return null;
@@ -545,6 +993,7 @@ function restoreState(save) {
   restored.gold = save.gold || 0;
   restored.className = classBook[save.classId]?.name || save.className || restored.className;
   restored.player = { ...restored.player, ...save.player, hitGrace: 0 };
+  restored.player.r = Math.max(restored.player.r || 0, Math.round(16 * PLAYER_SIZE_MULT));
   restored.skills = save.skills || restored.skills;
   restored.followers = (save.followers || []).map(f => ({ ...f, hitGrace: 0, t: f.t || rand(0, 1) }));
   restored.items = save.items || [];
@@ -552,7 +1001,13 @@ function restoreState(save) {
   restored.artifacts = save.artifacts || [];
   restored.blackMarket = { ...restored.blackMarket, ...(save.blackMarket || {}), wasNear: false };
   restored.worldBosses = { ...restored.worldBosses, ...(save.worldBosses || {}) };
-  restored.monsters = (save.monsters || []).map(m => ({ ...m, baseMaxHp: m.baseMaxHp || (m.maxHp || m.hp || 1) / timeGrowth(), hit: 0, charge: null }));
+  restored.monsters = (save.monsters || []).map(m => ({
+    ...m,
+    r: save.version < 2 ? Math.round((m.r || 16) * MONSTER_SIZE_MULT) : (m.r || 16),
+    baseMaxHp: m.baseMaxHp || (m.maxHp || m.hp || 1) / timeGrowth(),
+    hit: 0,
+    charge: null
+  }));
   restored.gems = save.gems || [];
   restored.chests = save.chests || [];
   restored.heals = save.heals || [];
@@ -646,7 +1101,7 @@ function spawnMonster(kind = "normal") {
   const growth = timeGrowth();
   const baseScale = kind === "boss" ? 1 + state.time / 260 : kind === "elite" ? 1.8 : wave;
   const scale = baseScale * growth;
-  const radius = src[0] === "比蒙巨兽" ? 58 : src[0] === "海德拉" ? 54 : kind === "boss" ? 38 : src[0] === "独眼巨人" ? 42 : kind === "elite" ? 28 : 16;
+  const radius = Math.round((src[0] === "比蒙巨兽" ? 58 : src[0] === "海德拉" ? 54 : kind === "boss" ? 38 : src[0] === "独眼巨人" ? 42 : kind === "elite" ? 28 : 16) * MONSTER_SIZE_MULT);
   state.monsters.push({
     x: pos.x, y: pos.y, r: radius,
     name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale, baseMaxHp: src[2] * baseScale,
@@ -662,7 +1117,7 @@ function spawnBossAt(name, x, y, worldBoss = false) {
     const growth = timeGrowth();
     const baseScale = 1.75 + state.time / 330;
     const scale = baseScale * growth;
-    const radius = 82;
+    const radius = Math.round(82 * MONSTER_SIZE_MULT);
     const m = {
       x, y, r: radius,
       name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale, baseMaxHp: src[2] * baseScale,
@@ -680,7 +1135,7 @@ function spawnBossAt(name, x, y, worldBoss = false) {
   const growth = timeGrowth();
   const baseScale = 1.25 + state.time / 420;
   const scale = baseScale * growth;
-  const radius = name === "奇美拉" ? 60 : name === "比蒙巨兽" ? 58 : name === "海德拉" ? 54 : 38;
+  const radius = Math.round((name === "奇美拉" ? 60 : name === "比蒙巨兽" ? 58 : name === "海德拉" ? 54 : 38) * MONSTER_SIZE_MULT);
   const m = {
     x, y, r: radius,
     name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale, baseMaxHp: src[2] * baseScale,
@@ -1377,6 +1832,34 @@ function fireEnemyBoulder(m, target) {
   addLine(m.x, m.y - 10, startX, startY, "rgba(92,66,42,.62)", 8, 0.16, false);
 }
 
+function reflectEnemyShot(s) {
+  const p = state.player;
+  const target = nearestEnemy(p, 760);
+  const fallback = Math.atan2(-(s.vy || 0), -(s.vx || 0));
+  const a = target ? Math.atan2(target.y - s.y, target.x - s.x) : fallback;
+  const speed = Math.max(260, Math.hypot(s.vx || 0, s.vy || 0) * 1.12);
+  state.projectiles.push({
+    kind: s.kind === "rock" ? "reflectedBoulder" : "reflectedShot",
+    x: s.x,
+    y: s.y,
+    px: s.px ?? s.x,
+    py: s.py ?? s.y,
+    vx: Math.cos(a) * speed,
+    vy: Math.sin(a) * speed,
+    damage: Math.max(8, (s.damage || 8) * 1.15),
+    r: Math.max(7, s.r || 6),
+    element: s.kind === "rock" ? "earth" : "physical",
+    color: "rgba(170,205,255,.95)",
+    life: 1.9,
+    pierce: false,
+    hit: new Set(),
+    angle: a,
+    spin: s.spin || 0
+  });
+  addText("Reflect", p.x - 26, p.y - 44, "#b8d8ff");
+  addRing(p.x, p.y, 48, "rgba(155,200,255,.85)", 0.34);
+}
+
 function cyclopsAreaAttack(m) {
   const p = state.player;
   const radius = 118;
@@ -1838,7 +2321,10 @@ function updateAbsoluteZero(dt) {
   const p = state.player;
   const b = skillBook.absoluteZero;
   const lvl = clamp(s.level || 1, 1, 7);
-  const area = b.area * FUSION_AREA_MULT * skillAreaMultiplier(lvl) * p.area;
+  const targetArea = b.area * FUSION_AREA_MULT * skillAreaMultiplier(lvl) * p.area * (1 + Math.min(0.55, state.time * 0.0008));
+  s.currentArea = s.currentArea || targetArea * 0.38;
+  s.currentArea = Math.min(targetArea, s.currentArea + dt * (40 + targetArea * 0.18));
+  const area = s.currentArea;
   const damage = b.damage * SKILL_POWER_MULT * FUSION_DAMAGE_MULT * skillDamageMultiplier(lvl) * p.damage * (1 + (p.classDamageAura || 0)) * elementMult("ice") * dt;
   for (const m of state.monsters) {
     if (Math.hypot(m.x - p.x, m.y - p.y) >= area + m.r) continue;
@@ -1855,10 +2341,12 @@ function updateAbsoluteZero(dt) {
     aura = {
       x: p.x, y: p.y, r: area, life: 0.34, maxLife: 0.34, damage: 0,
       element: "ice", type: "absoluteZeroFx", followPlayer: true,
-      spin: 1.8, grow: 0, color: "rgba(155,225,255,.22)"
+      spin: 1.8, grow: 0.05, color: "rgba(155,225,255,.22)"
     };
     state.zones.push(aura);
   } else {
+    aura.x = p.x;
+    aura.y = p.y;
     aura.r = area;
     aura.life = aura.maxLife = 0.34;
   }
@@ -2021,12 +2509,14 @@ function update(dt) {
   checkFusions();
   if (p.healPulse && Math.floor((state.time - dt) / 9) < Math.floor(state.time / 9)) p.hp = Math.min(p.maxHp, p.hp + 30);
   if (p.hp <= 0) {
+    const summary = makeRunSummary();
     state.running = false;
+    state.paused = false;
     clearSave();
     startPanel.classList.remove("hidden");
     startPanel.querySelector("h1").textContent = "生存结束";
     startPanel.querySelector("p").textContent = `坚持 ${Math.floor(state.time)} 秒 · 等级 ${p.level}`;
-    renderStartMenu();
+    renderStartMenu(summary);
   }
 }
 
@@ -3079,6 +3569,11 @@ function updateEnemyShots(dt) {
       continue;
     }
     if (Math.hypot(s.x - p.x, s.y - p.y) < s.r + p.r) {
+      if (!p.ward && (p.rangedReflectChance || 0) > 0 && Math.random() < p.rangedReflectChance) {
+        reflectEnemyShot(s);
+        state.enemyShots.splice(i, 1);
+        continue;
+      }
       if (!p.ward && p.hitGrace <= 0) {
         p.hp -= s.damage;
         p.hitGrace = 0.45;
@@ -3844,6 +4339,24 @@ function draw() {
     ctx.fillText(t.text, t.x - camX, t.y - camY);
     ctx.globalAlpha = 1;
   }
+  drawPauseOverlay();
+}
+
+function drawPauseOverlay() {
+  if (!state?.paused || !state.running) return;
+  if (guidePanel && !guidePanel.classList.contains("hidden")) return;
+  if (levelPanel && !levelPanel.classList.contains("hidden")) return;
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,.42)";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#fff7cc";
+  ctx.font = "700 32px Microsoft YaHei";
+  ctx.textAlign = "center";
+  ctx.fillText(t("paused"), W / 2, H / 2 - 18);
+  ctx.fillStyle = "#dce7e1";
+  ctx.font = "15px Microsoft YaHei";
+  ctx.fillText(t("resumeHint"), W / 2, H / 2 + 18);
+  ctx.restore();
 }
 
 function drawWorldInkOverlay(camX, camY) {
@@ -3990,7 +4503,10 @@ function drawTerrainTexture(terrain, sx, sy, tx, ty, size, light) {
   const oy = Math.floor(hashUnit(Math.abs(hash2(tx >> 3, ty >> 3)), 302) * img.naturalHeight);
   const srcX = positiveMod(worldX * texScale + ox, img.naturalWidth);
   const srcY = positiveMod(worldY * texScale + oy, img.naturalHeight);
+  const smoothing = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = true;
   drawWrappedImage(img, srcX, srcY, srcSize, srcSize, sx, sy, size + 1, size + 1);
+  ctx.imageSmoothingEnabled = smoothing;
   return true;
 }
 
@@ -4083,33 +4599,73 @@ function drawTerrainNoise(terrain, sx, sy, tx, ty, size) {
 }
 
 function drawTerrainEdgeBlend(terrain, sx, sy, tx, ty, size) {
+  const band = Math.max(22, size * 0.24);
   const samples = [
-    [0, -1, sx, sy, size, 4],
-    [0, 1, sx, sy + size - 4, size, 4],
-    [-1, 0, sx, sy, 4, size],
-    [1, 0, sx + size - 4, sy, 4, size]
+    [0, -1, sx, sy, size, band],
+    [0, 1, sx, sy + size - band, size, band],
+    [-1, 0, sx, sy, band, size],
+    [1, 0, sx + size - band, sy, band, size]
   ];
   ctx.save();
-  ctx.globalAlpha = 0.28;
   for (const [ox, oy, x, y, w, h] of samples) {
     const neighbor = terrainAt((tx + ox + 0.5) * size, (ty + oy + 0.5) * size);
     if (neighbor.id !== terrain.id) {
-      ctx.fillStyle = shadeColor(neighbor.tint, -0.05);
-      ctx.fillRect(x, y, w, h);
-      ctx.strokeStyle = "rgba(16,12,9,.52)";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      if (w > h) {
-        ctx.moveTo(x, y + h * 0.5);
-        ctx.lineTo(x + w, y + h * 0.5 + ((tx + ty) % 2) * 2);
+      const edgeTint = shadeColor(neighbor.tint, -0.04);
+      if (typeof ctx.createLinearGradient === "function") {
+        const grad = w > h
+          ? ctx.createLinearGradient(x, y, x, y + h)
+          : ctx.createLinearGradient(x, y, x + w, y);
+        if (oy < 0 || ox < 0) {
+          grad.addColorStop(0, edgeTint);
+          grad.addColorStop(1, "rgba(0,0,0,0)");
+        } else {
+          grad.addColorStop(0, "rgba(0,0,0,0)");
+          grad.addColorStop(1, edgeTint);
+        }
+        ctx.fillStyle = grad;
       } else {
-        ctx.moveTo(x + w * 0.5, y);
-        ctx.lineTo(x + w * 0.5 + ((tx - ty) % 2) * 2, y + h);
+        ctx.fillStyle = edgeTint;
       }
-      ctx.stroke();
+      ctx.globalAlpha = 0.22;
+      ctx.fillRect(x, y, w, h);
+      drawTerrainBoundaryBrush(terrain, neighbor, sx, sy, tx, ty, size, ox, oy);
     }
   }
   ctx.restore();
+}
+
+function drawTerrainBoundaryBrush(terrain, neighbor, sx, sy, tx, ty, size, ox, oy) {
+  const seed = Math.abs(hash2(tx + ox * 17, ty + oy * 23));
+  const horizontal = oy !== 0;
+  const count = 7;
+  ctx.save();
+  ctx.globalCompositeOperation = "source-over";
+  for (let i = 0; i < count; i++) {
+    const t = (i + hashUnit(seed, i + 41) * 0.75) / count;
+    const jitter = (hashUnit(seed, i + 61) - 0.5) * size * 0.28;
+    const px = horizontal ? sx + t * size : sx + (ox > 0 ? size : 0) + jitter;
+    const py = horizontal ? sy + (oy > 0 ? size : 0) + jitter : sy + t * size;
+    const r = size * (0.12 + hashUnit(seed, i + 81) * 0.12);
+    ctx.globalAlpha = 0.08 + hashUnit(seed, i + 101) * 0.08;
+    ctx.fillStyle = shadeColor(neighbor.tint, hashUnit(seed, i + 121) * 0.12 - 0.08);
+    ctx.beginPath();
+    drawEllipsePath(px, py, horizontal ? r * 1.35 : r * 0.66, horizontal ? r * 0.66 : r * 1.35, hashUnit(seed, i + 141) * Math.PI);
+    ctx.fill();
+    ctx.globalAlpha = 0.06;
+    ctx.fillStyle = shadeColor(terrain.tint, hashUnit(seed, i + 151) * 0.12 - 0.06);
+    ctx.beginPath();
+    drawEllipsePath(px - ox * r * 0.35, py - oy * r * 0.35, horizontal ? r * 1.1 : r * 0.58, horizontal ? r * 0.58 : r * 1.1, hashUnit(seed, i + 161) * Math.PI);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawEllipsePath(x, y, rx, ry, rotation = 0) {
+  if (typeof ctx.ellipse === "function") {
+    ctx.ellipse(x, y, rx, ry, rotation, 0, Math.PI * 2);
+  } else {
+    ctx.arc(x, y, (rx + ry) * 0.5, 0, Math.PI * 2);
+  }
 }
 
 function drawTerrainPattern(terrain, sx, sy, tx, ty, size = TILE) {
@@ -4324,7 +4880,7 @@ function drawPlayer() {
   const castImg = castFile && classImages[castFile];
   const classImg = castImg?.complete && castImg.naturalWidth ? castImg : classFile && classImages[classFile];
   if (classImg?.complete && classImg.naturalWidth && typeof ctx.drawImage === "function") {
-    const size = 84;
+    const size = 100;
     ctx.save();
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(classImg, p.x - size / 2, p.y - size * 0.6, size, size);
@@ -5109,7 +5665,7 @@ function drawTopHud() {
   ctx.fillRect(22, 20, 410, 62);
   ctx.fillStyle = "#e7f7ef";
   ctx.font = "18px Microsoft YaHei";
-  ctx.fillText(`${state.terrain.name} · ${state.terrain.note}`, 38, 46);
+  ctx.fillText(t("terrainLine", { name: state.terrain.name, note: state.terrain.note }), 38, 46);
   ctx.fillStyle = "#ff6666";
   ctx.fillRect(38, 58, 180 * p.hp / p.maxHp, 8);
   ctx.fillStyle = "#61d5ff";
@@ -5121,17 +5677,18 @@ function drawTopHud() {
 
 function syncHud() {
   const p = state.player;
+  applyStaticLanguage();
   statsEl.innerHTML = `
-    <dt>Class</dt><dd>${state.className || "Unknown"}</dd>
-    <dt>HP</dt><dd>${Math.ceil(p.hp)} / ${p.maxHp}</dd>
-    <dt>Level</dt><dd>${p.level}</dd>
-    <dt>Time</dt><dd>${Math.floor(state.time)}s</dd>
-    <dt>Gold</dt><dd>${Math.floor(state.gold || 0)}</dd>
-    <dt>Growth</dt><dd>+${Math.round((timeGrowth() - 1) * 100)}%</dd>
-    <dt>Followers</dt><dd>${state.followers.length} / ${followerLimit()}</dd>
-    <dt>Innate</dt><dd>${classBook[state.classId]?.innate || "-"}</dd>
-    <dt>Aura</dt><dd>+${Math.round(((p.followerAttackAura || 0) + (p.classFollowerAttackAura || 0)) * 100)}% ATK</dd>
-    <dt>Monsters</dt><dd>${state.monsters.length}</dd>
+    <dt>${t("statClass")}</dt><dd>${state.className || t("unknownClass")}</dd>
+    <dt>${t("statHp")}</dt><dd>${Math.ceil(p.hp)} / ${p.maxHp}</dd>
+    <dt>${t("statLevel")}</dt><dd>${p.level}</dd>
+    <dt>${t("statTime")}</dt><dd>${Math.floor(state.time)}s</dd>
+    <dt>${t("statGold")}</dt><dd>${Math.floor(state.gold || 0)}</dd>
+    <dt>${t("statGrowth")}</dt><dd>+${Math.round((timeGrowth() - 1) * 100)}%</dd>
+    <dt>${t("statFollowers")}</dt><dd>${state.followers.length} / ${followerLimit()}</dd>
+    <dt>${t("statInnate")}</dt><dd>${classBook[state.classId]?.innate || "-"}</dd>
+    <dt>${t("statAura")}</dt><dd>+${Math.round(((p.followerAttackAura || 0) + (p.classFollowerAttackAura || 0)) * 100)}% ATK</dd>
+    <dt>${t("statMonsters")}</dt><dd>${state.monsters.length}</dd>
   `;
   skillsEl.innerHTML = Object.values(state.skills).filter(s => skillBook[s.id]).map(s => `<li><span>${skillBook[s.id].name}</span><b>Lv.${s.level}</b></li>`).join("");
   const followerSummary = Object.values(state.followers.reduce((acc, f) => {
@@ -5141,23 +5698,73 @@ function syncHud() {
     acc[f.id].maxHp += f.maxHp || 0;
     return acc;
   }, {}));
-  followersEl.innerHTML = followerSummary.length ? followerSummary.map(f => `<li><span>${f.name} x${f.count}</span><b>T${f.tier} ${Math.ceil(f.hp)}/${Math.ceil(f.maxHp)}</b></li>`).join("") : "<li><span>None</span><b>-</b></li>";
-  renderPlainItemList([...state.items.slice(-8), ...state.artifacts.map(a => `Artifact:${a}`)].slice(-10));
+  followersEl.innerHTML = followerSummary.length ? followerSummary.map(f => `<li><span>${f.name} x${f.count}</span><b>T${f.tier} ${Math.ceil(f.hp)}/${Math.ceil(f.maxHp)}</b></li>`).join("") : `<li><span>${t("none")}</span><b>-</b></li>`;
+  renderPlainItemList([...state.items.slice(-8), ...state.artifacts.map(a => t("artifactLabel", { name: a }))].slice(-10));
 }
-
 function renderPlainItemList(items) {
   itemsEl.innerHTML = "";
-  const rows = items.length ? items : ["None"];
+  const emptyLabel = t("none");
+  const rows = items.length ? items : [emptyLabel];
   for (const item of rows) {
     const li = document.createElement("li");
     const span = document.createElement("span");
     span.textContent = String(item).replace(/<[^>]*>/g, "");
     const b = document.createElement("b");
-    b.textContent = item === "None" ? "-" : "";
+    b.textContent = item === emptyLabel ? "-" : "";
     li.appendChild(span);
     li.appendChild(b);
     itemsEl.appendChild(li);
   }
+}
+function esc(text) {
+  return String(text ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+function guideCard(title, body) {
+  return `<div class="guide-card"><b>${esc(title)}</b>${esc(body)}</div>`;
+}
+
+function renderGuideContent() {
+  if (!guideContent) return;
+  const classCards = Object.values(classBook).map(cls => guideCard(cls.name, `${cls.innate}: ${cls.desc}`)).join("");
+  const fusionCards = fusionRecipes.map(([name, req, effect]) => guideCard(name, `${req}. ${effect}`)).join("");
+  const rarityCards = Object.entries(gearRarityInfo)
+    .map(([id, info]) => guideCard(rarityLabel(id), t("dropWeight", { weight: info.weight })))
+    .join("");
+  const starterSkills = Object.entries(skillBook)
+    .filter(([, s]) => !s.type?.includes("fusion"))
+    .slice(0, 18)
+    .map(([id, s]) => guideCard(s.name || id, s.desc || s.type || t("skillFallback")))
+    .join("");
+  guideContent.innerHTML = `
+    <section class="guide-section">
+      <h3>${esc(t("controlsGoal"))}</h3>
+      <div class="guide-grid">
+        ${guideCard(t("movement"), t("movementBody"))}
+        ${guideCard(t("pause"), t("pauseBody"))}
+        ${guideCard(t("blackMarket"), t("blackMarketBody"))}
+        ${guideCard(t("survivalLoop"), t("survivalLoopBody"))}
+      </div>
+    </section>
+    <section class="guide-section"><h3>${esc(t("classes"))}</h3><div class="guide-grid">${classCards}</div></section>
+    <section class="guide-section"><h3>${esc(t("fusionSkills"))}</h3><div class="guide-grid">${fusionCards}</div></section>
+    <section class="guide-section"><h3>${esc(t("gearRarity"))}</h3><div class="guide-grid">${rarityCards}</div></section>
+    <section class="guide-section"><h3>${esc(t("skillExamples"))}</h3><div class="guide-grid">${starterSkills}</div></section>
+  `;
+}
+
+function openGuide() {
+  if (!guidePanel) return;
+  renderGuideContent();
+  guideWasPaused = !!state?.paused;
+  if (state?.running) state.paused = true;
+  guidePanel.classList.remove("hidden");
+}
+
+function closeGuidePanel() {
+  if (!guidePanel) return;
+  guidePanel.classList.add("hidden");
+  if (state?.running && !guideWasPaused) state.paused = false;
 }
 
 function loop(now) {
@@ -5169,27 +5776,56 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-function renderStartMenu() {
+function makeRunSummary() {
+  if (!state?.player) return null;
+  return {
+    seconds: Math.floor(state.time || 0),
+    level: state.player.level || 1,
+    kills: state.kills || 0,
+    gold: state.gold || 0,
+    className: state.className || t("unknownClass")
+  };
+}
+
+function renderStartMenu(summary = null) {
+  applyStaticLanguage();
   const save = loadSavedGame();
-  startPanel.querySelector("h1").textContent = "Elemental Survival";
-  startPanel.querySelector("p").textContent = save
-    ? `发现存档：${save.className || "未知职业"} · ${Math.floor(save.time || 0)} 秒 · Lv.${save.player?.level || 1}`
-    : "开放世界无限生存 · 选择职业后开始";
+  const title = startPanel.querySelector("h1");
+  const subtitle = startPanel.querySelector("p");
+  title.textContent = summary ? t("runComplete") : t("title");
+  if (summary) {
+    subtitle.textContent = t("runSummary", summary);
+  } else if (save) {
+    subtitle.textContent = t("saveFound", {
+      className: save.className || t("unknownClass"),
+      seconds: Math.floor(save.time || 0),
+      level: save.player?.level || 1
+    });
+  } else {
+    subtitle.textContent = t("startSubtitle");
+  }
   if (classPanel) classPanel.classList.add("hidden");
   if (!startActions) return;
   startActions.innerHTML = "";
-  if (save) {
+  if (save && !summary) {
     const continueBtn = document.createElement("button");
     continueBtn.type = "button";
-    continueBtn.textContent = "继续游戏";
+    continueBtn.textContent = t("continue");
     continueBtn.addEventListener("click", continueGame);
     startActions.appendChild(continueBtn);
   }
   const newBtn = document.createElement("button");
   newBtn.type = "button";
-  newBtn.textContent = save ? "从头开始" : "新游戏";
+  newBtn.textContent = save && !summary ? t("newRun") : t("startNewRun");
   newBtn.addEventListener("click", showClassSelect);
   startActions.appendChild(newBtn);
+
+  const guideBtn = document.createElement("button");
+  guideBtn.type = "button";
+  guideBtn.className = "secondary";
+  guideBtn.textContent = t("guideButton");
+  guideBtn.addEventListener("click", openGuide);
+  startActions.appendChild(guideBtn);
 }
 
 function showClassSelect() {
@@ -5198,7 +5834,7 @@ function showClassSelect() {
     return;
   }
   startActions.innerHTML = "";
-  classPanel.innerHTML = `<div class="class-title">选择职业</div>`;
+  classPanel.innerHTML = `<div class="class-title">${esc(t("chooseClass"))}</div>`;
   for (const [id, cls] of Object.entries(classBook)) {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -5210,13 +5846,12 @@ function showClassSelect() {
   const backBtn = document.createElement("button");
   backBtn.type = "button";
   backBtn.className = "secondary";
-  backBtn.textContent = "返回";
-  backBtn.addEventListener("click", renderStartMenu);
+  backBtn.textContent = t("back");
+  backBtn.addEventListener("click", () => renderStartMenu());
   classPanel.appendChild(backBtn);
   classPanel.classList.remove("hidden");
-  startPanel.querySelector("p").textContent = "从头开始会覆盖当前存档";
+  startPanel.querySelector("p").textContent = t("overwriteSave");
 }
-
 function startWithClass(classId) {
   clearSave();
   state = newState(classId);
@@ -5243,6 +5878,10 @@ function continueGame() {
 
 window.addEventListener("keydown", e => {
   keys.add(e.code);
+  if (e.code === "KeyG") {
+    if (guidePanel && !guidePanel.classList.contains("hidden")) closeGuidePanel();
+    else openGuide();
+  }
   if (e.code === "KeyE" && canOpenBlackMarket()) {
     state.blackMarket.wasNear = true;
     openBlackMarket();
@@ -5251,6 +5890,7 @@ window.addEventListener("keydown", e => {
   if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
 });
 window.addEventListener("keyup", e => keys.delete(e.code));
+closeGuide?.addEventListener("click", closeGuidePanel);
 if (moveStick) {
   const setStick = e => {
     const rect = moveStick.getBoundingClientRect();
@@ -5290,10 +5930,14 @@ if (moveStick) {
 pauseTouch?.addEventListener("click", () => {
   if (state?.running) state.paused = !state.paused;
 });
+languageSelect?.addEventListener("change", e => setLanguage(e.target.value));
 startBtn?.addEventListener("click", () => startWithClass("elementMage"));
 
 state = newState();
+applyStaticLanguage();
 renderStartMenu();
 draw();
 syncHud();
 requestAnimationFrame(loop);
+
+

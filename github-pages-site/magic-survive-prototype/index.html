@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,42 +12,60 @@
       <canvas id="game" width="1280" height="720" aria-label="Elemental Survival game canvas"></canvas>
       <div id="touchControls" class="touch-controls" aria-hidden="true">
         <div id="moveStick" class="move-stick"><span></span></div>
-        <button id="pauseTouch" class="pause-touch" type="button">Ⅱ</button>
+        <button id="pauseTouch" class="pause-touch" type="button">II</button>
       </div>
       <div id="levelPanel" class="level-panel hidden">
         <div class="panel-head">
-          <span>升级选择</span>
-          <small>元素法师</small>
+          <span id="levelPanelTitle">Level Up</span>
+          <small id="levelPanelClass">Class</small>
         </div>
         <div id="choices" class="choices"></div>
       </div>
       <div id="startPanel" class="start-panel">
         <h1>Elemental Survival</h1>
-        <p>元素法师 · 开放世界无限生存 · 特效增强版</p>
-        <button id="startBtn" class="hidden" type="button">开始生存</button>
+        <p>Open-world survival. Choose a class, build followers, fuse skills, and hunt bosses.</p>
+        <div class="language-row">
+          <label id="languageLabel" for="languageSelect">Language</label>
+          <select id="languageSelect" aria-label="Language">
+            <option value="en">English</option>
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-TW">繁體中文</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
+        <button id="startBtn" class="hidden" type="button">Start</button>
         <div id="startActions" class="start-actions"></div>
         <div id="classPanel" class="class-panel hidden"></div>
+      </div>
+      <div id="guidePanel" class="guide-panel hidden" role="dialog" aria-label="Game guide">
+        <div class="guide-head">
+          <strong id="guideTitle">Game Guide</strong>
+          <button id="closeGuide" class="secondary" type="button">Close</button>
+        </div>
+        <div id="guideContent" class="guide-content"></div>
       </div>
     </section>
     <aside class="hud">
       <div>
-        <h2>状态</h2>
+        <h2 id="statsTitle">Status</h2>
         <dl id="stats"></dl>
       </div>
       <div>
-        <h2>技能</h2>
+        <h2 id="skillsTitle">Skills</h2>
         <ul id="skills"></ul>
       </div>
       <div>
-        <h2>随从</h2>
+        <h2 id="followersTitle">Followers</h2>
         <ul id="followers"></ul>
       </div>
       <div>
-        <h2>装备 / 神器</h2>
+        <h2 id="itemsTitle">Items / Artifacts</h2>
         <ul id="items"></ul>
       </div>
     </aside>
   </main>
-  <script src="./game.js?v=20260618-cast-frame"></script>
+  <script src="./game.js?v=20260619-languages"></script>
 </body>
 </html>
