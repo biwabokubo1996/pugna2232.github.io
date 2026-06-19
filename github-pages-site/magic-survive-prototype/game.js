@@ -94,8 +94,11 @@ const classAssetById = {
   vampirePrincess: "VampirePrincess.png",
   hellLord: "HellLord.png"
 };
+const classCastAssetById = {
+  elementMage: "GrandWitchCast.png"
+};
 const classImages = {};
-for (const file of new Set(Object.values(classAssetById))) {
+for (const file of new Set([...Object.values(classAssetById), ...Object.values(classCastAssetById)])) {
   const img = new Image();
   img.src = `./assets/classes/${file}`;
   classImages[file] = img;
@@ -735,6 +738,7 @@ function castSkill(s) {
   const fusionArea = isFusionSkill(s.id) ? FUSION_AREA_MULT : 1;
   const dmg = b.damage * SKILL_POWER_MULT * fusionDamage * skillDamageMultiplier(lvl) * p.damage * (1 + (p.classDamageAura || 0)) * diseaseAttackMult(p) * elementMult(b.element);
   const area = b.area * fusionArea * skillAreaMultiplier(lvl) * areaMult(b.element);
+  p.castAnim = 0.24;
 
   if (b.type === "bolt") {
     const target = nearestEnemy(p);
@@ -1941,6 +1945,7 @@ function update(dt) {
   if (prevTerrain.id !== state.terrain.id) addText(`进入：${state.terrain.name}`, p.x - 40, p.y - 38, "#e7f7cf");
   p.ward = Math.max(0, p.ward - dt);
   p.hitGrace = Math.max(0, p.hitGrace - dt);
+  p.castAnim = Math.max(0, (p.castAnim || 0) - dt);
   updatePoisonStatus(p, dt);
   updateDiseaseStatus(p, dt);
   p.hp = Math.min(p.maxHp, p.hp + p.regen * dt);
@@ -4315,7 +4320,9 @@ function drawPlayer() {
   const p = state.player;
   drawCircle(p.x, p.y, p.r + (p.ward ? 9 : 0), p.ward ? "rgba(125,190,255,.38)" : "rgba(255,255,255,.08)");
   const classFile = classBook[state.classId]?.icon || classAssetById[state.classId];
-  const classImg = classFile && classImages[classFile];
+  const castFile = p.castAnim > 0 ? classCastAssetById[state.classId] : null;
+  const castImg = castFile && classImages[castFile];
+  const classImg = castImg?.complete && castImg.naturalWidth ? castImg : classFile && classImages[classFile];
   if (classImg?.complete && classImg.naturalWidth && typeof ctx.drawImage === "function") {
     const size = 84;
     ctx.save();
