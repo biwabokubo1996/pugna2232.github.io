@@ -3645,6 +3645,13 @@ function updateZones(dt) {
       }
       if (Math.random() < 0.12) addParticles(z.x + rand(-z.r * 0.55, z.r * 0.55), z.y + rand(-z.r * 0.55, z.r * 0.55), "rgba(122,255,86,.36)", 2, 26, 1.2);
     }
+    if (z.type === "earthquakeFx" && (z.damage > 0 || z.impactDamage > 0)) {
+      z.quakeTick = (z.quakeTick || 0) - dt;
+      if (z.quakeTick <= 0) {
+        z.quakeTick = 0.16;
+        damageCircle(z.x, z.y, z.r, (z.damage || z.impactDamage * 0.32 || 0) * 0.85, z.element, true);
+      }
+    }
     if (z.poisonDamage || z.blind || z.burnVulnerable || z.burnDamage || z.slow || z.diseaseDamage) {
       z.statusTick = (z.statusTick || 0) - dt;
       if (z.statusTick <= 0) {
