@@ -690,6 +690,17 @@ const gearBook = [
   { name: "增幅器", rarity: "rare", desc: "Magic area +10%", apply: s => { s.area *= 1.1; } },
   { name: "火药", rarity: "common", desc: "Magic area +5%", apply: s => { s.area *= 1.05; } },
   { name: "放射元素", rarity: "epic", desc: "Magic area +15%, duration +10%", apply: s => { s.area *= 1.15; s.duration = (s.duration || 1) * 1.1; } },
+  { name: "太阳镜", rarity: "common", desc: "Crit chance +3%", apply: s => { s.crit += 0.03; } },
+  { name: "彩虹挂饰", rarity: "rare", desc: "Crit chance +10%", apply: s => { s.crit += 0.10; } },
+  { name: "袖箭", rarity: "epic", desc: "Crit chance +15%", apply: s => { s.crit += 0.15; } },
+  { name: "处刑者之斧", rarity: "epic", desc: "Crit damage +100%", apply: s => { s.critMul += 1.0; } },
+  { name: "影子风衣", rarity: "rare", desc: "Ranged attack dodge +50%", apply: s => { s.rangedDodgeChance = Math.max(s.rangedDodgeChance || 0, 0.5); } },
+  { name: "三尖两刃刀", rarity: "common", desc: "Crit damage +30%", apply: s => { s.critMul += 0.3; } },
+  { name: "盗贼匕首", rarity: "rare", desc: "Crit chance +6%, crit damage +20%", apply: s => { s.crit += 0.06; s.critMul += 0.2; } },
+  { name: "奥数指环", rarity: "common", desc: "攻击力+10%", apply: s => { s.damage *= 1.1; } },
+  { name: "紧急医疗包", rarity: "common", desc: "生命恢复+3/秒", apply: s => { s.regen += 3; } },
+  { name: "比蒙之心", rarity: "epic", desc: "最大生命+40%，生命恢复+10/秒", apply: s => { const gain = Math.round(s.maxHp * 0.4); s.maxHp += gain; s.hp += gain; s.regen += 10; } },
+  { name: "便携铁匠铺", rarity: "rare", desc: "全部友方单位减伤+10%", apply: s => { s.groupReduce += 0.10; } },
   { name: "空间扭曲外套", rarity: "epic", desc: "50% chance to reflect ranged attacks", apply: s => { s.rangedReflectChance = Math.max(s.rangedReflectChance || 0, 0.5); } }
 ];
 
@@ -897,14 +908,14 @@ function newState(classId = "elementMage") {
       x: W / 2, y: H / 2, r: Math.round(16 * PLAYER_SIZE_MULT), hp: 180, maxHp: 180, xp: 0, next: 32, level: 1,
       speed: 205, damage: 1, area: 1, cooldown: 1, followerCooldown: 1, duration: 1, defense: 0, groupReduce: 0,
       fire: 1, ice: 1, wind: 1, earth: 1, lightning: 1, arcane: 1, poison: 1,
-      regen: 0.7, crit: 0.05, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, rangedReflectChance: 0, ward: 0, hitGrace: 0
+      regen: 0.7, crit: 0.10, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, rangedReflectChance: 0, rangedDodgeChance: 0, ward: 0, hitGrace: 0
     },
     skills: Object.fromEntries(selectedClass.skills.map(id => [id, skillState(id)])),
     followers: [],
     items: [],
     gear: [],
     artifacts: [],
-    blackMarket: { x: W / 2 + 280, y: H / 2 - 150, r: 88, wasNear: false },
+    blackMarket: { x: W / 2 + 280, y: H / 2 - 150, r: 88, wasNear: false, cycle: 0 },
     worldBosses: Object.fromEntries(Object.entries(WORLD_BOSS_SITES).map(([id, site]) => [id, { ...site, spawned: false, defeated: false }])),
     last: performance.now()
   };
@@ -1274,8 +1285,8 @@ function castSkill(s) {
     const waves = 1 + Math.floor((lvl - 1) / 2);
     for (let w = 0; w < waves; w++) {
       const waveArea = area * (0.72 + w * 0.28);
-      damageCircle(p.x, p.y, waveArea, dmg * (1 - w * 0.12), b.element, true);
-      state.zones.push({ x: p.x, y: p.y, r: waveArea, life: 0.55 + w * 0.12, maxLife: 0.55 + w * 0.12, delay: w * 0.09, damage: dmg * (1 - w * 0.12) * 0.34, impactDamage: dmg * (1 - w * 0.12) * 0.95, element: b.element, type: "earthquakeFx", color: "rgba(180,128,84,.24)", grow: 1.45 + w * 0.22, spin: rand(-0.25, 0.25) });
+      damageCircle(p.x, p.y, waveArea, dmg * (1 - w * 0.12), b.element, true, { falloff: true, minMultiplier: 0.28 });
+      state.zones.push({ x: p.x, y: p.y, r: waveArea, life: 0.55 + w * 0.12, maxLife: 0.55 + w * 0.12, delay: w * 0.09, damage: dmg * (1 - w * 0.12) * 0.34, impactDamage: dmg * (1 - w * 0.12) * 0.95, element: b.element, type: "earthquakeFx", color: "rgba(180,128,84,.24)", grow: 1.45 + w * 0.22, spin: rand(-0.25, 0.25), falloff: true });
     }
     for (let i = 0; i < 5 + lvl * 2; i++) {
       const a = rand(0, Math.PI * 2);
@@ -1949,13 +1960,16 @@ function behemothEarthquake(m) {
   const p = state.player;
   const radius = 185;
   const damage = Math.max(8, 34 * ENEMY_DAMAGE_MULT * timeGrowth() - effectiveDefense() * 0.45) * (1 - effectiveGroupReduce());
-  if (Math.hypot(p.x - m.x, p.y - m.y) < radius + p.r && p.hitGrace <= 0) {
-    p.hp -= damage;
+  const playerDistance = Math.hypot(p.x - m.x, p.y - m.y);
+  if (playerDistance < radius + p.r && p.hitGrace <= 0) {
+    const taken = damage * distanceDamageMultiplier(playerDistance, radius, 0.3);
+    p.hp -= taken;
     p.hitGrace = 0.58;
-    addText(`-${Math.ceil(damage)}`, p.x - 10, p.y - 28, "#ff7a66");
+    addText(`-${Math.ceil(taken)}`, p.x - 10, p.y - 28, "#ff7a66");
   }
   for (const f of state.followers) {
-    if (f.hp > 0 && Math.hypot(f.x - m.x, f.y - m.y) < radius + 18) damageFollower(f, damage * 0.82);
+    const followerDistance = Math.hypot(f.x - m.x, f.y - m.y);
+    if (f.hp > 0 && followerDistance < radius + 18) damageFollower(f, damage * 0.82 * distanceDamageMultiplier(followerDistance, radius, 0.3));
   }
   state.zones.push({ x: m.x, y: m.y, r: radius, life: 0.58, maxLife: 0.58, damage: 0, element: "earth", type: "visual", color: "rgba(118,72,42,.30)", grow: 2.8 });
   addRing(m.x, m.y, radius * 0.58, "rgba(255,150,74,.78)", 0.36);
@@ -2026,16 +2040,27 @@ function updateBehemothCharge(m, target, dt) {
   return true;
 }
 
-function damagePlayerAndFollowersCircle(x, y, radius, damage, color = "#ff7a66") {
+function distanceDamageMultiplier(distance, radius, minMultiplier = 0.3) {
+  const t = Math.min(1, Math.max(0, distance / Math.max(1, radius)));
+  return minMultiplier + (1 - minMultiplier) * (1 - t);
+}
+
+function damagePlayerAndFollowersCircle(x, y, radius, damage, color = "#ff7a66", opts = {}) {
   const p = state.player;
-  if (Math.hypot(p.x - x, p.y - y) < radius + p.r && p.hitGrace <= 0) {
-    const taken = Math.max(1, damage - effectiveDefense() * 0.35) * (1 - effectiveGroupReduce());
+  const playerDistance = Math.hypot(p.x - x, p.y - y);
+  if (playerDistance < radius + p.r && p.hitGrace <= 0) {
+    const falloff = opts.falloff ? distanceDamageMultiplier(playerDistance, radius, opts.minMultiplier) : 1;
+    const taken = Math.max(1, damage * falloff - effectiveDefense() * 0.35) * (1 - effectiveGroupReduce());
     p.hp -= taken;
     p.hitGrace = 0.5;
     addText(`-${Math.ceil(taken)}`, p.x - 10, p.y - 28, color);
   }
   for (const f of state.followers) {
-    if (f.hp > 0 && Math.hypot(f.x - x, f.y - y) < radius + 16) damageFollower(f, damage * 0.8);
+    const followerDistance = Math.hypot(f.x - x, f.y - y);
+    if (f.hp > 0 && followerDistance < radius + 16) {
+      const falloff = opts.falloff ? distanceDamageMultiplier(followerDistance, radius, opts.minMultiplier) : 1;
+      damageFollower(f, damage * 0.8 * falloff);
+    }
   }
 }
 
@@ -2303,10 +2328,12 @@ function isZombieMonster(m) {
   return monsterAssetByName[m.name] === "Zombie.png" || m.name === "Zombie";
 }
 
-function damageCircle(x, y, r, damage, element, slow) {
+function damageCircle(x, y, r, damage, element, slow, opts = {}) {
   for (const m of state.monsters) {
-    if (Math.hypot(m.x - x, m.y - y) < r + m.r) {
-      hitMonster(m, damage, element);
+    const distance = Math.hypot(m.x - x, m.y - y);
+    if (distance < r + m.r) {
+      const falloff = opts.falloff ? distanceDamageMultiplier(distance, r, opts.minMultiplier) : 1;
+      hitMonster(m, damage * falloff, element);
       if (slow) {
         m.slow = 1;
         if (element === "ice") m.frozen = Math.max(m.frozen || 0, 1.15);
@@ -2523,7 +2550,7 @@ function update(dt) {
 function typhonEarthquake(m) {
   const radius = 250;
   const damage = 58 * ENEMY_DAMAGE_MULT * timeGrowth() * (m.attackMul || 1);
-  damagePlayerAndFollowersCircle(m.x, m.y, radius, damage, "#ff9b46");
+  damagePlayerAndFollowersCircle(m.x, m.y, radius, damage, "#ff9b46", { falloff: true, minMultiplier: 0.3 });
   state.zones.push({ x: m.x, y: m.y, r: radius, life: 0.7, maxLife: 0.7, damage: 0, element: "earth", type: "quakeFx", color: "rgba(255,136,54,.28)", grow: 2.4 });
   addRing(m.x, m.y, radius * 0.55, "rgba(255,165,72,.86)", 0.42);
   addRing(m.x, m.y, radius, "rgba(255,95,42,.82)", 0.7);
@@ -2680,6 +2707,11 @@ function updateWorldBossSites() {
 function updateBlackMarket() {
   const market = state.blackMarket;
   if (!market) return;
+  updateBlackMarketSchedule();
+  if (!isBlackMarketActive()) {
+    market.wasNear = false;
+    return;
+  }
   const p = state.player;
   const d = Math.hypot(p.x - market.x, p.y - market.y);
   if (d < market.r && !market.wasNear) {
@@ -2690,14 +2722,32 @@ function updateBlackMarket() {
   }
 }
 
+function isBlackMarketActive() {
+  if (!state?.blackMarket) return false;
+  return (state.time % 300) < 75;
+}
+
+function updateBlackMarketSchedule() {
+  const market = state.blackMarket;
+  if (!market) return;
+  const cycle = Math.floor(state.time / 300);
+  if (market.cycle === cycle) return;
+  market.cycle = cycle;
+  market.wasNear = false;
+  const angle = rand(0, Math.PI * 2);
+  const distance = rand(360, 560);
+  market.x = state.player.x + Math.cos(angle) * distance;
+  market.y = state.player.y + Math.sin(angle) * distance;
+}
+
 function canOpenBlackMarket() {
   const market = state?.blackMarket;
-  if (!state?.running || state.paused || !market) return false;
+  if (!state?.running || state.paused || !market || !isBlackMarketActive()) return false;
   return Math.hypot(state.player.x - market.x, state.player.y - market.y) < market.r + 24;
 }
 
 function openBlackMarket() {
-  if (!state?.running || !state.blackMarket) return;
+  if (!state?.running || !state.blackMarket || !isBlackMarketActive()) return;
   state.paused = true;
   const offers = [];
   const followerPool = [...followerChoices].sort(() => Math.random() - 0.5).slice(0, 3);
@@ -3337,7 +3387,7 @@ function throwBoulder(f, target, damage) {
 
 function giantEarthquake(f, damage) {
   const radius = 132;
-  damageCircle(f.x, f.y, radius, damage, "earth", true);
+  damageCircle(f.x, f.y, radius, damage, "earth", true, { falloff: true, minMultiplier: 0.28 });
   state.zones.push({
     x: f.x,
     y: f.y,
@@ -3564,11 +3614,16 @@ function updateEnemyShots(dt) {
       }
     }
     if (hitFollower) {
-      damageFollower(hitFollower, s.damage);
+      damageFollower(hitFollower, s.damage * 0.5);
       state.enemyShots.splice(i, 1);
       continue;
     }
     if (Math.hypot(s.x - p.x, s.y - p.y) < s.r + p.r) {
+      if (!p.ward && (p.rangedDodgeChance || 0) > 0 && Math.random() < p.rangedDodgeChance) {
+        addText("DODGE", p.x - 18, p.y - 42, "#a7f3d0");
+        state.enemyShots.splice(i, 1);
+        continue;
+      }
       if (!p.ward && (p.rangedReflectChance || 0) > 0 && Math.random() < p.rangedReflectChance) {
         reflectEnemyShot(s);
         state.enemyShots.splice(i, 1);
@@ -3597,7 +3652,7 @@ function updateZones(dt) {
     z.angle = (z.angle || 0) + (z.spin || 0) * dt;
     if (z.type === "earthquakeFx" && !z.impactDone) {
       z.impactDone = true;
-      damageCircle(z.x, z.y, z.r, z.impactDamage || z.damage || 0, z.element, true);
+      damageCircle(z.x, z.y, z.r, z.impactDamage || z.damage || 0, z.element, true, { falloff: true, minMultiplier: 0.28 });
       addParticles(z.x, z.y, "rgba(255,184,94,.64)", 12, z.r * 0.38, 0.5);
     }
     if (z.followPlayer) {
@@ -3649,7 +3704,7 @@ function updateZones(dt) {
       z.quakeTick = (z.quakeTick || 0) - dt;
       if (z.quakeTick <= 0) {
         z.quakeTick = 0.16;
-        damageCircle(z.x, z.y, z.r, (z.damage || z.impactDamage * 0.32 || 0) * 0.85, z.element, true);
+        damageCircle(z.x, z.y, z.r, (z.damage || z.impactDamage * 0.32 || 0) * 0.85, z.element, true, { falloff: true, minMultiplier: 0.28 });
       }
     }
     if (z.poisonDamage || z.blind || z.burnVulnerable || z.burnDamage || z.slow || z.diseaseDamage) {
@@ -3743,7 +3798,7 @@ function updateMonsters(dt) {
     updateDiseaseStatus(m, dt);
     updateBurnStatus(m, dt);
     if (m.burnVulnerable) m.burnVulnerable.time -= dt;
-    const followerTarget = far > 360 ? nearestFollower(m, 430) : null;
+    const followerTarget = far > 640 ? nearestFollower(m, 300) : null;
     const target = followerTarget || p;
     const targetRadius = followerTarget ? 15 : p.r;
     const a = Math.atan2(target.y - m.y, target.x - m.x);
@@ -3884,7 +3939,7 @@ function updateMonsters(dt) {
     }
     if (m.tag === "ranged" && (m.disarm || 0) <= 0) {
       m.shoot -= dt;
-      const shotTarget = far > 420 ? nearestFollower(m, 620) || p : p;
+      const shotTarget = far > 720 ? nearestFollower(m, 360) || p : p;
       const rangeToTarget = Math.hypot(shotTarget.x - m.x, shotTarget.y - m.y);
       if (m.shoot <= 0 && rangeToTarget < 620) {
         if (!monsterAttackMisses(m)) fireEnemyShot(m, shotTarget);
@@ -3911,9 +3966,10 @@ function nearestFollower(pos, range = Infinity) {
 
 function damageFollower(f, amount) {
   if (f.hitGrace > 0) return;
-  f.hp -= amount;
+  const taken = Math.max(1, amount * (1 - effectiveGroupReduce()));
+  f.hp -= taken;
   f.hitGrace = 0.42;
-  addText(`-${Math.ceil(amount)}`, f.x - 10, f.y - 28, "#ffb089");
+  addText(`-${Math.ceil(taken)}`, f.x - 10, f.y - 28, "#ffb089");
 }
 
 function updateGems(dt) {
@@ -4427,7 +4483,7 @@ function drawWorldBossSites() {
 
 function drawBlackMarket() {
   const market = state.blackMarket;
-  if (!market) return;
+  if (!market || !isBlackMarketActive()) return;
   const img = npcImages.blackMarket;
   const pulse = 1 + Math.sin(state.time * 3) * 0.04;
   ctx.save();
@@ -4471,6 +4527,59 @@ function drawTerrainTiles(camX, camY) {
       const terrain = terrainAt(x + cell * 0.5, y + cell * 0.5);
       drawTerrainPatch(terrain, x - camX, y - camY, tx, ty, cell);
     }
+  }
+  drawConnectedRoadNetwork(camX, camY);
+}
+
+function drawConnectedRoadNetwork(camX, camY) {
+  const spacing = 1080;
+  const margin = 320;
+  const drawRoadPath = points => {
+    if (points.length < 2) return;
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.globalAlpha = 0.34;
+    ctx.strokeStyle = "rgba(42,31,22,.45)";
+    ctx.lineWidth = 52;
+    ctx.beginPath();
+    points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+    ctx.stroke();
+    ctx.globalAlpha = 0.46;
+    ctx.strokeStyle = "rgba(139,108,72,.72)";
+    ctx.lineWidth = 34;
+    ctx.beginPath();
+    points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+    ctx.stroke();
+    ctx.globalAlpha = 0.22;
+    ctx.strokeStyle = "rgba(225,190,132,.55)";
+    ctx.lineWidth = 9;
+    ctx.beginPath();
+    points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+    ctx.stroke();
+    ctx.restore();
+  };
+  const startRow = Math.floor((camY - margin) / spacing) - 1;
+  const endRow = Math.floor((camY + H + margin) / spacing) + 1;
+  for (let row = startRow; row <= endRow; row++) {
+    const baseY = row * spacing + Math.sin(row * 1.71) * 210;
+    const points = [];
+    for (let wx = camX - margin; wx <= camX + W + margin; wx += 150) {
+      const wobble = Math.sin(wx * 0.0017 + row * 2.1) * 95 + Math.sin(wx * 0.0041 + row) * 28;
+      points.push({ x: wx - camX, y: baseY + wobble - camY });
+    }
+    drawRoadPath(points);
+  }
+  const startCol = Math.floor((camX - margin) / spacing) - 1;
+  const endCol = Math.floor((camX + W + margin) / spacing) + 1;
+  for (let col = startCol; col <= endCol; col++) {
+    const baseX = col * spacing + Math.cos(col * 1.37) * 220;
+    const points = [];
+    for (let wy = camY - margin; wy <= camY + H + margin; wy += 150) {
+      const wobble = Math.sin(wy * 0.0015 + col * 1.9) * 90 + Math.cos(wy * 0.0038 + col) * 26;
+      points.push({ x: baseX + wobble - camX, y: wy - camY });
+    }
+    drawRoadPath(points);
   }
 }
 
@@ -4896,10 +5005,11 @@ function drawPlayer() {
   } else {
     drawCircle(p.x, p.y, p.r, "#73d1ff");
   }
+  const barY = p.y + 55;
   ctx.fillStyle = "rgba(0,0,0,.55)";
-  ctx.fillRect(p.x - 24, p.y - 34, 48, 6);
+  ctx.fillRect(p.x - 26, barY, 52, 6);
   ctx.fillStyle = p.hp / p.maxHp > 0.35 ? "#6df08a" : "#ff6464";
-  ctx.fillRect(p.x - 24, p.y - 34, 48 * Math.max(0, p.hp / p.maxHp), 6);
+  ctx.fillRect(p.x - 26, barY, 52 * Math.max(0, p.hp / p.maxHp), 6);
   ctx.globalAlpha = 0;
   ctx.fillText("✦", p.x - 7, p.y + 6);
 }
