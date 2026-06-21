@@ -540,13 +540,13 @@ const WORLD_MAP_SAMPLE = 8;
 let worldMapCanvas = null;
 
 const biomeProfiles = [
-  { id: "grassland", x: 0.48, y: 0.52, sx: 0.48, sy: 0.38, base: 0.22, color: [112, 141, 55] },
-  { id: "forest", x: 0.22, y: 0.25, sx: 0.25, sy: 0.24, base: 0.02, color: [42, 75, 37] },
-  { id: "desert", x: 0.79, y: 0.66, sx: 0.28, sy: 0.25, base: 0.01, color: [174, 133, 73] },
-  { id: "snowfield", x: 0.62, y: 0.17, sx: 0.27, sy: 0.22, base: 0.01, color: [184, 205, 210] },
-  { id: "pond", x: 0.23, y: 0.72, sx: 0.27, sy: 0.22, base: 0.01, color: [52, 74, 58] },
-  { id: "graveyard", x: 0.43, y: 0.82, sx: 0.24, sy: 0.18, base: 0.01, color: [77, 73, 63] },
-  { id: "hell", x: 0.83, y: 0.27, sx: 0.24, sy: 0.2, base: 0.01, color: [61, 34, 25] }
+  { id: "grassland", x: 0.48, y: 0.52, sx: 0.48, sy: 0.38, base: 0.22, color: [93, 116, 62] },
+  { id: "forest", x: 0.22, y: 0.25, sx: 0.25, sy: 0.24, base: 0.02, color: [36, 67, 42] },
+  { id: "desert", x: 0.79, y: 0.66, sx: 0.28, sy: 0.25, base: 0.01, color: [157, 124, 74] },
+  { id: "snowfield", x: 0.62, y: 0.17, sx: 0.27, sy: 0.22, base: 0.01, color: [171, 190, 193] },
+  { id: "pond", x: 0.23, y: 0.72, sx: 0.27, sy: 0.22, base: 0.01, color: [42, 62, 51] },
+  { id: "graveyard", x: 0.43, y: 0.82, sx: 0.24, sy: 0.18, base: 0.01, color: [67, 65, 57] },
+  { id: "hell", x: 0.83, y: 0.27, sx: 0.24, sy: 0.2, base: 0.01, color: [54, 34, 28] }
 ];
 
 function terrainAt(x, y) {
@@ -2596,10 +2596,29 @@ function updateSpiritOrbit(dt) {
   for (let i = 0; i < strikes; i++) {
     const target = pick(targets);
     const ghost = points[(Math.floor(Math.random() * points.length) + i) % points.length] || p;
-    hitMonster(target, cfg.damage, "arcane");
-    target.slow = Math.max(target.slow || 0, 0.18 + cfg.level * 0.015);
-    addLine(ghost.x, ghost.y, target.x, target.y, "rgba(214,232,255,.62)", 5 + cfg.level * 0.5, 0.16, true);
-    addParticles(target.x, target.y, "rgba(220,238,255,.74)", 6, 16 + cfg.level * 3, 0.28);
+    const a = Math.atan2(target.y - ghost.y, target.x - ghost.x);
+    const speed = 430 + cfg.level * 24;
+    state.projectiles.push({
+      kind: "spiritBolt",
+      x: ghost.x,
+      y: ghost.y,
+      px: ghost.x,
+      py: ghost.y,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed,
+      damage: cfg.damage,
+      r: cfg.hitRadius,
+      element: "arcane",
+      color: "rgba(218,238,255,.86)",
+      life: 1.35,
+      pierce: false,
+      hit: new Set(),
+      angle: a,
+      target,
+      slow: 0.18 + cfg.level * 0.015,
+      size: 24 + cfg.level * 2 + (ghost.layer ? 4 : 0),
+      phase: rand(0, Math.PI * 2)
+    });
   }
 }
 
@@ -3903,12 +3922,36 @@ function updateProjectiles(dt) {
         addLine(pr.x, pr.y, pr.x + Math.cos(back) * rand(18, 38), pr.y + Math.sin(back) * rand(18, 38), "rgba(255,118,24,.45)", rand(4, 8), 0.16, true);
       }
     }
+    if (pr.kind === "spiritBolt") {
+      const targetAlive = pr.target && state.monsters.includes(pr.target) && pr.target.hp > 0;
+      if (targetAlive) {
+        const speed = Math.hypot(pr.vx, pr.vy) || 430;
+        const a = Math.atan2(pr.target.y - pr.y, pr.target.x - pr.x);
+        const turn = Math.min(1, dt * 7.5);
+        pr.vx = pr.vx * (1 - turn) + Math.cos(a) * speed * turn;
+        pr.vy = pr.vy * (1 - turn) + Math.sin(a) * speed * turn;
+      }
+      pr.angle = Math.atan2(pr.vy, pr.vx);
+      pr.wispClock = (pr.wispClock || 0) - dt;
+      if (pr.wispClock <= 0) {
+        pr.wispClock = 0.045;
+        addLine(pr.px, pr.py, pr.x, pr.y, "rgba(190,222,255,.34)", rand(5, 9), 0.18, true);
+        if (Math.random() < 0.45) {
+          addParticles(pr.x, pr.y, "rgba(226,241,255,.44)", 2, 10, 0.22);
+        }
+      }
+    }
     pr.life -= dt;
     for (const m of state.monsters) {
       if (!pr.hit.has(m) && Math.hypot(pr.x - m.x, pr.y - m.y) < pr.r + m.r) {
         hitMonster(m, pr.damage, pr.element);
         pr.hit.add(m);
         if (pr.kind === "fairyBolt") applyPoison(m, Math.max(2, pr.damage * 0.12), 4.5);
+        if (pr.kind === "spiritBolt") {
+          m.slow = Math.max(m.slow || 0, pr.slow || 0.2);
+          addRing(pr.x, pr.y, 24 + pr.r * 0.9, "rgba(218,238,255,.55)", 0.2);
+          addParticles(pr.x, pr.y, "rgba(226,241,255,.64)", 8, 22, 0.32);
+        }
         if (pr.kind === "boulder") {
           damageCircle(pr.x, pr.y, 30, pr.damage * 0.35, "earth", true);
           addRing(pr.x, pr.y, 34, "rgba(178,136,88,.78)", 0.22);
@@ -4874,36 +4917,113 @@ function rgbString(color, alpha = 1) {
 }
 
 function terrainMapColor(x, y, blend) {
-  const detail = (mapNoise(x / WORLD_MAP_SIZE, y / WORLD_MAP_SIZE, 52, 91) - 0.5) * 18;
-  const large = (mapNoise(x / WORLD_MAP_SIZE, y / WORLD_MAP_SIZE, 13, 37) - 0.5) * 22;
-  const ridge = Math.sin((x * 0.012 + y * 0.009) + mapNoise(x / WORLD_MAP_SIZE, y / WORLD_MAP_SIZE, 18, 12) * 4) * 5;
+  const u = x / WORLD_MAP_SIZE;
+  const v = y / WORLD_MAP_SIZE;
+  const detail = (mapNoise(u, v, 58, 91) - 0.5) * 13;
+  const large = (mapNoise(u, v, 11, 37) - 0.5) * 25;
+  const grain = (mapNoise(u, v, 116, 205) - 0.5) * 8;
+  const height = mapNoise(u, v, 5.5, 231) * 0.58 + mapNoise(u, v, 19, 233) * 0.28 + mapNoise(u, v, 43, 235) * 0.14;
+  const ridge = Math.sin((x * 0.008 + y * 0.006) + mapNoise(u, v, 16, 12) * 5.2) * 7;
+  const edgeBlend = blend.second ? clamp(1 - (blend.dominant.weight - blend.second.weight) * 2.1, 0, 1) : 0;
+  const ink = [54, 45, 35];
+  const muted = [
+    blend.color[0] * 0.82 + ink[0] * 0.18,
+    blend.color[1] * 0.84 + ink[1] * 0.16,
+    blend.color[2] * 0.86 + ink[2] * 0.14
+  ];
+  const relief = (height - 0.48) * 28 + ridge + large + detail + grain;
   const color = [
-    blend.color[0] + detail + large + ridge,
-    blend.color[1] + detail * 0.8 + large + ridge,
-    blend.color[2] + detail * 0.55 + large * 0.8
+    muted[0] + relief * 0.95 + edgeBlend * 7,
+    muted[1] + relief * 0.82 + edgeBlend * 5,
+    muted[2] + relief * 0.58 + edgeBlend * 3
   ];
   if (blend.dominant.id === "hell") {
-    const crack = mapNoise(x / WORLD_MAP_SIZE, y / WORLD_MAP_SIZE, 72, 301);
-    if (crack > 0.76) {
-      color[0] += 70;
-      color[1] += 18;
-      color[2] -= 18;
+    const crack = mapNoise(u, v, 74, 301);
+    if (crack > 0.8) {
+      color[0] += 44;
+      color[1] += 10;
+      color[2] -= 14;
     }
   }
   if (blend.dominant.id === "snowfield") {
-    color[0] += 12;
-    color[1] += 17;
-    color[2] += 23;
+    color[0] += 18;
+    color[1] += 22;
+    color[2] += 27;
+    color[1] -= edgeBlend * 8;
   }
   if (blend.dominant.id === "pond") {
-    const water = mapNoise(x / WORLD_MAP_SIZE, y / WORLD_MAP_SIZE, 28, 144);
-    if (water > 0.56) {
-      color[0] -= 15;
-      color[1] += 8;
-      color[2] += 18;
+    const water = mapNoise(u, v, 28, 144);
+    if (water > 0.55) {
+      color[0] -= 12;
+      color[1] += 5;
+      color[2] += 14;
     }
   }
+  if (blend.dominant.id === "desert") {
+    color[0] += 7;
+    color[1] += 3;
+    color[2] -= 7;
+  }
+  if (blend.dominant.id === "graveyard") {
+    color[0] -= 7;
+    color[1] -= 6;
+    color[2] -= 3;
+  }
   return color;
+}
+
+function drawWorldMapRelief(g) {
+  g.save();
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  for (let i = 0; i < 1250; i++) {
+    const seed = hash2(i * 17 + 23, i * 31 - 11);
+    const x = hashUnit(seed, 41) * WORLD_MAP_SIZE;
+    const y = hashUnit(seed, 43) * WORLD_MAP_SIZE;
+    const blend = biomeBlendAt(x, y);
+    const noise = mapNoise(x / WORLD_MAP_SIZE, y / WORLD_MAP_SIZE, 18, 511);
+    const len = 18 + hashUnit(seed, 44) * 46;
+    const angle = (mapNoise(x / WORLD_MAP_SIZE, y / WORLD_MAP_SIZE, 9, 513) - 0.5) * Math.PI * 1.4 + 0.65;
+    const alpha = blend.dominant.id === "snowfield" ? 0.08 : blend.dominant.id === "hell" ? 0.16 : 0.11;
+    g.globalAlpha = alpha;
+    g.strokeStyle = noise > 0.55 ? "rgba(244,231,183,.32)" : "rgba(28,22,18,.34)";
+    g.lineWidth = 1 + hashUnit(seed, 45) * 2.3;
+    g.beginPath();
+    g.moveTo(x - Math.cos(angle) * len * 0.5, y - Math.sin(angle) * len * 0.5);
+    g.quadraticCurveTo(
+      x + Math.sin(angle) * len * 0.12,
+      y - Math.cos(angle) * len * 0.12,
+      x + Math.cos(angle) * len * 0.5,
+      y + Math.sin(angle) * len * 0.5
+    );
+    g.stroke();
+  }
+  g.globalAlpha = 0.08;
+  g.fillStyle = "rgba(10,7,4,.8)";
+  for (let i = 0; i < 760; i++) {
+    const seed = hash2(i * 29 + 7, i * 37 + 19);
+    const x = hashUnit(seed, 61) * WORLD_MAP_SIZE;
+    const y = hashUnit(seed, 63) * WORLD_MAP_SIZE;
+    const rx = 2 + hashUnit(seed, 65) * 8;
+    const ry = 1 + hashUnit(seed, 67) * 4;
+    g.beginPath();
+    g.ellipse(x, y, rx, ry, hashUnit(seed, 69) * Math.PI, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.restore();
+}
+
+function drawWorldMapGlaze(g) {
+  g.save();
+  g.fillStyle = "rgba(70,48,26,.08)";
+  g.fillRect(0, 0, WORLD_MAP_SIZE, WORLD_MAP_SIZE);
+  const sun = g.createLinearGradient(0, 0, WORLD_MAP_SIZE, WORLD_MAP_SIZE);
+  sun.addColorStop(0, "rgba(255,236,183,.12)");
+  sun.addColorStop(0.42, "rgba(255,236,183,0)");
+  sun.addColorStop(1, "rgba(20,15,12,.14)");
+  g.fillStyle = sun;
+  g.fillRect(0, 0, WORLD_MAP_SIZE, WORLD_MAP_SIZE);
+  g.restore();
 }
 
 function ensureWorldMapCanvas() {
@@ -4920,9 +5040,11 @@ function ensureWorldMapCanvas() {
       g.fillRect(x, y, WORLD_MAP_SAMPLE + 1, WORLD_MAP_SAMPLE + 1);
     }
   }
+  drawWorldMapRelief(g);
   drawWorldMapRiver(g);
   drawWorldMapRoads(g);
   drawWorldMapDetails(g);
+  drawWorldMapGlaze(g);
   drawWorldMapAtmosphere(g);
   worldMapCanvas = canvas;
   return canvas;
@@ -4985,7 +5107,7 @@ function drawWorldMapRoads(g) {
     [mapPoint(0.13, 0.74), mapPoint(0.28, 0.71), mapPoint(0.43, 0.66), mapPoint(0.62, 0.45), mapPoint(0.78, 0.29), mapPoint(0.93, 0.18)]
   ];
   for (const road of roads) {
-    drawCurvedMapPath(g, road, [52, 32, 7], ["rgba(42,30,20,.45)", "rgba(151,119,77,.68)", "rgba(231,197,137,.38)"], 1);
+    drawCurvedMapPath(g, road, [64, 45, 22, 4], ["rgba(34,24,17,.34)", "rgba(97,76,50,.42)", "rgba(165,135,88,.34)", "rgba(234,211,161,.16)"], 1);
   }
   g.save();
   g.globalAlpha = 0.3;
@@ -5005,7 +5127,7 @@ function drawWorldMapRoads(g) {
 
 function drawWorldMapRiver(g) {
   const river = [mapPoint(0.58, 0.04), mapPoint(0.5, 0.22), mapPoint(0.42, 0.38), mapPoint(0.31, 0.55), mapPoint(0.23, 0.73), mapPoint(0.18, 0.96)];
-  drawCurvedMapPath(g, river, [62, 38, 11], ["rgba(17,42,46,.38)", "rgba(46,91,94,.58)", "rgba(122,168,164,.36)"], 0.95);
+  drawCurvedMapPath(g, river, [72, 45, 13], ["rgba(13,31,35,.32)", "rgba(39,73,78,.46)", "rgba(139,176,169,.25)"], 0.95);
   g.save();
   g.globalAlpha = 0.55;
   g.strokeStyle = "rgba(196,221,213,.35)";
@@ -5043,16 +5165,16 @@ function drawMapBridge(g, p, angle) {
 }
 
 function drawWorldMapDetails(g) {
-  const step = 86;
+  const step = 76;
   for (let gy = 20; gy < WORLD_MAP_SIZE; gy += step) {
     for (let gx = 20; gx < WORLD_MAP_SIZE; gx += step) {
       const seed = hash2(Math.floor(gx / step), Math.floor(gy / step));
-      const x = gx + (hashUnit(seed, 1) - 0.5) * 70;
-      const y = gy + (hashUnit(seed, 2) - 0.5) * 70;
+      const x = gx + (hashUnit(seed, 1) - 0.5) * 66;
+      const y = gy + (hashUnit(seed, 2) - 0.5) * 66;
       const blend = biomeBlendAt(x, y);
       const id = blend.dominant.id;
       const r = hashUnit(seed, 3);
-      const density = id === "grassland" ? 0.34 : id === "desert" ? 0.48 : id === "snowfield" ? 0.58 : id === "pond" ? 0.7 : 0.82;
+      const density = id === "grassland" ? 0.46 : id === "desert" ? 0.58 : id === "snowfield" ? 0.64 : id === "pond" ? 0.72 : 0.88;
       if (r > density) continue;
       if (id === "forest") drawMapTree(g, x, y, seed, hashUnit(seed, 4) > 0.45);
       else if (id === "snowfield") drawMapSnowPine(g, x, y, seed);
@@ -5066,14 +5188,14 @@ function drawWorldMapDetails(g) {
 }
 
 function drawMapTree(g, x, y, seed, pine = false) {
-  const s = 0.75 + hashUnit(seed, 5) * 0.7;
+  const s = 0.62 + hashUnit(seed, 5) * 0.58;
   g.save();
   g.translate(x, y);
   g.scale(s, s);
   g.fillStyle = "rgba(47,31,18,.8)";
   g.fillRect(-4, 8, 8, 20);
   if (pine) {
-    g.fillStyle = "rgba(21,65,42,.96)";
+    g.fillStyle = "rgba(23,55,39,.94)";
     for (let i = 0; i < 3; i++) {
       g.beginPath();
       g.moveTo(0, -30 + i * 17);
@@ -5082,7 +5204,7 @@ function drawMapTree(g, x, y, seed, pine = false) {
       g.closePath();
       g.fill();
     }
-    g.fillStyle = "rgba(98,134,54,.35)";
+    g.fillStyle = "rgba(119,137,72,.24)";
     g.beginPath();
     g.moveTo(-8, -12);
     g.lineTo(-18, 9);
@@ -5090,11 +5212,11 @@ function drawMapTree(g, x, y, seed, pine = false) {
     g.closePath();
     g.fill();
   } else {
-    g.fillStyle = "rgba(48,97,43,.96)";
+    g.fillStyle = "rgba(43,83,39,.93)";
     g.beginPath();
     g.ellipse(0, -7, 28, 24, 0, 0, Math.PI * 2);
     g.fill();
-    g.fillStyle = "rgba(127,156,62,.35)";
+    g.fillStyle = "rgba(141,150,75,.24)";
     g.beginPath();
     g.ellipse(-9, -14, 12, 8, -0.4, 0, Math.PI * 2);
     g.fill();
@@ -5124,7 +5246,7 @@ function drawMapGrassDetail(g, x, y, seed, blend) {
 
 function drawMapBush(g, x, y, seed) {
   g.save();
-  g.fillStyle = "rgba(78,115,44,.82)";
+  g.fillStyle = "rgba(69,102,48,.72)";
   for (let i = 0; i < 4; i++) {
     const a = i * Math.PI * 0.55 + hashUnit(seed, i) * 0.4;
     g.beginPath();
@@ -5233,8 +5355,8 @@ function drawMapGraveDetail(g, x, y, seed) {
 
 function drawMapHellDetail(g, x, y, seed) {
   g.save();
-  g.strokeStyle = "rgba(239,70,22,.82)";
-  g.lineWidth = 4;
+  g.strokeStyle = "rgba(211,65,28,.62)";
+  g.lineWidth = 3;
   g.lineCap = "round";
   g.beginPath();
   g.moveTo(x - 30, y + 5);
@@ -5242,7 +5364,7 @@ function drawMapHellDetail(g, x, y, seed) {
     g.lineTo(x - 18 + i * 13, y + (hashUnit(seed, i + 30) - 0.5) * 34);
   }
   g.stroke();
-  g.strokeStyle = "rgba(255,181,58,.65)";
+  g.strokeStyle = "rgba(255,170,65,.42)";
   g.lineWidth = 1.5;
   g.stroke();
   drawMapRock(g, x + 18, y - 10, seed, "rgba(45,39,38,.96)");
@@ -5901,39 +6023,52 @@ function shadeColor(hex, amount) {
   return `rgb(${r | 0},${g | 0},${b | 0})`;
 }
 
+function drawCleanSpirit(size, phase = 0, alpha = 0.85) {
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.globalCompositeOperation = "lighter";
+  ctx.shadowColor = "rgba(170,215,255,.72)";
+  ctx.shadowBlur = size * 0.35;
+  const glow = ctx.createRadialGradient(0, -size * 0.12, size * 0.06, 0, 0, size * 0.58);
+  glow.addColorStop(0, "rgba(255,255,255,.92)");
+  glow.addColorStop(0.45, "rgba(210,234,255,.68)");
+  glow.addColorStop(1, "rgba(112,160,230,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.moveTo(0, -size * 0.54);
+  ctx.bezierCurveTo(size * 0.36, -size * 0.42, size * 0.44, size * 0.02, size * 0.17, size * 0.24);
+  ctx.bezierCurveTo(size * 0.06, size * 0.34, size * 0.08, size * 0.48, size * 0.27, size * 0.6);
+  ctx.bezierCurveTo(size * 0.02, size * 0.52, -size * 0.08, size * 0.38, -size * 0.06, size * 0.25);
+  ctx.bezierCurveTo(-size * 0.38, size * 0.14, -size * 0.36, -size * 0.38, 0, -size * 0.54);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(238,248,255,.56)";
+  ctx.lineWidth = Math.max(1.2, size * 0.045);
+  ctx.stroke();
+  ctx.shadowBlur = size * 0.16;
+  ctx.strokeStyle = "rgba(190,224,255,.34)";
+  ctx.lineWidth = Math.max(1, size * 0.035);
+  for (let i = 0; i < 3; i++) {
+    const side = i - 1;
+    const wave = Math.sin(phase + i * 1.7) * size * 0.08;
+    ctx.beginPath();
+    ctx.moveTo(side * size * 0.12, size * 0.18);
+    ctx.quadraticCurveTo(side * size * 0.28 + wave, size * 0.4, side * size * 0.1, size * 0.62);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawSpiritOrbit() {
   const cfg = spiritOrbitConfig();
   if (!cfg) return;
-  const img = effectImages.spiritTaming;
   const points = spiritOrbitPoints(cfg);
-  const frames = [
-    { x: 260, y: 160, w: 220, h: 210 },
-    { x: 84, y: 274, w: 200, h: 220 },
-    { x: 512, y: 270, w: 190, h: 210 },
-    { x: 300, y: 780, w: 190, h: 210 }
-  ];
   ctx.save();
   for (const g of points) {
     const size = g.layer ? 38 + cfg.level * 2.2 : 32 + cfg.level * 1.8;
     ctx.save();
     ctx.translate(g.x, g.y);
-    ctx.rotate(g.a + Math.PI / 2);
-    ctx.globalAlpha = g.layer ? 0.76 : 0.86;
-    if (img?.complete && img.naturalWidth) {
-      const f = frames[g.index % frames.length];
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(img, f.x, f.y, f.w, f.h, -size / 2, -size / 2, size, size);
-      ctx.imageSmoothingEnabled = true;
-    } else {
-      drawCircle(0, 0, size * 0.34, "rgba(215,235,255,.86)");
-      ctx.fillStyle = "#eaf6ff";
-      ctx.beginPath();
-      ctx.moveTo(-size * 0.24, 0);
-      ctx.quadraticCurveTo(0, -size * 0.52, size * 0.26, 0);
-      ctx.quadraticCurveTo(size * 0.12, size * 0.3, 0, size * 0.52);
-      ctx.quadraticCurveTo(-size * 0.16, size * 0.24, -size * 0.24, 0);
-      ctx.fill();
-    }
+    ctx.rotate(g.a + Math.PI / 2 + Math.sin(state.time * 2.3 + g.index) * 0.16);
+    drawCleanSpirit(size, state.time * 3 + g.index, g.layer ? 0.62 : 0.78);
     ctx.restore();
   }
   ctx.restore();
@@ -5942,29 +6077,14 @@ function drawSpiritOrbit() {
 function drawFollowerSpiritOrbit(f) {
   const cfg = followerSpiritConfig(f);
   if (!cfg) return;
-  const img = effectImages.spiritTaming;
   const points = followerSpiritPoints(f, cfg);
-  const frames = [
-    { x: 260, y: 160, w: 220, h: 210 },
-    { x: 84, y: 274, w: 200, h: 220 },
-    { x: 512, y: 270, w: 190, h: 210 },
-    { x: 300, y: 780, w: 190, h: 210 }
-  ];
   ctx.save();
   for (const g of points) {
     const size = 18 + f.tier * 5 + (g.layer ? 2 : 0);
     ctx.save();
     ctx.translate(g.x, g.y);
-    ctx.rotate(g.a + Math.PI / 2);
-    ctx.globalAlpha = f.id === "reaper" ? 0.74 : 0.58;
-    if (img?.complete && img.naturalWidth) {
-      const frame = frames[g.index % frames.length];
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(img, frame.x, frame.y, frame.w, frame.h, -size / 2, -size / 2, size, size);
-      ctx.imageSmoothingEnabled = true;
-    } else {
-      drawCircle(0, 0, size * 0.32, "rgba(220,238,255,.78)");
-    }
+    ctx.rotate(g.a + Math.PI / 2 + Math.sin(state.time * 2 + g.index) * 0.14);
+    drawCleanSpirit(size, state.time * 2.6 + g.index, f.id === "reaper" ? 0.64 : 0.5);
     ctx.restore();
   }
   ctx.restore();
@@ -6612,6 +6732,24 @@ function drawProjectile(pr) {
     ctx.beginPath();
     ctx.arc(4, -3, pr.r * 0.45, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (pr.kind === "spiritBolt") {
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = "rgba(180,218,255,.35)";
+    ctx.globalAlpha = 0.76;
+    ctx.lineWidth = 8;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(pr.px, pr.py);
+    ctx.lineTo(pr.x, pr.y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.translate(pr.x, pr.y);
+    ctx.rotate((pr.angle || 0) + Math.PI / 2);
+    drawCleanSpirit(pr.size || 30, state.time * 4 + (pr.phase || 0), 0.92);
     ctx.restore();
     return;
   }
