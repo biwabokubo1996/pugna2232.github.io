@@ -534,34 +534,23 @@ const terrains = [
   { id: "snowfield", name: "雪原", tint: "#aebfba", note: "冰系范围+25%，火系伤害-15%", mod: { iceArea: 1.25, fireDamage: 0.85 } }
 ];
 
+const terrainById = Object.fromEntries(terrains.map(t => [t.id, t]));
+const WORLD_MAP_SIZE = 4096;
+const WORLD_MAP_SAMPLE = 8;
+let worldMapCanvas = null;
+
+const biomeProfiles = [
+  { id: "grassland", x: 0.48, y: 0.52, sx: 0.48, sy: 0.38, base: 0.22, color: [112, 141, 55] },
+  { id: "forest", x: 0.22, y: 0.25, sx: 0.25, sy: 0.24, base: 0.02, color: [42, 75, 37] },
+  { id: "desert", x: 0.79, y: 0.66, sx: 0.28, sy: 0.25, base: 0.01, color: [174, 133, 73] },
+  { id: "snowfield", x: 0.62, y: 0.17, sx: 0.27, sy: 0.22, base: 0.01, color: [184, 205, 210] },
+  { id: "pond", x: 0.23, y: 0.72, sx: 0.27, sy: 0.22, base: 0.01, color: [52, 74, 58] },
+  { id: "graveyard", x: 0.43, y: 0.82, sx: 0.24, sy: 0.18, base: 0.01, color: [77, 73, 63] },
+  { id: "hell", x: 0.83, y: 0.27, sx: 0.24, sy: 0.2, base: 0.01, color: [61, 34, 25] }
+];
+
 function terrainAt(x, y) {
-  const region = 1880;
-  const rx = Math.floor(x / region);
-  const ry = Math.floor(y / region);
-  let best = null;
-  for (let oy = -1; oy <= 1; oy++) {
-    for (let ox = -1; ox <= 1; ox++) {
-      const cx = rx + ox;
-      const cy = ry + oy;
-      const seed = hash2(cx, cy);
-      const centerX = (cx + 0.5 + (hashUnit(seed, 1) - 0.5) * 0.42) * region;
-      const centerY = (cy + 0.5 + (hashUnit(seed, 2) - 0.5) * 0.42) * region;
-      const angle = hashUnit(seed, 9) * Math.PI * 2;
-      const dx = x - centerX;
-      const dy = y - centerY;
-      const along = Math.cos(angle) * dx + Math.sin(angle) * dy;
-      const across = -Math.sin(angle) * dx + Math.cos(angle) * dy;
-      const stretch = 0.72 + hashUnit(seed, 10) * 0.62;
-      const wobble =
-        Math.sin((x + seed % 313) * 0.00135) * 145 +
-        Math.cos((y - seed % 197) * 0.0012) * 125 +
-        Math.sin((x * 0.7 + y * 1.25) * 0.001 + seed) * 92 +
-        Math.cos((x - y) * 0.00062 + seed * 0.13) * 54;
-      const score = Math.hypot(along * stretch, across / stretch) + wobble;
-      if (!best || score < best.score) best = { score, seed };
-    }
-  }
-  return terrains[Math.abs(best.seed) % terrains.length];
+  return terrainById[dominantBiomeAt(x, y).id] || terrainById.grassland;
 }
 
 function hash2(x, y) {
@@ -574,6 +563,68 @@ function hashUnit(seed, salt) {
   let n = Math.imul(seed ^ Math.imul(salt, 1597334677), 1274126177);
   n = (n ^ (n >>> 16)) >>> 0;
   return n / 4294967295;
+}
+
+function wrappedDelta(a, b) {
+  let d = a - b;
+  if (d > 0.5) d -= 1;
+  if (d < -0.5) d += 1;
+  return d;
+}
+
+function smoothstep(t) {
+  t = clamp(t, 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
+function mapNoise(x, y, scale, salt = 0) {
+  const sx = x * scale;
+  const sy = y * scale;
+  const ix = Math.floor(sx);
+  const iy = Math.floor(sy);
+  const fx = smoothstep(sx - ix);
+  const fy = smoothstep(sy - iy);
+  const a = hashUnit(hash2(ix, iy), salt);
+  const b = hashUnit(hash2(ix + 1, iy), salt);
+  const c = hashUnit(hash2(ix, iy + 1), salt);
+  const d = hashUnit(hash2(ix + 1, iy + 1), salt);
+  const top = a + (b - a) * fx;
+  const bottom = c + (d - c) * fx;
+  return top + (bottom - top) * fy;
+}
+
+function biomeBlendAt(x, y) {
+  const u = positiveMod(x, WORLD_MAP_SIZE) / WORLD_MAP_SIZE;
+  const v = positiveMod(y, WORLD_MAP_SIZE) / WORLD_MAP_SIZE;
+  const warpX = Math.sin(v * Math.PI * 4.1 + mapNoise(u, v, 7, 3) * 5.8) * 0.035 + (mapNoise(u, v, 4, 11) - 0.5) * 0.065;
+  const warpY = Math.cos(u * Math.PI * 3.7 + mapNoise(u, v, 6, 5) * 5.4) * 0.03 + (mapNoise(u, v, 4, 19) - 0.5) * 0.06;
+  const samples = biomeProfiles.map(biome => {
+    const dx = wrappedDelta(u + warpX, biome.x);
+    const dy = wrappedDelta(v + warpY, biome.y);
+    const d = (dx * dx) / (biome.sx * biome.sx) + (dy * dy) / (biome.sy * biome.sy);
+    const edgeNoise = (mapNoise(u + biome.x, v + biome.y, 9, biome.id.length * 17) - 0.5) * 0.16;
+    const ridge = Math.sin((u * 5.7 + v * 4.8 + biome.x * 9.1) * Math.PI * 2) * 0.04;
+    return { ...biome, weight: Math.max(0.001, biome.base + Math.exp(-d * 1.42) + edgeNoise + ridge) };
+  });
+  let total = 0;
+  let dominant = samples[0];
+  for (const sample of samples) {
+    total += sample.weight;
+    if (sample.weight > dominant.weight) dominant = sample;
+  }
+  const color = [0, 0, 0];
+  for (const sample of samples) {
+    const w = sample.weight / total;
+    color[0] += sample.color[0] * w;
+    color[1] += sample.color[1] * w;
+    color[2] += sample.color[2] * w;
+  }
+  samples.sort((a, b) => b.weight - a.weight);
+  return { dominant, second: samples[1], samples, color };
+}
+
+function dominantBiomeAt(x, y) {
+  return biomeBlendAt(x, y).dominant;
 }
 
 function timeGrowth() {
@@ -717,7 +768,9 @@ const gearBook = [
   { name: "便携铁匠铺", rarity: "rare", desc: "全部友方单位减伤+10%", apply: s => { s.groupReduce += 0.10; } },
   { name: "血袋", rarity: "common", desc: "最大生命+40", apply: s => { s.maxHp += 40; s.hp += 40; } },
   { name: "混乱之雨", rarity: "epic", desc: "陨石坠落分两轮降落，每块威力降低", apply: s => { s.chaosRain = true; } },
-  { name: "空间扭曲外套", rarity: "epic", desc: "50% chance to reflect ranged attacks", apply: s => { s.rangedReflectChance = Math.max(s.rangedReflectChance || 0, 0.5); } }
+  { name: "空间扭曲外套", rarity: "epic", desc: "50% chance to reflect ranged attacks", apply: s => { s.rangedReflectChance = Math.max(s.rangedReflectChance || 0, 0.5); } },
+  { name: "招财猫", rarity: "common", desc: "Gold gain +10%", apply: s => { s.goldGainBonus = (s.goldGainBonus || 0) + 0.10; } },
+  { name: "优惠券", rarity: "rare", desc: "One random Black Market offer is 50% off each visit", apply: s => { s.marketCoupon = true; } }
 ];
 
 const gearRarityInfo = {
@@ -924,14 +977,14 @@ function newState(classId = "elementMage") {
       x: W / 2, y: H / 2, r: Math.round(16 * PLAYER_SIZE_MULT), hp: 180, maxHp: 180, xp: 0, next: 32, level: 1,
       speed: 205, damage: 1, area: 1, cooldown: 1, followerCooldown: 1, duration: 1, defense: 0, groupReduce: 0,
       fire: 1, ice: 1, wind: 1, earth: 1, lightning: 1, arcane: 1, poison: 1,
-      regen: 0.7, crit: 0.10, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, rangedReflectChance: 0, rangedDodgeChance: 0, chaosRain: false, ward: 0, hitGrace: 0
+      regen: 0.7, crit: 0.10, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, rangedReflectChance: 0, rangedDodgeChance: 0, chaosRain: false, goldGainBonus: 0, marketCoupon: false, ward: 0, hitGrace: 0
     },
     skills: Object.fromEntries(selectedClass.skills.map(id => [id, skillState(id)])),
     followers: [],
     items: [],
     gear: [],
     artifacts: [],
-    blackMarket: { x: W / 2 + 280, y: H / 2 - 150, r: 88, wasNear: false, cycle: 0 },
+    blackMarket: { x: W / 2 + 280, y: H / 2 - 150, r: 88, wasNear: false, cycle: -1 },
     worldBosses: Object.fromEntries(Object.entries(WORLD_BOSS_SITES).map(([id, site]) => [id, { ...site, spawned: false, defeated: false }])),
     last: performance.now()
   };
@@ -1102,7 +1155,7 @@ function addText(text, x, y, color = "#fff") {
 }
 
 function addGold(amount, x = state.player.x, y = state.player.y) {
-  const gain = Math.max(0, Math.floor(amount));
+  const gain = Math.max(0, Math.floor(amount * (1 + (state.player.goldGainBonus || 0))));
   if (!gain) return;
   state.gold = (state.gold || 0) + gain;
   addText(`+${gain}G`, x - 12, y - 34, "#ffd35a");
@@ -2500,11 +2553,12 @@ function spiritOrbitConfig() {
   const lvl = clamp(s.level, 1, 7);
   const count = lvl * 2 + (state.player.spiritBonus || 0);
   const area = b.area * skillAreaMultiplier(lvl) * state.player.area;
-  const damage = b.damage * SKILL_POWER_MULT * 2 * skillDamageMultiplier(lvl) * state.player.damage * (1 + (state.player.classDamageAura || 0)) * elementMult(b.element);
+  const damage = b.damage * SKILL_POWER_MULT * skillDamageMultiplier(lvl) * state.player.damage * (1 + (state.player.classDamageAura || 0)) * elementMult(b.element);
   return {
     level: lvl,
     count,
     damage,
+    range: area * 1.45,
     inner: area * 0.78,
     outer: area * 1.34,
     hitRadius: 17 + lvl * 1.4
@@ -2514,16 +2568,16 @@ function spiritOrbitConfig() {
 function spiritOrbitPoints(cfg) {
   const p = state.player;
   const points = [];
-  const innerCount = Math.ceil(cfg.count / 2);
-  const outerCount = cfg.count - innerCount;
   const t = state.time;
-  for (let i = 0; i < innerCount; i++) {
-    const a = t * 2.25 + i * Math.PI * 2 / innerCount;
-    points.push({ x: p.x + Math.cos(a) * cfg.inner, y: p.y + Math.sin(a) * cfg.inner, a, layer: 0, index: i });
-  }
-  for (let i = 0; i < outerCount; i++) {
-    const a = -t * 1.65 + i * Math.PI * 2 / Math.max(1, outerCount) + Math.PI / 5;
-    points.push({ x: p.x + Math.cos(a) * cfg.outer, y: p.y + Math.sin(a) * cfg.outer, a, layer: 1, index: innerCount + i });
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < cfg.count; i++) {
+    const layer = i % 2;
+    const drift = Math.sin(t * (0.7 + (i % 5) * 0.08) + i * 1.73);
+    const a = i * golden + drift * 0.52 + Math.sin(t * 0.31 + i) * 0.26;
+    const minR = cfg.inner * 0.32;
+    const maxR = layer ? cfg.outer * 0.82 : cfg.inner * 0.86;
+    const r = minR + ((i * 37) % 100) / 100 * (maxR - minR) + Math.sin(t * 1.1 + i * 2.1) * 10;
+    points.push({ x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, a, layer, index: i });
   }
   return points;
 }
@@ -2531,15 +2585,21 @@ function spiritOrbitPoints(cfg) {
 function updateSpiritOrbit(dt) {
   const cfg = spiritOrbitConfig();
   if (!cfg) return;
+  state.spiritAttackTimer = (state.spiritAttackTimer || 0) - dt;
+  if (state.spiritAttackTimer > 0) return;
+  state.spiritAttackTimer = Math.max(0.16, 0.42 - cfg.level * 0.025);
+  const p = state.player;
+  const targets = state.monsters.filter(m => Math.hypot(m.x - p.x, m.y - p.y) < cfg.range + m.r);
+  if (!targets.length) return;
   const points = spiritOrbitPoints(cfg);
-  const damage = cfg.damage * dt;
-  for (const m of state.monsters) {
-    for (const g of points) {
-      if (Math.hypot(m.x - g.x, m.y - g.y) < m.r + cfg.hitRadius) {
-        hitMonster(m, damage, "arcane");
-        m.slow = Math.max(m.slow || 0, 0.25);
-      }
-    }
+  const strikes = Math.min(targets.length, Math.max(1, Math.ceil(cfg.count / 4)));
+  for (let i = 0; i < strikes; i++) {
+    const target = pick(targets);
+    const ghost = points[(Math.floor(Math.random() * points.length) + i) % points.length] || p;
+    hitMonster(target, cfg.damage, "arcane");
+    target.slow = Math.max(target.slow || 0, 0.18 + cfg.level * 0.015);
+    addLine(ghost.x, ghost.y, target.x, target.y, "rgba(214,232,255,.62)", 5 + cfg.level * 0.5, 0.16, true);
+    addParticles(target.x, target.y, "rgba(220,238,255,.74)", 6, 16 + cfg.level * 3, 0.28);
   }
 }
 
@@ -2823,7 +2883,7 @@ function updateBlackMarket() {
 
 function isBlackMarketActive() {
   if (!state?.blackMarket) return false;
-  return (state.time % 300) < 75;
+  return state.time >= 300 && (state.time % 300) < 75;
 }
 
 function updateBlackMarketSchedule() {
@@ -2849,14 +2909,16 @@ function openBlackMarket() {
   if (!state?.running || !state.blackMarket || !isBlackMarketActive()) return;
   state.paused = true;
   const offers = [];
+  const saleEntries = [];
   const followerPool = [...followerChoices].sort(() => Math.random() - 0.5).slice(0, 3);
   followerPool.forEach((f, index) => {
     const cost = (70 + f.tier * 25 + index * 12) * 10;
     const next = followerEvolvesTo[f.id] ? followerById[followerEvolvesTo[f.id]].name : "higher tier";
-    offers.push({
-      title: `${f.name} - ${cost} Gold`,
+    saleEntries.push({
+      label: f.name,
+      cost,
       desc: `Follower piece. Three ${f.name} merge into ${next}.`,
-      run: () => buyFollowerOffer(f, cost)
+      buy: finalCost => buyFollowerOffer(f, finalCost)
     });
   });
   const marketGear = new Set();
@@ -2865,12 +2927,23 @@ function openBlackMarket() {
     if (!gear) break;
     marketGear.add(gear.name);
     const cost = (90 + i * 22) * 10;
-    offers.push({
-      title: `${gearTitle(gear)} - ${cost} Gold`,
+    saleEntries.push({
+      label: gearTitle(gear),
+      cost,
       desc: gear.desc,
-      run: () => buyGearOffer(gear, cost)
+      buy: finalCost => buyGearOffer(gear, finalCost)
     });
   }
+  const couponIndex = state.player.marketCoupon && saleEntries.length ? Math.floor(Math.random() * saleEntries.length) : -1;
+  saleEntries.forEach((entry, index) => {
+    const discounted = index === couponIndex;
+    const cost = discounted ? Math.ceil(entry.cost * 0.5) : entry.cost;
+    offers.push({
+      title: `${entry.label} - ${cost} Gold${discounted ? " (50% off)" : ""}`,
+      desc: discounted ? `${entry.desc} Coupon discount applied.` : entry.desc,
+      run: () => entry.buy(cost)
+    });
+  });
   if (!marketGear.size) {
     offers.push({
       title: "Gear Sold Out",
@@ -4273,9 +4346,8 @@ function updateChests(dt) {
         addText(`宝箱：${gearTitle(g)}`, c.x - 36, c.y - 20, gearRarityInfo[g.rarity]?.color || "#ffd36b");
       } else {
         const bonusGold = 80 + Math.floor(state.time / 60) * 12;
-        state.gold = (state.gold || 0) + bonusGold;
+        addGold(bonusGold, c.x, c.y);
         state.items.push(`Chest: ${bonusGold} Gold`);
-        addText(`Chest: +${bonusGold} Gold`, c.x - 36, c.y - 20, "#ffd36b");
       }
       addRing(c.x, c.y, 42, "rgba(255,211,107,.9)", 0.45);
       addParticles(c.x, c.y, "rgba(255,226,132,.9)", 16, 32, 0.55);
@@ -4630,7 +4702,7 @@ function awardArtifact(forcedName = null) {
   const a = forcedName ? artifactBook.find(item => item.name === forcedName && !owned.has(item.name)) : pick(pool);
   if (!a) {
     const bonusGold = 420 + Math.floor(state.time / 60) * 35;
-    state.gold = (state.gold || 0) + bonusGold;
+    addGold(bonusGold, state.player.x, state.player.y);
     addText(`Artifact duplicate: +${bonusGold} Gold`, 72, 105, "#ffd36b");
     return;
   }
@@ -4791,21 +4863,399 @@ function drawBlackMarket() {
 }
 
 function drawTerrainTiles(camX, camY) {
-  const cell = 180;
-  const startX = Math.floor(camX / cell) - 1;
-  const endX = Math.floor((camX + W) / cell) + 1;
-  const startY = Math.floor(camY / cell) - 1;
-  const endY = Math.floor((camY + H) / cell) + 1;
-  for (let ty = startY; ty <= endY; ty++) {
-    for (let tx = startX; tx <= endX; tx++) {
-      const x = tx * cell;
-      const y = ty * cell;
-      const terrain = terrainAt(x + cell * 0.5, y + cell * 0.5);
-      drawTerrainPatch(terrain, x - camX, y - camY, tx, ty, cell);
+  drawWrappedWorldMap(camX, camY);
+}
+
+function rgbString(color, alpha = 1) {
+  const r = Math.round(clamp(color[0], 0, 255));
+  const g = Math.round(clamp(color[1], 0, 255));
+  const b = Math.round(clamp(color[2], 0, 255));
+  return alpha >= 1 ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${alpha})`;
+}
+
+function terrainMapColor(x, y, blend) {
+  const detail = (mapNoise(x / WORLD_MAP_SIZE, y / WORLD_MAP_SIZE, 52, 91) - 0.5) * 18;
+  const large = (mapNoise(x / WORLD_MAP_SIZE, y / WORLD_MAP_SIZE, 13, 37) - 0.5) * 22;
+  const ridge = Math.sin((x * 0.012 + y * 0.009) + mapNoise(x / WORLD_MAP_SIZE, y / WORLD_MAP_SIZE, 18, 12) * 4) * 5;
+  const color = [
+    blend.color[0] + detail + large + ridge,
+    blend.color[1] + detail * 0.8 + large + ridge,
+    blend.color[2] + detail * 0.55 + large * 0.8
+  ];
+  if (blend.dominant.id === "hell") {
+    const crack = mapNoise(x / WORLD_MAP_SIZE, y / WORLD_MAP_SIZE, 72, 301);
+    if (crack > 0.76) {
+      color[0] += 70;
+      color[1] += 18;
+      color[2] -= 18;
     }
   }
-  drawConnectedRoadNetwork(camX, camY);
-  drawWorldStructures(camX, camY);
+  if (blend.dominant.id === "snowfield") {
+    color[0] += 12;
+    color[1] += 17;
+    color[2] += 23;
+  }
+  if (blend.dominant.id === "pond") {
+    const water = mapNoise(x / WORLD_MAP_SIZE, y / WORLD_MAP_SIZE, 28, 144);
+    if (water > 0.56) {
+      color[0] -= 15;
+      color[1] += 8;
+      color[2] += 18;
+    }
+  }
+  return color;
+}
+
+function ensureWorldMapCanvas() {
+  if (worldMapCanvas) return worldMapCanvas;
+  const canvas = document.createElement("canvas");
+  canvas.width = WORLD_MAP_SIZE;
+  canvas.height = WORLD_MAP_SIZE;
+  const g = canvas.getContext("2d");
+  g.imageSmoothingEnabled = true;
+  for (let y = 0; y < WORLD_MAP_SIZE; y += WORLD_MAP_SAMPLE) {
+    for (let x = 0; x < WORLD_MAP_SIZE; x += WORLD_MAP_SAMPLE) {
+      const blend = biomeBlendAt(x + WORLD_MAP_SAMPLE * 0.5, y + WORLD_MAP_SAMPLE * 0.5);
+      g.fillStyle = rgbString(terrainMapColor(x, y, blend));
+      g.fillRect(x, y, WORLD_MAP_SAMPLE + 1, WORLD_MAP_SAMPLE + 1);
+    }
+  }
+  drawWorldMapRiver(g);
+  drawWorldMapRoads(g);
+  drawWorldMapDetails(g);
+  drawWorldMapAtmosphere(g);
+  worldMapCanvas = canvas;
+  return canvas;
+}
+
+function drawWrappedWorldMap(camX, camY) {
+  const map = ensureWorldMapCanvas();
+  const size = WORLD_MAP_SIZE;
+  const sx0 = positiveMod(camX, size);
+  const sy0 = positiveMod(camY, size);
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  let dy = 0;
+  let sy = sy0;
+  while (dy < H) {
+    const sh = Math.min(size - sy, H - dy);
+    let dx = 0;
+    let sx = sx0;
+    while (dx < W) {
+      const sw = Math.min(size - sx, W - dx);
+      ctx.drawImage(map, sx, sy, sw, sh, dx, dy, sw, sh);
+      dx += sw;
+      sx = 0;
+    }
+    dy += sh;
+    sy = 0;
+  }
+  ctx.restore();
+}
+
+function mapPoint(u, v) {
+  return { x: u * WORLD_MAP_SIZE, y: v * WORLD_MAP_SIZE };
+}
+
+function drawCurvedMapPath(g, points, widths, colors, alpha = 1) {
+  for (let pass = 0; pass < widths.length; pass++) {
+    g.save();
+    g.globalAlpha = alpha;
+    g.lineCap = "round";
+    g.lineJoin = "round";
+    g.strokeStyle = colors[pass];
+    g.lineWidth = widths[pass];
+    g.beginPath();
+    g.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length - 1; i++) {
+      const mid = { x: (points[i].x + points[i + 1].x) * 0.5, y: (points[i].y + points[i + 1].y) * 0.5 };
+      g.quadraticCurveTo(points[i].x, points[i].y, mid.x, mid.y);
+    }
+    const last = points[points.length - 1];
+    g.lineTo(last.x, last.y);
+    g.stroke();
+    g.restore();
+  }
+}
+
+function drawWorldMapRoads(g) {
+  const roads = [
+    [mapPoint(0.1, 0.31), mapPoint(0.26, 0.4), mapPoint(0.45, 0.51), mapPoint(0.62, 0.57), mapPoint(0.82, 0.65), mapPoint(0.96, 0.71)],
+    [mapPoint(0.62, 0.04), mapPoint(0.58, 0.22), mapPoint(0.5, 0.42), mapPoint(0.42, 0.62), mapPoint(0.38, 0.84), mapPoint(0.45, 0.98)],
+    [mapPoint(0.13, 0.74), mapPoint(0.28, 0.71), mapPoint(0.43, 0.66), mapPoint(0.62, 0.45), mapPoint(0.78, 0.29), mapPoint(0.93, 0.18)]
+  ];
+  for (const road of roads) {
+    drawCurvedMapPath(g, road, [52, 32, 7], ["rgba(42,30,20,.45)", "rgba(151,119,77,.68)", "rgba(231,197,137,.38)"], 1);
+  }
+  g.save();
+  g.globalAlpha = 0.3;
+  g.fillStyle = "rgba(90,67,42,.5)";
+  for (let i = 0; i < 230; i++) {
+    const x = hashUnit(hash2(i, 9), 2) * WORLD_MAP_SIZE;
+    const y = hashUnit(hash2(i, 13), 3) * WORLD_MAP_SIZE;
+    const blend = biomeBlendAt(x, y);
+    if (blend.second && Math.abs(blend.dominant.weight - blend.second.weight) < 0.12) {
+      g.beginPath();
+      g.ellipse(x, y, 4 + hashUnit(hash2(i, 4), 8) * 9, 2 + hashUnit(hash2(i, 5), 9) * 5, hashUnit(hash2(i, 6), 10) * Math.PI, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+  g.restore();
+}
+
+function drawWorldMapRiver(g) {
+  const river = [mapPoint(0.58, 0.04), mapPoint(0.5, 0.22), mapPoint(0.42, 0.38), mapPoint(0.31, 0.55), mapPoint(0.23, 0.73), mapPoint(0.18, 0.96)];
+  drawCurvedMapPath(g, river, [62, 38, 11], ["rgba(17,42,46,.38)", "rgba(46,91,94,.58)", "rgba(122,168,164,.36)"], 0.95);
+  g.save();
+  g.globalAlpha = 0.55;
+  g.strokeStyle = "rgba(196,221,213,.35)";
+  g.lineWidth = 3;
+  for (let i = 0; i < river.length - 1; i++) {
+    const a = river[i];
+    const b = river[i + 1];
+    for (let j = 0; j < 5; j++) {
+      const t = (j + 0.5) / 5;
+      const x = a.x + (b.x - a.x) * t;
+      const y = a.y + (b.y - a.y) * t;
+      g.beginPath();
+      g.moveTo(x - 18, y + Math.sin(j) * 6);
+      g.lineTo(x + 18, y + Math.cos(j) * 6);
+      g.stroke();
+    }
+  }
+  g.restore();
+  drawMapBridge(g, mapPoint(0.41, 0.4), -0.55);
+  drawMapBridge(g, mapPoint(0.27, 0.65), -0.25);
+}
+
+function drawMapBridge(g, p, angle) {
+  g.save();
+  g.translate(p.x, p.y);
+  g.rotate(angle);
+  g.fillStyle = "rgba(92,60,34,.9)";
+  g.strokeStyle = "rgba(42,27,18,.65)";
+  g.lineWidth = 4;
+  for (let i = -3; i <= 3; i++) {
+    g.fillRect(-42, i * 9 - 3, 84, 6);
+    g.strokeRect(-42, i * 9 - 3, 84, 6);
+  }
+  g.restore();
+}
+
+function drawWorldMapDetails(g) {
+  const step = 86;
+  for (let gy = 20; gy < WORLD_MAP_SIZE; gy += step) {
+    for (let gx = 20; gx < WORLD_MAP_SIZE; gx += step) {
+      const seed = hash2(Math.floor(gx / step), Math.floor(gy / step));
+      const x = gx + (hashUnit(seed, 1) - 0.5) * 70;
+      const y = gy + (hashUnit(seed, 2) - 0.5) * 70;
+      const blend = biomeBlendAt(x, y);
+      const id = blend.dominant.id;
+      const r = hashUnit(seed, 3);
+      const density = id === "grassland" ? 0.34 : id === "desert" ? 0.48 : id === "snowfield" ? 0.58 : id === "pond" ? 0.7 : 0.82;
+      if (r > density) continue;
+      if (id === "forest") drawMapTree(g, x, y, seed, hashUnit(seed, 4) > 0.45);
+      else if (id === "snowfield") drawMapSnowPine(g, x, y, seed);
+      else if (id === "desert") drawMapDesertDetail(g, x, y, seed);
+      else if (id === "pond") drawMapSwampDetail(g, x, y, seed);
+      else if (id === "graveyard") drawMapGraveDetail(g, x, y, seed);
+      else if (id === "hell") drawMapHellDetail(g, x, y, seed);
+      else drawMapGrassDetail(g, x, y, seed, blend);
+    }
+  }
+}
+
+function drawMapTree(g, x, y, seed, pine = false) {
+  const s = 0.75 + hashUnit(seed, 5) * 0.7;
+  g.save();
+  g.translate(x, y);
+  g.scale(s, s);
+  g.fillStyle = "rgba(47,31,18,.8)";
+  g.fillRect(-4, 8, 8, 20);
+  if (pine) {
+    g.fillStyle = "rgba(21,65,42,.96)";
+    for (let i = 0; i < 3; i++) {
+      g.beginPath();
+      g.moveTo(0, -30 + i * 17);
+      g.lineTo(-22 + i * 4, 14 + i * 4);
+      g.lineTo(22 - i * 4, 14 + i * 4);
+      g.closePath();
+      g.fill();
+    }
+    g.fillStyle = "rgba(98,134,54,.35)";
+    g.beginPath();
+    g.moveTo(-8, -12);
+    g.lineTo(-18, 9);
+    g.lineTo(12, 5);
+    g.closePath();
+    g.fill();
+  } else {
+    g.fillStyle = "rgba(48,97,43,.96)";
+    g.beginPath();
+    g.ellipse(0, -7, 28, 24, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "rgba(127,156,62,.35)";
+    g.beginPath();
+    g.ellipse(-9, -14, 12, 8, -0.4, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.restore();
+}
+
+function drawMapSnowPine(g, x, y, seed) {
+  drawMapTree(g, x, y, seed, true);
+  g.save();
+  g.globalAlpha = 0.58;
+  g.fillStyle = "rgba(225,241,244,.9)";
+  g.beginPath();
+  g.ellipse(x - 5, y - 9, 18, 6, -0.35, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
+}
+
+function drawMapGrassDetail(g, x, y, seed, blend) {
+  if (blend.second?.id === "forest") {
+    drawMapTree(g, x, y, seed, hashUnit(seed, 7) > 0.55);
+    return;
+  }
+  drawMapRock(g, x, y, seed, "rgba(111,118,95,.9)");
+  if (hashUnit(seed, 6) > 0.58) drawMapBush(g, x + 18, y - 12, seed);
+}
+
+function drawMapBush(g, x, y, seed) {
+  g.save();
+  g.fillStyle = "rgba(78,115,44,.82)";
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI * 0.55 + hashUnit(seed, i) * 0.4;
+    g.beginPath();
+    g.ellipse(x + Math.cos(a) * 8, y + Math.sin(a) * 5, 10, 7, a, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.restore();
+}
+
+function drawMapRock(g, x, y, seed, color = "rgba(118,112,96,.9)") {
+  const s = 0.75 + hashUnit(seed, 9) * 0.75;
+  g.save();
+  g.translate(x, y);
+  g.scale(s, s);
+  g.fillStyle = "rgba(42,35,30,.25)";
+  g.beginPath();
+  g.ellipse(3, 10, 18, 6, 0, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = color;
+  g.beginPath();
+  g.moveTo(-14, 8);
+  g.lineTo(-8, -9);
+  g.lineTo(7, -14);
+  g.lineTo(18, -1);
+  g.lineTo(10, 13);
+  g.closePath();
+  g.fill();
+  g.fillStyle = "rgba(224,209,163,.24)";
+  g.beginPath();
+  g.moveTo(-7, -7);
+  g.lineTo(4, -11);
+  g.lineTo(11, -4);
+  g.lineTo(-2, -2);
+  g.closePath();
+  g.fill();
+  g.restore();
+}
+
+function drawMapDesertDetail(g, x, y, seed) {
+  if (hashUnit(seed, 10) > 0.55) {
+    drawMapRock(g, x, y, seed, "rgba(151,111,61,.94)");
+  } else {
+    g.save();
+    g.strokeStyle = "rgba(61,91,52,.8)";
+    g.lineWidth = 5;
+    g.lineCap = "round";
+    g.beginPath();
+    g.moveTo(x, y + 16);
+    g.lineTo(x, y - 18);
+    g.moveTo(x, y - 3);
+    g.lineTo(x - 14, y - 10);
+    g.moveTo(x, y + 3);
+    g.lineTo(x + 14, y - 5);
+    g.stroke();
+    g.restore();
+  }
+}
+
+function drawMapSwampDetail(g, x, y, seed) {
+  g.save();
+  g.fillStyle = "rgba(31,56,52,.32)";
+  g.beginPath();
+  g.ellipse(x, y, 30, 17, hashUnit(seed, 12) * Math.PI, 0, Math.PI * 2);
+  g.fill();
+  g.strokeStyle = "rgba(115,121,65,.82)";
+  g.lineWidth = 3;
+  for (let i = 0; i < 7; i++) {
+    const px = x - 20 + i * 7 + hashUnit(seed, i) * 5;
+    g.beginPath();
+    g.moveTo(px, y + 14);
+    g.quadraticCurveTo(px - 4, y - 2, px + 2, y - 20 - hashUnit(seed, i + 20) * 11);
+    g.stroke();
+  }
+  g.restore();
+}
+
+function drawMapGraveDetail(g, x, y, seed) {
+  g.save();
+  if (hashUnit(seed, 13) > 0.48) {
+    g.fillStyle = "rgba(99,99,88,.92)";
+    g.strokeStyle = "rgba(33,32,29,.45)";
+    g.lineWidth = 3;
+    g.beginPath();
+    g.moveTo(x - 10, y + 20);
+    g.lineTo(x - 10, y - 6);
+    g.quadraticCurveTo(x, y - 21, x + 10, y - 6);
+    g.lineTo(x + 10, y + 20);
+    g.closePath();
+    g.fill();
+    g.stroke();
+  } else {
+    g.strokeStyle = "rgba(47,35,28,.82)";
+    g.lineWidth = 5;
+    g.lineCap = "round";
+    g.beginPath();
+    g.moveTo(x, y + 18);
+    g.lineTo(x, y - 22);
+    g.moveTo(x, y - 5);
+    g.lineTo(x - 17, y - 15);
+    g.moveTo(x, y - 10);
+    g.lineTo(x + 15, y - 23);
+    g.stroke();
+  }
+  g.restore();
+}
+
+function drawMapHellDetail(g, x, y, seed) {
+  g.save();
+  g.strokeStyle = "rgba(239,70,22,.82)";
+  g.lineWidth = 4;
+  g.lineCap = "round";
+  g.beginPath();
+  g.moveTo(x - 30, y + 5);
+  for (let i = 0; i < 5; i++) {
+    g.lineTo(x - 18 + i * 13, y + (hashUnit(seed, i + 30) - 0.5) * 34);
+  }
+  g.stroke();
+  g.strokeStyle = "rgba(255,181,58,.65)";
+  g.lineWidth = 1.5;
+  g.stroke();
+  drawMapRock(g, x + 18, y - 10, seed, "rgba(45,39,38,.96)");
+  g.restore();
+}
+
+function drawWorldMapAtmosphere(g) {
+  const grad = g.createRadialGradient(WORLD_MAP_SIZE * 0.5, WORLD_MAP_SIZE * 0.48, WORLD_MAP_SIZE * 0.1, WORLD_MAP_SIZE * 0.5, WORLD_MAP_SIZE * 0.5, WORLD_MAP_SIZE * 0.78);
+  grad.addColorStop(0, "rgba(255,242,198,.08)");
+  grad.addColorStop(0.6, "rgba(22,17,14,0)");
+  grad.addColorStop(1, "rgba(14,10,8,.28)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, WORLD_MAP_SIZE, WORLD_MAP_SIZE);
 }
 
 function drawConnectedRoadNetwork(camX, camY) {
