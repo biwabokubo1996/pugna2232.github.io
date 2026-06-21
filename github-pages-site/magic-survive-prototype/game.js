@@ -32,6 +32,7 @@ const TILE = 520;
 const SAVE_KEY = "elemental-survival-save-v1";
 const LANG_KEY = "elemental-survival-language";
 const BASE_FOLLOWER_LIMIT = 7;
+const SUMMONED_UNIT_LIFETIME = 60;
 const WORLD_BOSS_SITES = {
   chimera: { id: "chimera", name: "奇美拉巢穴", boss: "奇美拉", x: 1850, y: -980, r: 130 }
 };
@@ -465,7 +466,10 @@ const monsterAssetByName = {
   "海德拉": "Hydra.png",
   "耶梦加得": "Hydra.png",
   "芬里厄": "Behemoth.png",
-  "克苏鲁随从": "Hydra.png"
+  "克苏鲁随从": "Hydra.png",
+  "Small Spider": "SmallSpider.png",
+  "Big Spider": "BigSpider.png",
+  "Jorogumo": "Jorogumo.png"
 };
 const monsterImages = {};
 for (const file of new Set(Object.values(monsterAssetByName))) {
@@ -495,7 +499,7 @@ for (const [id, file] of Object.entries({ blackMarket: "BlackMarketMerchant.png"
   img.src = `./assets/npcs/${file}`;
   npcImages[id] = img;
 }
-const followerAssetById = { furnace: "FurnaceSpirit.png", balrog: "Balrog.png", lotus: "RedLotusBeast.png", rock: "RockSpirit.png", golem: "Golem.png", giant: "MountainGiant.png", skeleton: "SkeletonFollower.png", skeletonWarrior: "SkeletonWarrior.png", reaper: "DeathReaper.png", militia: "Militia.png", swordsman: "Swordsman.png", knight: "Knight.png", rogueGirl: "RogueGirl.png", assassinGirl: "AssassinGirl.png", ninjaGirl: "NinjaGirl.png", pixie: "Pixie.png", flowerFairy: "FlowerFairy.png", fairyPrincess: "FairyPrincess.png", ghostFollower: "GhostFollower.png", wraith: "Wraith.png", banshee: "Banshee.png", littleDemon: "LittleDemon.png", demonFollower: "DemonFollower.png", hellKing: "HellKing.png", treantGuardian: "TreantGuardian.png" };
+const followerAssetById = { furnace: "FurnaceSpirit.png", balrog: "Balrog.png", lotus: "RedLotusBeast.png", rock: "RockSpirit.png", golem: "Golem.png", giant: "MountainGiant.png", skeleton: "SkeletonFollower.png", skeletonWarrior: "SkeletonWarrior.png", reaper: "DeathReaper.png", militia: "Militia.png", swordsman: "Swordsman.png", knight: "Knight.png", rogueGirl: "RogueGirl.png", assassinGirl: "AssassinGirl.png", ninjaGirl: "NinjaGirl.png", pixie: "Pixie.png", flowerFairy: "FlowerFairy.png", fairyPrincess: "FairyPrincess.png", ghostFollower: "GhostFollower.png", wraith: "Wraith.png", banshee: "Banshee.png", littleDemon: "LittleDemon.png", demonFollower: "DemonFollower.png", hellKing: "HellKing.png", ghoul: "Ghoul.png", abomination: "Abomination.png", abominationGiant: "AbominationGiant.png", spider: "SmallSpider.png", bigSpider: "BigSpider.png", jorogumo: "Jorogumo.png", treantGuardian: "TreantGuardian.png" };
 const followerImages = {};
 for (const file of new Set(Object.values(followerAssetById))) {
   const img = new Image();
@@ -580,6 +584,10 @@ function followerLimit() {
   return BASE_FOLLOWER_LIMIT + (state?.player?.followerLimitBonus || 0);
 }
 
+function permanentFollowerCount() {
+  return (state?.followers || []).filter(f => !f.summoned).length;
+}
+
 function classLevel() {
   return state?.player?.level || 1;
 }
@@ -655,12 +663,18 @@ const followersBook = [
   { id: "banshee", name: "Banshee", tier: 3, element: "arcane", damage: 46, range: 220 },
   { id: "littleDemon", name: "Little Demon", tier: 1, element: "fire", damage: 18, range: 92 },
   { id: "demonFollower", name: "Demon", tier: 2, element: "fire", damage: 34, range: 245 },
-  { id: "hellKing", name: "Hell King", tier: 3, element: "fire", damage: 56, range: 275 }
+  { id: "hellKing", name: "Hell King", tier: 3, element: "fire", damage: 56, range: 275 },
+  { id: "ghoul", name: "Ghoul", tier: 1, element: "physical", damage: 20, range: 92 },
+  { id: "abomination", name: "Abomination", tier: 2, element: "poison", damage: 38, range: 116, regen: 10 },
+  { id: "abominationGiant", name: "Abomination Giant", tier: 3, element: "poison", damage: 62, range: 260, regen: 20 },
+  { id: "spider", name: "Small Spider", tier: 1, element: "poison", damage: 16, range: 94 },
+  { id: "bigSpider", name: "Big Spider", tier: 2, element: "poison", damage: 31, range: 112 },
+  { id: "jorogumo", name: "Jorogumo", tier: 3, element: "poison", damage: 54, range: 156 }
 ];
 
 const followerById = Object.fromEntries(followersBook.map(f => [f.id, f]));
 const followerByName = Object.fromEntries(followersBook.map(f => [f.name, f]));
-const followerEvolvesTo = { furnace: "balrog", balrog: "lotus", rock: "golem", golem: "giant", skeleton: "skeletonWarrior", skeletonWarrior: "reaper", militia: "swordsman", swordsman: "knight", rogueGirl: "assassinGirl", assassinGirl: "ninjaGirl", pixie: "flowerFairy", flowerFairy: "fairyPrincess", ghostFollower: "wraith", wraith: "banshee", littleDemon: "demonFollower", demonFollower: "hellKing" };
+const followerEvolvesTo = { furnace: "balrog", balrog: "lotus", rock: "golem", golem: "giant", skeleton: "skeletonWarrior", skeletonWarrior: "reaper", militia: "swordsman", swordsman: "knight", rogueGirl: "assassinGirl", assassinGirl: "ninjaGirl", pixie: "flowerFairy", flowerFairy: "fairyPrincess", ghostFollower: "wraith", wraith: "banshee", littleDemon: "demonFollower", demonFollower: "hellKing", ghoul: "abomination", abomination: "abominationGiant", spider: "bigSpider", bigSpider: "jorogumo" };
 const followerChoices = followersBook.filter(f => f.tier === 1);
 
 const gearBook = [
@@ -701,6 +715,8 @@ const gearBook = [
   { name: "紧急医疗包", rarity: "common", desc: "生命恢复+3/秒", apply: s => { s.regen += 3; } },
   { name: "比蒙之心", rarity: "epic", desc: "最大生命+40%，生命恢复+10/秒", apply: s => { const gain = Math.round(s.maxHp * 0.4); s.maxHp += gain; s.hp += gain; s.regen += 10; } },
   { name: "便携铁匠铺", rarity: "rare", desc: "全部友方单位减伤+10%", apply: s => { s.groupReduce += 0.10; } },
+  { name: "血袋", rarity: "common", desc: "最大生命+40", apply: s => { s.maxHp += 40; s.hp += 40; } },
+  { name: "混乱之雨", rarity: "epic", desc: "陨石坠落分两轮降落，每块威力降低", apply: s => { s.chaosRain = true; } },
   { name: "空间扭曲外套", rarity: "epic", desc: "50% chance to reflect ranged attacks", apply: s => { s.rangedReflectChance = Math.max(s.rangedReflectChance || 0, 0.5); } }
 ];
 
@@ -908,7 +924,7 @@ function newState(classId = "elementMage") {
       x: W / 2, y: H / 2, r: Math.round(16 * PLAYER_SIZE_MULT), hp: 180, maxHp: 180, xp: 0, next: 32, level: 1,
       speed: 205, damage: 1, area: 1, cooldown: 1, followerCooldown: 1, duration: 1, defense: 0, groupReduce: 0,
       fire: 1, ice: 1, wind: 1, earth: 1, lightning: 1, arcane: 1, poison: 1,
-      regen: 0.7, crit: 0.10, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, rangedReflectChance: 0, rangedDodgeChance: 0, ward: 0, hitGrace: 0
+      regen: 0.7, crit: 0.10, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, rangedReflectChance: 0, rangedDodgeChance: 0, chaosRain: false, ward: 0, hitGrace: 0
     },
     skills: Object.fromEntries(selectedClass.skills.map(id => [id, skillState(id)])),
     followers: [],
@@ -941,6 +957,7 @@ function saveGame() {
     x: m.x, y: m.y, r: m.r, name: m.name, color: m.color,
     hp: m.hp, maxHp: m.maxHp, baseMaxHp: m.baseMaxHp || m.maxHp || m.hp, speed: m.speed, xp: m.xp,
     tag: m.tag, kind: m.kind, worldBoss: !!m.worldBoss,
+    followerId: m.followerId || null, followerTier: m.followerTier || 0, followerElement: m.followerElement || null,
     hit: 0, shoot: m.shoot || 0, attackMul: m.attackMul || 1,
     attackCd: m.attackCd || 0, specialCd: m.specialCd || 0,
     slow: m.slow || 0, poison: m.poison || null, disease: m.disease || null, burn: m.burn || null, blind: m.blind || 0, fear: m.fear || 0, disarm: m.disarm || 0
@@ -1098,6 +1115,24 @@ function monsterGoldValue(m) {
   return base * timeBonus * sizeBonus;
 }
 
+function followerEnemySource(f) {
+  const hp = 34 + f.tier * 42 + (f.regen || 0) * 2.5;
+  const speed = f.id === "ninjaGirl" ? 68 : f.id === "rogueGirl" || f.id === "assassinGirl" ? 62 : f.id === "spider" || f.id === "bigSpider" ? 56 : f.tier === 3 ? 44 : 50;
+  const xp = 6 + f.tier * 7;
+  const tag = f.range >= 180 ? "ranged" : "follower";
+  const src = [f.name, f.element === "fire" ? "#e45b34" : f.element === "poison" ? "#91d34a" : f.element === "arcane" ? "#b6d8ff" : "#c8a26a", hp, speed, xp, tag];
+  src.followerId = f.id;
+  src.followerTier = f.tier;
+  src.followerElement = f.element;
+  src.followerDamage = f.damage;
+  return src;
+}
+
+function followerEnemyPool() {
+  const maxTier = state.time >= 600 ? 3 : state.time >= 300 ? 2 : 1;
+  return followersBook.filter(f => f.tier <= maxTier).map(followerEnemySource);
+}
+
 function spawnMonster(kind = "normal") {
   const cap = state.time > 180 ? 145 : state.time > 90 ? 120 : 90;
   if (kind === "normal" && state.monsters.length >= cap) return;
@@ -1112,12 +1147,14 @@ function spawnMonster(kind = "normal") {
   const growth = timeGrowth();
   const baseScale = kind === "boss" ? 1 + state.time / 260 : kind === "elite" ? 1.8 : wave;
   const scale = baseScale * growth;
-  const radius = Math.round((src[0] === "比蒙巨兽" ? 58 : src[0] === "海德拉" ? 54 : kind === "boss" ? 38 : src[0] === "独眼巨人" ? 42 : kind === "elite" ? 28 : 16) * MONSTER_SIZE_MULT);
+  const followerRadius = src.followerTier ? (src.followerTier === 3 ? 28 : src.followerTier === 2 ? 23 : 18) : 0;
+  const radius = Math.round((src[0] === "比蒙巨兽" ? 58 : src[0] === "海德拉" ? 54 : kind === "boss" ? 38 : src[0] === "独眼巨人" ? 42 : kind === "elite" ? 28 : followerRadius || 16) * MONSTER_SIZE_MULT);
   state.monsters.push({
     x: pos.x, y: pos.y, r: radius,
     name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale, baseMaxHp: src[2] * baseScale,
     speed: src[3] * terrainMod("monsterSpeed") * (kind === "boss" ? 0.65 : 1),
-    xp: src[4], tag: src[5], kind, hit: 0, shoot: rand(1, 3), attackMul: 1
+    xp: src[4], tag: src[5], kind, hit: 0, shoot: rand(1, 3), attackMul: 1,
+    followerId: src.followerId || null, followerTier: src.followerTier || 0, followerElement: src.followerElement || null
   });
   if (kind === "boss") addText(`${src[0]} 降临`, W / 2 - 60, 88, "#ffd36b");
 }
@@ -1165,6 +1202,10 @@ function pickMonster() {
   for (const m of monsterBook) {
     const weight = m[5] === "ranged" ? 0.35 : 1;
     for (let i = 0; i < Math.round(weight * 20); i++) weighted.push(m);
+  }
+  for (const f of followerEnemyPool()) {
+    const weight = f.followerTier === 1 ? 0.32 : f.followerTier === 2 ? 0.22 : 0.14;
+    for (let i = 0; i < Math.round(weight * 20); i++) weighted.push(f);
   }
   return pick(weighted);
 }
@@ -1256,7 +1297,12 @@ function castSkill(s) {
     const target = nearestEnemy(p) || { x: rand(120, W - 120), y: rand(90, H - 90) };
     const x = target.x + rand(-60, 60);
     const y = target.y + rand(-60, 60);
-    spawnMeteorProjectile(x, y, area, dmg, "playerMeteor");
+    if (p.chaosRain) {
+      spawnMeteorProjectile(x, y, area * 0.92, dmg * 0.62, "playerMeteor");
+      spawnMeteorProjectile(x + rand(-90, 90), y + rand(-90, 90), area * 0.88, dmg * 0.54, "playerMeteor", 0.55);
+    } else {
+      spawnMeteorProjectile(x, y, area, dmg, "playerMeteor");
+    }
   } else if (b.type === "aura" || b.type === "cloud") {
     const target = nearestEnemy(p, 500) || p;
     state.zones.push(scaleSkillDuration({ x: s.id === "sandstorm" ? p.x : target.x, y: s.id === "sandstorm" ? p.y : target.y, followPlayer: s.id === "sandstorm", r: s.id === "poisonCloud" ? area * 0.58 : s.id === "lavaField" ? area * 0.42 : area, maxR: s.id === "lavaField" ? area * 1.35 : area, life: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, maxLife: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, damage: dmg * (s.id === "lavaField" ? 0.28 : 0.22), element: b.element, type: s.id === "blizzard" ? "blizzardFx" : s.id === "poisonCloud" ? "poisonCloudFx" : s.id === "sandstorm" ? "sandstormFx" : s.id === "lavaField" ? "lavaFieldFx" : b.element === "wind" ? "spiral" : "dot", color: b.element === "ice" ? "rgba(150,220,255,.22)" : b.element === "poison" ? "rgba(103,212,95,.20)" : b.element === "fire" ? "rgba(255,94,28,.22)" : "rgba(214,190,92,.20)", spin: s.id === "blizzard" ? 2.2 : s.id === "poisonCloud" ? 1.6 : s.id === "sandstorm" ? 2.8 : s.id === "lavaField" ? 0.9 : b.element === "wind" ? 5 : -1, grow: s.id === "poisonCloud" ? 1.5 : s.id === "lavaField" ? 0.85 : 0.05, poisonDamage: b.element === "poison" ? dmg * 0.16 : 0, burnVulnerable: s.id === "lavaField" ? 0.14 + lvl * 0.015 : 0, blind: s.id === "sandstorm" }));
@@ -2138,6 +2184,59 @@ function hydraPoisonCloud(m, target) {
   addParticles(x, y, "rgba(112,255,84,.62)", 24, radius * 0.48, 2.4);
 }
 
+function enemySpiderWeb(m, radius = 178) {
+  for (const f of state.followers) {
+    if (f.hp > 0 && Math.hypot(f.x - m.x, f.y - m.y) <= radius + 16) {
+      f.disarm = Math.max(f.disarm || 0, 1.65);
+      addText("缴械", f.x - 12, f.y - 28, "#e9fff4");
+    }
+  }
+  if (Math.hypot(state.player.x - m.x, state.player.y - m.y) <= radius + state.player.r) {
+    state.player.hitGrace = Math.max(state.player.hitGrace || 0, 0.28);
+    addText("蛛网", state.player.x - 12, state.player.y - 42, "#e9fff4");
+  }
+  state.zones.push({ x: m.x, y: m.y, r: radius, life: 0.75, maxLife: 0.75, damage: 0, element: "poison", type: "webFx", color: "rgba(224,245,232,.32)" });
+  addRing(m.x, m.y, radius, "rgba(224,245,232,.62)", 0.7);
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI * 2 / 8 + state.time * 0.16;
+    addLine(m.x, m.y, m.x + Math.cos(a) * radius, m.y + Math.sin(a) * radius, "rgba(235,255,242,.36)", 2, 0.42, true);
+  }
+}
+
+function summonEnemySpiderlings(m, target) {
+  if (state.monsters.filter(x => x.summonerMonster === m && x.followerId === "spider").length >= 4) return;
+  const src = followerEnemySource(followerById.spider);
+  const growth = timeGrowth();
+  const a = Math.atan2(target.y - m.y, target.x - m.x);
+  for (let i = 0; i < 2; i++) {
+    const spread = a + (i ? 0.55 : -0.55);
+    const baseScale = 0.85 + state.time / 220;
+    state.monsters.push({
+      x: m.x + Math.cos(spread) * 72 + rand(-12, 12),
+      y: m.y + Math.sin(spread) * 72 + rand(-12, 12),
+      r: Math.round(16 * MONSTER_SIZE_MULT),
+      name: src[0],
+      color: src[1],
+      hp: src[2] * baseScale * growth * 0.82,
+      maxHp: src[2] * baseScale * growth * 0.82,
+      baseMaxHp: src[2] * baseScale * 0.82,
+      speed: src[3] * terrainMod("monsterSpeed") * 1.08,
+      xp: Math.max(2, Math.floor(src[4] * 0.45)),
+      tag: src[5],
+      kind: "normal",
+      hit: 0,
+      shoot: rand(1, 3),
+      attackMul: 1,
+      specialCd: rand(2.2, 4.2),
+      followerId: src.followerId,
+      followerTier: src.followerTier,
+      followerElement: src.followerElement,
+      summonerMonster: m
+    });
+  }
+  addText("召唤小蜘蛛", m.x - 44, m.y - m.r - 24, "#c8ff90");
+}
+
 function hydraSurge(m, target) {
   const angle = Math.atan2(target.y - m.y, target.x - m.x);
   const length = 300;
@@ -2810,7 +2909,7 @@ function buyFollowerOffer(follower, cost) {
     addText("Need more Gold", state.player.x - 42, state.player.y - 46, "#ffd36b");
     return false;
   }
-  if (state.followers.length >= followerLimit()) {
+  if (permanentFollowerCount() >= followerLimit()) {
     addText("Follower limit", state.player.x - 42, state.player.y - 46, "#ffd36b");
     return false;
   }
@@ -2837,7 +2936,7 @@ function buyGearOffer(gear, cost) {
 
 function updateFollowers(dt) {
   const p = state.player;
-  p.followerDefense = state.followers.reduce((sum, f) => sum + (f.id === "golem" ? 3 : f.id === "giant" ? 6 : 0), 0);
+  p.followerDefense = state.followers.reduce((sum, f) => sum + (f.id === "golem" ? 3 : isGiantFollower(f) ? 6 : 0), 0);
   p.followerAttackAura = Math.min(0.95, state.followers.filter(f => f.id === "knight" && f.hp > 0).length * 0.18 + (p.followerAttackAuraGear || 0));
   state.mergeCheck = Math.max(0, (state.mergeCheck || 0) - dt);
   if (state.mergeCheck <= 0) {
@@ -2863,6 +2962,7 @@ function updateFollowers(dt) {
       state.followers.splice(i, 1);
       continue;
     }
+    if (f.summoned && f.tempLife == null) f.tempLife = SUMMONED_UNIT_LIFETIME;
     if (f.tempLife != null) {
       f.tempLife -= dt;
       if (f.tempLife <= 0) {
@@ -2878,14 +2978,18 @@ function updateFollowers(dt) {
     updateFairyFollowerSkills(f, dt);
     updateGhostFollowerSkills(f, dt);
     updateDemonFollowerSkills(f, dt);
+    updateGhoulFollowerSkills(f, dt);
+    updateSpiderFollowerSkills(f, dt);
+    f.disarm = Math.max(0, (f.disarm || 0) - dt);
+    if (f.regen && f.hp > 0) f.hp = Math.min(f.maxHp, f.hp + f.regen * dt);
     const target = f.id === "ninjaGirl" ? (nearestPriorityEnemy(f, f.range + 260, m => m.tag === "ranged") || nearestEnemy(f, f.range + 210)) : nearestEnemy(f, f.range + 170);
     const home = { x: p.x + ((i % 3) - 1) * 34, y: p.y + 42 + Math.floor(i / 3) * 18 };
     const moveTarget = target || home;
-    const desired = target ? (isFairyFollower(f) || f.id === "demonFollower" || f.id === "hellKing" ? Math.max(165, target.r + 130) : f.id === "banshee" ? Math.max(150, target.r + 120) : f.id === "golem" || f.id === "giant" ? Math.max(125, target.r + 92) : isRogueFollower(f) ? Math.max(42, target.r + 24) : Math.max(58, target.r + 34)) : 0;
+    const desired = target ? (isFairyFollower(f) || f.id === "demonFollower" || f.id === "hellKing" || f.id === "jorogumo" ? Math.max(165, target.r + 130) : f.id === "banshee" ? Math.max(150, target.r + 120) : f.id === "abominationGiant" || f.id === "golem" || isGiantFollower(f) ? Math.max(125, target.r + 92) : isRogueFollower(f) || isSpiderFollower(f) ? Math.max(42, target.r + 24) : Math.max(58, target.r + 34)) : 0;
     const dx = moveTarget.x - f.x;
     const dy = moveTarget.y - f.y;
     const d = Math.hypot(dx, dy) || 1;
-    const speedBoost = isRogueFollower(f) ? (f.id === "ninjaGirl" ? 1.65 : f.id === "assassinGirl" ? 1.45 : 1.35) : isGhostFollower(f) ? 1.28 : isFairyFollower(f) ? 1.2 : f.id === "littleDemon" ? 1.32 : isDemonFollower(f) ? 1.12 : 1;
+    const speedBoost = isRogueFollower(f) ? (f.id === "ninjaGirl" ? 1.65 : f.id === "assassinGirl" ? 1.45 : 1.35) : isSpiderFollower(f) ? (f.id === "jorogumo" ? 1.12 : f.id === "bigSpider" ? 1.18 : 1.32) : isGhostFollower(f) ? 1.28 : isFairyFollower(f) ? 1.2 : f.id === "littleDemon" ? 1.32 : isDemonFollower(f) ? 1.12 : f.id === "ghoul" ? 1.16 : f.id === "abomination" ? 0.82 : f.id === "abominationGiant" ? 0.72 : 1;
     const speed = (target ? 185 : 230) * speedBoost * (1 + (p.followerMoveAura || 0)) * diseaseMoveMult(f);
     if (!target || d > desired) {
       f.x += (dx / d) * speed * dt;
@@ -2896,10 +3000,10 @@ function updateFollowers(dt) {
     }
     f.cast = Math.max(0, (f.cast || 0) - dt);
     f.t -= dt;
-    if (f.t <= 0) {
+    if (f.t <= 0 && (f.disarm || 0) <= 0) {
       const attackTarget = f.id === "ninjaGirl" ? (nearestPriorityEnemy(f, f.range + 70, m => m.tag === "ranged") || nearestEnemy(f, f.range)) : nearestEnemy(f, f.range);
       if (attackTarget) followerAttack(f, attackTarget);
-      f.t = f.id === "hellKing" ? 1.28 : f.id === "demonFollower" ? 0.92 : f.id === "littleDemon" ? 0.78 : f.id === "ninjaGirl" ? 0.72 : f.id === "assassinGirl" ? 0.78 : f.id === "rogueGirl" ? 0.82 : f.id === "banshee" ? 1.0 : f.id === "wraith" ? 0.84 : f.id === "ghostFollower" ? 0.9 : f.id === "fairyPrincess" ? 0.95 : f.id === "flowerFairy" ? 1.05 : f.id === "pixie" ? 0.9 : f.id === "knight" ? 0.9 : f.id === "swordsman" ? 0.88 : f.id === "militia" ? 0.98 : f.id === "reaper" ? 0.86 : f.id === "skeletonWarrior" ? 0.92 : f.id === "skeleton" ? 0.98 : f.id === "treantGuardian" ? 1.12 : f.id === "golem" ? 1.15 : f.id === "giant" ? 1.25 : f.id === "lotus" ? 1.65 : f.id === "balrog" ? 1.05 : 0.95;
+      f.t = f.id === "jorogumo" ? 0.9 : f.id === "bigSpider" ? 0.82 : f.id === "spider" ? 0.72 : f.id === "hellKing" ? 1.28 : f.id === "demonFollower" ? 0.92 : f.id === "littleDemon" ? 0.78 : f.id === "abominationGiant" ? 1.36 : f.id === "abomination" ? 1.08 : f.id === "ghoul" ? 0.9 : f.id === "ninjaGirl" ? 0.72 : f.id === "assassinGirl" ? 0.78 : f.id === "rogueGirl" ? 0.82 : f.id === "banshee" ? 1.0 : f.id === "wraith" ? 0.84 : f.id === "ghostFollower" ? 0.9 : f.id === "fairyPrincess" ? 0.95 : f.id === "flowerFairy" ? 1.05 : f.id === "pixie" ? 0.9 : f.id === "knight" ? 0.9 : f.id === "swordsman" ? 0.88 : f.id === "militia" ? 0.98 : f.id === "reaper" ? 0.86 : f.id === "skeletonWarrior" ? 0.92 : f.id === "skeleton" ? 0.98 : f.id === "treantGuardian" ? 1.12 : f.id === "golem" ? 1.15 : f.id === "giant" ? 1.25 : f.id === "lotus" ? 1.65 : f.id === "balrog" ? 1.05 : 0.95;
     }
   }
 }
@@ -2926,6 +3030,18 @@ function isGhostFollower(f) {
 
 function isDemonFollower(f) {
   return f.id === "littleDemon" || f.id === "demonFollower" || f.id === "hellKing";
+}
+
+function isGhoulFollower(f) {
+  return f.id === "ghoul" || f.id === "abomination" || f.id === "abominationGiant";
+}
+
+function isSpiderFollower(f) {
+  return f.id === "spider" || f.id === "bigSpider" || f.id === "jorogumo";
+}
+
+function isGiantFollower(f) {
+  return f.id === "giant" || f.id === "abominationGiant";
 }
 
 function nearestPriorityEnemy(from, range = 9999, predicate = null) {
@@ -2977,6 +3093,18 @@ function followerAttack(f, target) {
     f.face = Math.atan2(target.y - f.y, target.x - f.x);
     if (f.id === "littleDemon") demonClaw(f, target, damage);
     else fireFollowerFireball(f, target, damage * (f.id === "hellKing" ? 1.35 : 1.12));
+    return;
+  }
+  if (isGhoulFollower(f)) {
+    f.cast = 0.34 + f.tier * 0.1;
+    f.face = Math.atan2(target.y - f.y, target.x - f.x);
+    ghoulMaul(f, target, damage);
+    return;
+  }
+  if (isSpiderFollower(f)) {
+    f.cast = 0.24 + f.tier * 0.07;
+    f.face = Math.atan2(target.y - f.y, target.x - f.x);
+    spiderBite(f, target, damage);
     return;
   }
   if (f.id === "treantGuardian") {
@@ -3202,6 +3330,134 @@ function updateDemonFollowerSkills(f, dt) {
   f.skillCd = 7.2 * (state.player.followerCooldown || 1);
 }
 
+function updateGhoulFollowerSkills(f, dt) {
+  if (f.id !== "abominationGiant") return;
+  f.skillCd = Math.max(0, (f.skillCd || rand(2.6, 4.8)) - dt);
+  if (f.skillCd > 0) return;
+  const target = nearestEnemy(f, 640) || nearestEnemy(state.player, 760);
+  if (!target) return;
+  f.cast = 0.72;
+  f.face = Math.atan2(target.y - f.y, target.x - f.x);
+  firePlagueBolt(f.x, f.y - 10, target.x, target.y, f.damage * timeGrowth() * state.player.damage * 1.45, 175, 3);
+  addText("Black Plague", f.x - 48, f.y - 52, "#a8ff55");
+  f.skillCd = 6.8 * (state.player.followerCooldown || 1);
+}
+
+function updateSpiderFollowerSkills(f, dt) {
+  if (f.id !== "bigSpider" && f.id !== "jorogumo") return;
+  f.skillCd = Math.max(0, (f.skillCd || rand(2.2, 4.6)) - dt);
+  if (f.skillCd > 0) return;
+  const target = nearestEnemy(f, 580) || nearestEnemy(state.player, 760);
+  if (!target) return;
+  f.cast = f.id === "jorogumo" ? 0.56 : 0.42;
+  f.face = Math.atan2(target.y - f.y, target.x - f.x);
+  if (f.id === "bigSpider") {
+    castSpiderWeb(f, 150 + f.tier * 36);
+    f.skillCd = 5.4 * (state.player.followerCooldown || 1);
+    return;
+  }
+  castFairyPoisonCloud(f, target);
+  summonSpiderlings(f, target);
+  f.skillCd = 6.8 * (state.player.followerCooldown || 1);
+}
+
+function ghoulMaul(f, target, damage) {
+  const a = Math.atan2(target.y - f.y, target.x - f.x);
+  const radius = f.id === "abominationGiant" ? 86 : f.id === "abomination" ? 62 : 42;
+  const mult = f.id === "abominationGiant" ? 1.34 : f.id === "abomination" ? 1.18 : 1.02;
+  for (const m of state.monsters) {
+    if (Math.hypot(m.x - target.x, m.y - target.y) <= radius + m.r) {
+      hitMonster(m, damage * mult, f.element);
+      if (f.id !== "ghoul") {
+        applyPoison(m, damage * 0.08, 3.2);
+        applyDisease(m, 4.2);
+      }
+    }
+  }
+  addLine(f.x, f.y, target.x, target.y, f.id === "ghoul" ? "rgba(196,218,154,.72)" : "rgba(170,255,75,.76)", f.id === "abominationGiant" ? 13 : 8, 0.16, true);
+  addRing(target.x, target.y, radius, f.id === "ghoul" ? "rgba(196,218,154,.65)" : "rgba(145,255,68,.72)", 0.34);
+  addParticles(target.x, target.y, f.id === "ghoul" ? "rgba(204,225,158,.78)" : "rgba(150,255,70,.8)", f.id === "abominationGiant" ? 13 : 8, radius * 0.55, 0.32);
+  target.x += Math.cos(a) * (f.id === "abominationGiant" ? 18 : 10);
+  target.y += Math.sin(a) * (f.id === "abominationGiant" ? 18 : 10);
+}
+
+function spiderBite(f, target, damage) {
+  const a = Math.atan2(target.y - f.y, target.x - f.x);
+  const radius = f.id === "jorogumo" ? 58 : f.id === "bigSpider" ? 42 : 30;
+  const mult = f.id === "jorogumo" ? 1.24 : f.id === "bigSpider" ? 1.12 : 1;
+  for (const m of state.monsters) {
+    if (Math.hypot(m.x - target.x, m.y - target.y) <= radius + m.r) {
+      hitMonster(m, damage * mult, "poison");
+      applyPoison(m, damage * 0.1, f.id === "jorogumo" ? 5.5 : 4.2);
+      if (f.id !== "spider") m.slow = Math.max(m.slow || 0, 0.18);
+    }
+  }
+  addLine(f.x, f.y, target.x, target.y, "rgba(208,78,72,.68)", f.id === "jorogumo" ? 9 : 6, 0.14, true);
+  addRing(target.x, target.y, radius, "rgba(180,255,126,.58)", 0.24);
+  addParticles(target.x, target.y, "rgba(170,255,120,.62)", 5 + f.tier * 2, radius * 0.45, 0.28);
+  target.x += Math.cos(a) * (f.id === "jorogumo" ? 14 : 8);
+  target.y += Math.sin(a) * (f.id === "jorogumo" ? 14 : 8);
+}
+
+function castSpiderWeb(f, radius) {
+  const damage = f.damage * timeGrowth() * state.player.damage * 0.42;
+  for (const m of state.monsters) {
+    if (Math.hypot(m.x - f.x, m.y - f.y) <= radius + m.r) {
+      hitMonster(m, damage, "poison");
+      applyDisarm(m, 1.8 + f.tier * 0.35);
+      m.slow = Math.max(m.slow || 0, 0.38);
+    }
+  }
+  state.zones.push({
+    x: f.x,
+    y: f.y,
+    r: radius,
+    life: 0.75,
+    maxLife: 0.75,
+    damage: 0,
+    element: "poison",
+    type: "webFx",
+    color: "rgba(224,245,232,.34)"
+  });
+  addRing(f.x, f.y, radius, "rgba(224,245,232,.72)", 0.7);
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI * 2 / 8 + state.time * 0.2;
+    addLine(f.x, f.y, f.x + Math.cos(a) * radius, f.y + Math.sin(a) * radius, "rgba(235,255,242,.45)", 2, 0.42, true);
+  }
+  addText("Web", f.x - 16, f.y - radius * 0.45, "#e9fff4");
+}
+
+function summonSpiderlings(f, target) {
+  const existing = state.followers.filter(x => x.id === "spider" && x.summoner === f).length;
+  const count = Math.max(0, Math.min(3 - existing, 2));
+  if (!count) return;
+  const src = followerById.spider;
+  if (!src) return;
+  const a = Math.atan2(target.y - f.y, target.x - f.x);
+  for (let i = 0; i < count; i++) {
+    const maxHp = Math.floor((64 + f.tier * 20) * timeGrowth());
+    const spread = a + (i - (count - 1) / 2) * 0.62;
+    const spider = {
+      ...src,
+      x: f.x + Math.cos(spread) * 62 + rand(-14, 14),
+      y: f.y + Math.sin(spread) * 62 + rand(-14, 14),
+      hp: maxHp,
+      maxHp,
+      baseMaxHp: maxHp,
+      damage: src.damage + 8 + f.tier * 4,
+      hitGrace: 0.7,
+      t: rand(0.1, 0.45),
+      autoChess: true,
+      summoned: true,
+      summoner: f,
+      tempLife: SUMMONED_UNIT_LIFETIME
+    };
+    state.followers.push(spider);
+    addRing(spider.x, spider.y, 34, "rgba(190,255,132,.7)", 0.34);
+  }
+  addText("Summon Spider", f.x - 48, f.y - 48, "#c8ff90");
+}
+
 function demonClaw(f, target, damage) {
   const a = Math.atan2(target.y - f.y, target.x - f.x);
   hitMonster(target, damage * 1.12, "fire");
@@ -3230,7 +3486,7 @@ function summonHellDemon(f, target) {
     autoChess: true,
     summoned: true,
     summoner: f,
-    tempLife: 26
+    tempLife: SUMMONED_UNIT_LIFETIME
   };
   state.followers.push(demon);
   addRing(demon.x, demon.y, 58, "rgba(255,84,32,.86)", 0.58);
@@ -3304,7 +3560,7 @@ function summonTreantGuardian(f, target) {
     autoChess: true,
     summoned: true,
     summoner: f,
-    tempLife: 24
+    tempLife: SUMMONED_UNIT_LIFETIME
   };
   state.followers.push(guardian);
   addRing(guardian.x, guardian.y, 64, "rgba(137,220,92,.85)", 0.65);
@@ -3450,7 +3706,7 @@ function summonLotusMeteor(f, target, damage) {
   addLine(f.x, f.y - 18, tx, ty, "rgba(255,198,74,.28)", 3, 0.22, true);
 }
 
-function spawnMeteorProjectile(tx, ty, area, damage, kind = "playerMeteor") {
+function spawnMeteorProjectile(tx, ty, area, damage, kind = "playerMeteor", delay = 0) {
   const startX = tx - rand(170, 230);
   const startY = ty - rand(220, 310);
   const travel = 0.72;
@@ -3471,12 +3727,13 @@ function spawnMeteorProjectile(tx, ty, area, damage, kind = "playerMeteor") {
     color: "#ff6428",
     life: travel + 0.18,
     maxLife: travel + 0.18,
+    delay,
     pierce: false,
     hit: new Set(),
     angle: Math.atan2(ty - startY, tx - startX),
     spin: rand(0, Math.PI * 2)
   });
-  addRing(tx, ty, Math.max(48, area * 0.55), "rgba(255,82,34,.38)", 0.45);
+  if (delay <= 0.05) addRing(tx, ty, Math.max(48, area * 0.55), "rgba(255,82,34,.38)", 0.45);
 }
 
 function meteorImpact(x, y, area, damage) {
@@ -3507,6 +3764,13 @@ function updateProjectiles(dt) {
     const pr = state.projectiles[i];
     pr.px = pr.x;
     pr.py = pr.y;
+    if (pr.delay > 0) {
+      pr.delay -= dt;
+      if (pr.delay <= 0 && (pr.kind === "lotusMeteor" || pr.kind === "playerMeteor")) {
+        addRing(pr.tx, pr.ty, Math.max(48, (pr.area || 92) * 0.55), "rgba(255,82,34,.38)", 0.45);
+      }
+      continue;
+    }
     if (pr.kind === "boulder") pr.spin += dt * 8;
     if (pr.kind === "lotusMeteor" || pr.kind === "playerMeteor") {
       pr.spin += dt * 9;
@@ -3614,7 +3878,7 @@ function updateEnemyShots(dt) {
       }
     }
     if (hitFollower) {
-      damageFollower(hitFollower, s.damage * 0.5);
+      damageFollower(hitFollower, s.damage);
       state.enemyShots.splice(i, 1);
       continue;
     }
@@ -3873,6 +4137,15 @@ function updateMonsters(dt) {
       }
       if (updateChimeraCharge(m, target, dt)) continue;
     }
+    if (m.followerId === "bigSpider" && m.specialCd <= 0) {
+      enemySpiderWeb(m, 170);
+      m.specialCd = rand(4.6, 6.2);
+    }
+    if (m.followerId === "jorogumo" && m.specialCd <= 0) {
+      if (Math.random() < 0.58) hydraPoisonCloud(m, target);
+      else summonEnemySpiderlings(m, target);
+      m.specialCd = rand(5.0, 7.0);
+    }
     const targetDistance = Math.hypot(target.x - m.x, target.y - m.y);
     if (m.fear > 0) {
       m.x -= Math.cos(a) * m.speed * 1.45 * slow * diseaseMoveMult(m) * dt;
@@ -3922,13 +4195,13 @@ function updateMonsters(dt) {
         if (followerTarget) {
           damageFollower(followerTarget, incoming);
           if (isZombieMonster(m)) applyDisease(followerTarget, 2.4 * timeGrowth(), 7);
-          if (m.name === "蝎狮") applyPoison(followerTarget, 4 * timeGrowth(), 6);
+          if (m.name === "蝎狮" || m.followerElement === "poison") applyPoison(followerTarget, 4 * timeGrowth(), 6);
         }
         else if (p.hitGrace <= 0) {
           p.hp -= incoming;
           p.hitGrace = 0.45;
           if (isZombieMonster(m)) applyDisease(p, 2.8 * timeGrowth(), 7);
-          if (m.name === "蝎狮") applyPoison(p, 5 * timeGrowth(), 6);
+          if (m.name === "蝎狮" || m.followerElement === "poison") applyPoison(p, 5 * timeGrowth(), 6);
         addText(`-${Math.ceil(incoming)}`, p.x - 10, p.y - 28, "#ff7a66");
       }
       m.attackCd = m.kind === "boss" ? 0.55 : 0.85;
@@ -3966,7 +4239,7 @@ function nearestFollower(pos, range = Infinity) {
 
 function damageFollower(f, amount) {
   if (f.hitGrace > 0) return;
-  const taken = Math.max(1, amount * (1 - effectiveGroupReduce()));
+  const taken = Math.max(1, amount * 0.5 * (1 - effectiveGroupReduce()));
   f.hp -= taken;
   f.hitGrace = 0.42;
   addText(`-${Math.ceil(taken)}`, f.x - 10, f.y - 28, "#ffb089");
@@ -4057,7 +4330,7 @@ function openLevelChoices() {
   const usedSkillChoices = new Set();
   for (let i = 0; i < 3; i++) {
     const roll = Math.random();
-    if ((roll < 0.68 || state.followers.length >= followerLimit()) && skillIds.length) {
+    if ((roll < 0.68 || permanentFollowerCount() >= followerLimit()) && skillIds.length) {
       const id = pickSkillChoice(skillIds, usedSkillChoices);
       usedSkillChoices.add(id);
       const current = state.skills[id]?.level || 0;
@@ -4302,7 +4575,7 @@ function addFollower(src) {
 }
 
 function spawnFollower(src, x = state.player.x + rand(-28, 28), y = state.player.y + rand(34, 58), ignoreLimit = false) {
-  if (!ignoreLimit && state.followers.length >= followerLimit()) {
+  if (!ignoreLimit && permanentFollowerCount() >= followerLimit()) {
     addText("随从已满", state.player.x - 34, state.player.y - 42, "#ffd36b");
     return null;
   }
@@ -4310,7 +4583,7 @@ function spawnFollower(src, x = state.player.x + rand(-28, 28), y = state.player
   const grownMax = Math.floor(maxHp * timeGrowth());
   const f = { ...src, x, y, hp: grownMax, maxHp: grownMax, baseMaxHp: maxHp, hitGrace: 0, t: rand(0, 1), autoChess: true };
   state.followers.push(f);
-  state.items.push(`棋子:${f.name}`);
+  if (!f.summoned) state.items.push(`棋子:${f.name}`);
   return f;
 }
 
@@ -4327,6 +4600,9 @@ function followerMaxHp(src) {
   if (src.id === "littleDemon") return 72;
   if (src.id === "demonFollower") return 145;
   if (src.id === "hellKing") return 265;
+  if (src.id === "ghoul") return 92;
+  if (src.id === "abomination") return 255;
+  if (src.id === "abominationGiant") return 460;
   const base = src.element === "earth" ? 95 : src.element === "fire" ? 78 : 72;
   return Math.floor(base * (1 + (src.tier - 1) * 0.85));
 }
@@ -4334,7 +4610,7 @@ function followerMaxHp(src) {
 function resolveFollowerMerge(startId) {
   let id = startId;
   while (followerEvolvesTo[id]) {
-    const matches = state.followers.map((f, index) => ({ f, index })).filter(entry => entry.f.id === id);
+    const matches = state.followers.map((f, index) => ({ f, index })).filter(entry => entry.f.id === id && !entry.f.summoned);
     if (matches.length < 3) return;
     const next = followerById[followerEvolvesTo[id]];
     const x = matches.slice(0, 3).reduce((sum, entry) => sum + entry.f.x, 0) / 3;
@@ -4529,6 +4805,7 @@ function drawTerrainTiles(camX, camY) {
     }
   }
   drawConnectedRoadNetwork(camX, camY);
+  drawWorldStructures(camX, camY);
 }
 
 function drawConnectedRoadNetwork(camX, camY) {
@@ -4581,6 +4858,261 @@ function drawConnectedRoadNetwork(camX, camY) {
     }
     drawRoadPath(points);
   }
+}
+
+function drawWorldStructures(camX, camY) {
+  const spacing = 1080;
+  const margin = 460;
+  const startCol = Math.floor((camX - margin) / spacing) - 1;
+  const endCol = Math.floor((camX + W + margin) / spacing) + 1;
+  const startRow = Math.floor((camY - margin) / spacing) - 1;
+  const endRow = Math.floor((camY + H + margin) / spacing) + 1;
+  for (let row = startRow; row <= endRow; row++) {
+    const roadY = row * spacing + Math.sin(row * 1.71) * 210;
+    for (let col = startCol; col <= endCol; col++) {
+      const seed = Math.abs(hash2(col + 911, row - 353));
+      if (hashUnit(seed, 901) < 0.38) continue;
+      const roadX = col * spacing + Math.cos(col * 1.37) * 220;
+      const crossX = roadX + Math.sin(roadY * 0.0015 + col * 1.9) * 90 + Math.cos(roadY * 0.0038 + col) * 26;
+      const crossY = roadY + Math.sin(crossX * 0.0017 + row * 2.1) * 95 + Math.sin(crossX * 0.0041 + row) * 28;
+      const angle = hashUnit(seed, 902) * Math.PI * 2;
+      const dist = 94 + hashUnit(seed, 903) * 170;
+      const wx = crossX + Math.cos(angle) * dist;
+      const wy = crossY + Math.sin(angle) * dist;
+      const sx = wx - camX;
+      const sy = wy - camY;
+      if (sx < -120 || sx > W + 120 || sy < -120 || sy > H + 120) continue;
+      drawStructureCluster(terrainAt(wx, wy), sx, sy, seed);
+    }
+  }
+}
+
+function drawStructureCluster(terrain, sx, sy, seed) {
+  const scale = 0.78 + hashUnit(seed, 904) * 0.46;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(scale, scale);
+  drawStructureShadow(58, 22);
+  if (terrain.id === "graveyard") {
+    drawTombstone(-24, 0, 18, 30, "#8d8a7f");
+    drawTombstone(6, -6, 22, 38, "#a7a092");
+    drawTombCross(31, -2, 32);
+  } else if (terrain.id === "hell") {
+    drawBasaltSpire(-25, 10, 28, 58);
+    drawBasaltSpire(5, 4, 34, 72);
+    drawLavaCrack(-36, 24, 66);
+  } else if (terrain.id === "desert") {
+    drawRuinArch(-24, 10, "#b58a54");
+    drawCactus(30, 10, 34);
+    drawPebbles(seed, "#8a623c");
+  } else if (terrain.id === "pond") {
+    drawSwampRuin(-30, 12);
+    drawReeds(22, 12, 34);
+    drawReeds(42, 8, 24);
+  } else if (terrain.id === "snowfield") {
+    drawSnowLog(-22, 14);
+    drawRuinArch(22, 8, "#aeb8bd");
+  } else if (terrain.id === "forest") {
+    drawForestStump(-24, 15);
+    drawLog(14, 13, 48, "#5c3b23");
+    drawShrub(38, 2, "#5f8c32");
+  } else {
+    drawRuinArch(-18, 10, "#8d8b73");
+    drawShrub(24, 10, "#6f9634");
+    drawPebbles(seed, "#777b69");
+  }
+  ctx.restore();
+}
+
+function drawStructureShadow(w, h) {
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,.24)";
+  ctx.beginPath();
+  ctx.ellipse(0, 20, w, h, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawTombstone(x, y, w, h, color) {
+  ctx.save();
+  ctx.fillStyle = "rgba(30,28,26,.35)";
+  ctx.fillRect(x - w * 0.5 + 3, y - h + 5, w, h);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.5, y);
+  ctx.lineTo(x - w * 0.5, y - h * 0.72);
+  ctx.quadraticCurveTo(x, y - h - 8, x + w * 0.5, y - h * 0.72);
+  ctx.lineTo(x + w * 0.5, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(42,38,35,.45)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawTombCross(x, y, h) {
+  ctx.save();
+  ctx.strokeStyle = "#958f82";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x, y - h);
+  ctx.lineTo(x, y + 2);
+  ctx.moveTo(x - 11, y - h + 12);
+  ctx.lineTo(x + 11, y - h + 12);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawBasaltSpire(x, y, w, h) {
+  ctx.save();
+  ctx.fillStyle = "#262421";
+  ctx.beginPath();
+  ctx.moveTo(x, y - h);
+  ctx.lineTo(x - w * 0.45, y);
+  ctx.lineTo(x + w * 0.45, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,78,28,.45)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x - 4, y - h * 0.72);
+  ctx.lineTo(x + 5, y - h * 0.38);
+  ctx.lineTo(x - 2, y - h * 0.14);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawLavaCrack(x, y, len) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,82,24,.78)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + len * 0.35, y - 6);
+  ctx.lineTo(x + len * 0.62, y + 2);
+  ctx.lineTo(x + len, y - 4);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawRuinArch(x, y, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.strokeStyle = "rgba(52,45,35,.46)";
+  ctx.lineWidth = 3;
+  ctx.fillRect(x - 24, y - 32, 12, 34);
+  ctx.fillRect(x + 12, y - 32, 12, 34);
+  ctx.beginPath();
+  ctx.arc(x, y - 30, 24, Math.PI, 0);
+  ctx.lineTo(x + 12, y - 30);
+  ctx.arc(x, y - 30, 12, 0, Math.PI, true);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCactus(x, y, h) {
+  ctx.save();
+  ctx.strokeStyle = "#4d7a38";
+  ctx.lineWidth = 8;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y - h);
+  ctx.moveTo(x, y - h * 0.48);
+  ctx.lineTo(x + 14, y - h * 0.62);
+  ctx.moveTo(x, y - h * 0.62);
+  ctx.lineTo(x - 13, y - h * 0.76);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawSwampRuin(x, y) {
+  ctx.save();
+  ctx.fillStyle = "#5d665a";
+  ctx.fillRect(x, y - 23, 12, 26);
+  ctx.fillRect(x + 16, y - 34, 12, 37);
+  ctx.fillRect(x + 32, y - 18, 12, 21);
+  ctx.fillStyle = "rgba(58,82,58,.55)";
+  ctx.fillRect(x - 5, y - 1, 56, 8);
+  ctx.restore();
+}
+
+function drawReeds(x, y, h) {
+  ctx.save();
+  ctx.strokeStyle = "#6e7442";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x + i * 5, y);
+    ctx.quadraticCurveTo(x + i * 5 + 4, y - h * 0.55, x + i * 5 + 1, y - h);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawSnowLog(x, y) {
+  ctx.save();
+  drawLog(x, y, 54, "#736252");
+  ctx.fillStyle = "rgba(232,244,255,.78)";
+  ctx.fillRect(x - 25, y - 10, 34, 5);
+  ctx.restore();
+}
+
+function drawForestStump(x, y) {
+  ctx.save();
+  ctx.fillStyle = "#6b4323";
+  ctx.beginPath();
+  ctx.ellipse(x, y - 6, 16, 11, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#8f6338";
+  ctx.fillRect(x - 13, y - 20, 26, 18);
+  ctx.fillStyle = "#b5854d";
+  ctx.beginPath();
+  ctx.ellipse(x, y - 20, 15, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawLog(x, y, len, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-0.18);
+  ctx.fillStyle = color;
+  ctx.fillRect(-len * 0.5, -8, len, 16);
+  ctx.strokeStyle = "rgba(46,30,18,.5)";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(-len * 0.5, -8, len, 16);
+  ctx.restore();
+}
+
+function drawShrub(x, y, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  for (let i = 0; i < 5; i++) {
+    const a = i * 1.27;
+    ctx.beginPath();
+    ctx.ellipse(x + Math.cos(a) * 10, y + Math.sin(a) * 7, 13, 9, a, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawPebbles(seed, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  for (let i = 0; i < 7; i++) {
+    const x = -34 + hashUnit(seed, 930 + i) * 68;
+    const y = 5 + hashUnit(seed, 950 + i) * 28;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 3 + hashUnit(seed, 970 + i) * 5, 2 + hashUnit(seed, 990 + i) * 4, hashUnit(seed, 1010 + i), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 function drawTerrainPatch(terrain, sx, sy, tx, ty, size) {
@@ -5017,9 +5549,10 @@ function drawPlayer() {
 function drawMonster(m) {
   ctx.globalAlpha = 1;
   const file = monsterAssetByName[m.name];
-  const img = file && monsterImages[file];
+  const followerFile = m.followerId && followerAssetById[m.followerId];
+  const img = file && monsterImages[file] || followerFile && followerImages[followerFile];
   if (img && img.complete && img.naturalWidth) {
-    const size = m.r * (m.tag === "typhon" ? 3.58 : m.name === "奇美拉" ? 3.2 : m.name === "比蒙巨兽" ? 3.15 : m.name === "海德拉" ? 3.05 : m.name === "蝎狮" ? 2.85 : m.kind === "boss" ? 2.65 : m.kind === "elite" ? 2.42 : 2.32);
+    const size = m.r * (m.tag === "typhon" ? 3.58 : m.name === "奇美拉" ? 3.2 : m.name === "比蒙巨兽" ? 3.15 : m.name === "海德拉" ? 3.05 : m.name === "蝎狮" ? 2.85 : m.followerTier === 3 ? 2.72 : m.followerTier === 2 ? 2.55 : m.kind === "boss" ? 2.65 : m.kind === "elite" ? 2.42 : 2.32);
     if (m.hit) {
       ctx.globalAlpha = 0.65;
       drawCircle(m.x, m.y, size * 0.56, "#fff3cf");
@@ -5074,18 +5607,18 @@ function drawFollower(f) {
   }
   if (img && img.complete && img.naturalWidth) {
     const pulse = f.cast ? 1 + Math.sin(performance.now() / 45) * 0.1 + f.cast * 0.35 : 1;
-    const baseSize = f.id === "hellKing" ? 86 : f.id === "demonFollower" ? 72 : f.id === "littleDemon" ? 50 : f.id === "banshee" ? 70 : f.id === "wraith" ? 62 : f.id === "ghostFollower" ? 46 : f.id === "ninjaGirl" ? 70 : f.id === "assassinGirl" ? 64 : f.id === "rogueGirl" ? 58 : f.id === "knight" ? 82 : f.id === "swordsman" ? 64 : f.id === "militia" ? 52 : f.id === "reaper" ? 72 : f.id === "skeletonWarrior" ? 62 : f.id === "skeleton" ? 50 : f.id === "furnace" ? 46 : f.id === "balrog" ? 58 : f.id === "lotus" ? 62 : f.id === "giant" ? 72 : f.id === "golem" ? 60 : f.id === "rock" ? 48 : 34 + f.tier * 8;
+    const baseSize = f.id === "jorogumo" ? 88 : f.id === "bigSpider" ? 70 : f.id === "spider" ? 54 : f.id === "abominationGiant" ? 118 : f.id === "giant" ? 112 : f.id === "abomination" ? 82 : f.id === "ghoul" ? 58 : f.id === "hellKing" ? 86 : f.id === "demonFollower" ? 72 : f.id === "littleDemon" ? 50 : f.id === "banshee" ? 70 : f.id === "wraith" ? 62 : f.id === "ghostFollower" ? 46 : f.id === "ninjaGirl" ? 70 : f.id === "assassinGirl" ? 64 : f.id === "rogueGirl" ? 58 : f.id === "knight" ? 82 : f.id === "swordsman" ? 64 : f.id === "militia" ? 52 : f.id === "reaper" ? 72 : f.id === "skeletonWarrior" ? 62 : f.id === "skeleton" ? 50 : f.id === "furnace" ? 46 : f.id === "balrog" ? 58 : f.id === "lotus" ? 62 : f.id === "golem" ? 60 : f.id === "rock" ? 48 : 34 + f.tier * 8;
     const size = baseSize * pulse;
-    const lunge = (f.id === "rock" || f.id === "golem" || isSkeletonFollower(f) || isHumanFollower(f)) && f.cast ? f.cast * 22 : 0;
+    const lunge = (f.id === "rock" || f.id === "golem" || isGiantFollower(f) || isSkeletonFollower(f) || isHumanFollower(f) || isGhoulFollower(f)) && f.cast ? f.cast * 22 : 0;
     const drawX = f.x + Math.cos(f.face || 0) * lunge;
     const drawY = f.y + Math.sin(f.face || 0) * lunge;
     ctx.save();
     ctx.imageSmoothingEnabled = true;
-    ctx.shadowColor = isHumanFollower(f) ? "rgba(255,218,118,.72)" : isGhostFollower(f) ? "rgba(190,226,255,.82)" : f.id === "reaper" || f.id === "skeletonWarrior" || f.id === "skeleton" ? "rgba(118,205,255,.78)" : f.id === "furnace" || f.id === "balrog" || f.id === "lotus" || isDemonFollower(f) ? "rgba(255,112,32,.85)" : f.id === "rock" || f.id === "golem" || f.id === "giant" ? "rgba(90,62,38,.75)" : "rgba(85,225,255,.65)";
+    ctx.shadowColor = isHumanFollower(f) ? "rgba(255,218,118,.72)" : isGhostFollower(f) ? "rgba(190,226,255,.82)" : isGhoulFollower(f) ? "rgba(150,255,80,.78)" : f.id === "reaper" || f.id === "skeletonWarrior" || f.id === "skeleton" ? "rgba(118,205,255,.78)" : f.id === "furnace" || f.id === "balrog" || f.id === "lotus" || isDemonFollower(f) ? "rgba(255,112,32,.85)" : f.id === "rock" || f.id === "golem" || isGiantFollower(f) ? "rgba(90,62,38,.75)" : "rgba(85,225,255,.65)";
     ctx.shadowBlur = f.cast ? 24 : 14;
     if (f.cast) {
       ctx.globalAlpha = 0.78;
-      drawCircle(drawX, drawY, size * 0.42, isHumanFollower(f) ? "rgba(255,220,120,.22)" : isGhostFollower(f) ? "rgba(190,226,255,.22)" : isSkeletonFollower(f) ? "rgba(150,210,255,.22)" : f.id === "rock" || f.id === "golem" || f.id === "giant" ? "rgba(160,118,74,.24)" : isDemonFollower(f) ? "rgba(255,70,30,.28)" : "rgba(255,101,31,.26)");
+      drawCircle(drawX, drawY, size * 0.42, isHumanFollower(f) ? "rgba(255,220,120,.22)" : isGhostFollower(f) ? "rgba(190,226,255,.22)" : isGhoulFollower(f) ? "rgba(145,255,75,.24)" : isSkeletonFollower(f) ? "rgba(150,210,255,.22)" : f.id === "rock" || f.id === "golem" || isGiantFollower(f) ? "rgba(160,118,74,.24)" : isDemonFollower(f) ? "rgba(255,70,30,.28)" : "rgba(255,101,31,.26)");
       ctx.globalAlpha = 1;
     }
     if (isGhostFollower(f)) ctx.globalAlpha = 0.88;
@@ -5262,25 +5795,45 @@ function drawZone(z) {
     }
     ctx.restore();
   } else if (z.type === "painScreamFx") {
-    const img = effectImages.painScream;
     const length = z.length || 280;
     const width = z.width || z.r || 130;
+    const age = 1 - alpha;
     ctx.save();
     ctx.translate(z.x, z.y);
     ctx.rotate(z.angle || 0);
-    if (img?.complete && img.naturalWidth) {
-      ctx.globalAlpha = alpha * 0.72;
-      ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(img, -length * 0.52, -width * 0.66, length * 1.14, width * 1.32);
-      ctx.imageSmoothingEnabled = false;
-    } else {
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 6; i++) {
+      const t = age - i * 0.11;
+      if (t <= 0 || t >= 1.05) continue;
+      const waveAlpha = (1 - t) * (0.44 + i * 0.035);
+      const rx = length * (0.16 + t * 0.48);
+      const ry = width * (0.15 + t * 0.34);
+      const ox = -length * 0.44 + length * t * 0.92;
+      ctx.globalAlpha = waveAlpha;
+      ctx.strokeStyle = i % 2 ? "rgba(255,116,250,.86)" : "rgba(172,86,255,.82)";
+      ctx.lineWidth = 7 + (1 - t) * 8;
       ctx.beginPath();
-      ctx.moveTo(-length * 0.5, 0);
-      ctx.lineTo(length * 0.52, -width * 0.5);
-      ctx.lineTo(length * 0.58, width * 0.5);
-      ctx.closePath();
+      ctx.ellipse(ox, 0, rx, ry, 0, -0.72, 0.72);
+      ctx.stroke();
+      ctx.globalAlpha = waveAlpha * 0.42;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(ox + rx * 0.1, 0, rx * 0.72, ry * 0.72, 0, -0.72, 0.72);
+      ctx.stroke();
+    }
+    for (let i = 0; i < 18; i++) {
+      const seed = Math.sin(i * 97.13 + z.x * 0.021 + z.y * 0.013);
+      const t = positiveMod(age * 1.25 + i * 0.073, 1);
+      const ox = -length * 0.42 + length * t * 0.98;
+      const spread = (0.18 + t * 0.44) * width;
+      const oy = Math.sin(seed * 31.7 + state.time * 7) * spread;
+      ctx.globalAlpha = (1 - t) * 0.42;
+      ctx.fillStyle = i % 2 ? "rgba(255,160,255,.88)" : "rgba(194,128,255,.84)";
+      ctx.beginPath();
+      ctx.arc(ox, oy, 2.4 + (1 - t) * 2.2, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.globalCompositeOperation = "source-over";
     ctx.restore();
   } else if (z.type === "surgeFx") {
     const img = effectImages.surge;
@@ -5328,12 +5881,31 @@ function drawZone(z) {
     ctx.save();
     ctx.translate(z.x, z.y);
     if (img?.complete && img.naturalWidth) {
-      ctx.globalAlpha = alpha * 0.68;
-      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = alpha * 0.74;
+      ctx.globalCompositeOperation = "screen";
       ctx.imageSmoothingEnabled = true;
-      const w = z.r * 1.85;
-      const h = z.r * 2.45;
-      ctx.drawImage(img, -w * 0.5, -h * 0.64, w, h);
+      const w = z.r * 2.12;
+      const h = z.r * 2.35;
+      ctx.drawImage(img, -w * 0.5, -h * 0.62, w, h);
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 12; i++) {
+        const drift = Math.sin(i * 37.7 + state.time * 2.4);
+        const lane = (i / 11 - 0.5) * z.r * 1.6;
+        const fall = positiveMod(state.time * (0.34 + i * 0.013) + i * 0.19, 1);
+        const x = lane + drift * z.r * 0.12;
+        const y = -z.r * 1.0 + fall * z.r * 1.65;
+        const shardH = z.r * (0.28 + (i % 4) * 0.045);
+        const shardW = shardH * 0.18;
+        ctx.globalAlpha = alpha * (0.34 + (1 - fall) * 0.22);
+        ctx.fillStyle = "rgba(178,232,255,.64)";
+        ctx.beginPath();
+        ctx.moveTo(x, y - shardH * 0.45);
+        ctx.lineTo(x + shardW, y + shardH * 0.12);
+        ctx.lineTo(x, y + shardH * 0.55);
+        ctx.lineTo(x - shardW, y + shardH * 0.12);
+        ctx.closePath();
+        ctx.fill();
+      }
       ctx.imageSmoothingEnabled = false;
       ctx.globalCompositeOperation = "source-over";
     } else {
@@ -5352,6 +5924,25 @@ function drawZone(z) {
       ctx.imageSmoothingEnabled = false;
     } else {
       drawCircle(0, 0, z.r, "rgba(90,150,255,.28)");
+    }
+    ctx.restore();
+  } else if (z.type === "webFx") {
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    ctx.globalAlpha = alpha * 0.62;
+    ctx.strokeStyle = z.color || "rgba(224,245,232,.34)";
+    ctx.lineWidth = 2;
+    for (let i = 1; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.arc(0, 0, z.r * i / 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    for (let i = 0; i < 10; i++) {
+      const a = i * Math.PI * 2 / 10 + state.time * 0.18;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * z.r, Math.sin(a) * z.r);
+      ctx.stroke();
     }
     ctx.restore();
   } else if (z.type === "poisonCloudFx" || z.type === "enemyPoison" || z.type === "sandstormFx" || z.type === "blackPlagueFx" || z.type === "virulentPlagueFx" || z.type === "lavaFieldFx") {
@@ -5802,7 +6393,7 @@ function syncHud() {
     <dt>${t("statTime")}</dt><dd>${Math.floor(state.time)}s</dd>
     <dt>${t("statGold")}</dt><dd>${Math.floor(state.gold || 0)}</dd>
     <dt>${t("statGrowth")}</dt><dd>+${Math.round((timeGrowth() - 1) * 100)}%</dd>
-    <dt>${t("statFollowers")}</dt><dd>${state.followers.length} / ${followerLimit()}</dd>
+    <dt>${t("statFollowers")}</dt><dd>${permanentFollowerCount()} / ${followerLimit()}</dd>
     <dt>${t("statInnate")}</dt><dd>${classBook[state.classId]?.innate || "-"}</dd>
     <dt>${t("statAura")}</dt><dd>+${Math.round(((p.followerAttackAura || 0) + (p.classFollowerAttackAura || 0)) * 100)}% ATK</dd>
     <dt>${t("statMonsters")}</dt><dd>${state.monsters.length}</dd>
