@@ -770,7 +770,8 @@ const gearBook = [
   { name: "混乱之雨", rarity: "epic", desc: "陨石坠落分两轮降落，每块威力降低", apply: s => { s.chaosRain = true; } },
   { name: "空间扭曲外套", rarity: "epic", desc: "50% chance to reflect ranged attacks", apply: s => { s.rangedReflectChance = Math.max(s.rangedReflectChance || 0, 0.5); } },
   { name: "招财猫", rarity: "common", desc: "Gold gain +10%", apply: s => { s.goldGainBonus = (s.goldGainBonus || 0) + 0.10; } },
-  { name: "优惠券", rarity: "rare", desc: "One random Black Market offer is 50% off each visit", apply: s => { s.marketCoupon = true; } }
+  { name: "优惠券", rarity: "rare", desc: "One random Black Market offer is 50% off each visit", apply: s => { s.marketCoupon = true; } },
+  { name: "备用心脏", rarity: "epic", desc: "最大生命+100，死亡时重生一次", apply: s => { s.maxHp += 100; s.hp += 100; s.reviveCharges = (s.reviveCharges || 0) + 1; } }
 ];
 
 const gearRarityInfo = {
@@ -977,7 +978,7 @@ function newState(classId = "elementMage") {
       x: W / 2, y: H / 2, r: Math.round(16 * PLAYER_SIZE_MULT), hp: 180, maxHp: 180, xp: 0, next: 32, level: 1,
       speed: 205, damage: 1, area: 1, cooldown: 1, followerCooldown: 1, duration: 1, defense: 0, groupReduce: 0,
       fire: 1, ice: 1, wind: 1, earth: 1, lightning: 1, arcane: 1, poison: 1,
-      regen: 0.7, crit: 0.10, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, rangedReflectChance: 0, rangedDodgeChance: 0, chaosRain: false, goldGainBonus: 0, marketCoupon: false, ward: 0, hitGrace: 0
+      regen: 0.7, crit: 0.10, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, rangedReflectChance: 0, rangedDodgeChance: 0, chaosRain: false, goldGainBonus: 0, marketCoupon: false, reviveCharges: 0, ward: 0, hitGrace: 0
     },
     skills: Object.fromEntries(selectedClass.skills.map(id => [id, skillState(id)])),
     followers: [],
@@ -1118,6 +1119,19 @@ function effectiveDefense() {
 function effectiveGroupReduce() {
   const p = state.player;
   return Math.min(0.8, (p.groupReduce || 0) + (p.classGroupReduce || 0));
+}
+
+function tryPlayerRevive() {
+  const p = state.player;
+  if (!p || p.hp > 0 || (p.reviveCharges || 0) <= 0) return false;
+  p.reviveCharges -= 1;
+  p.hp = Math.max(1, Math.round(p.maxHp * 0.55));
+  p.hitGrace = Math.max(p.hitGrace || 0, 2.5);
+  state.enemyShots.length = 0;
+  addRing(p.x, p.y, 96, "rgba(255,82,130,.9)", 0.65);
+  addParticles(p.x, p.y, "rgba(255,120,170,.72)", 36, 92, 0.9);
+  addText("备用心脏: 重生", p.x - 48, p.y - 46, "#ff8fb4");
+  return true;
 }
 
 function areaMult(element) {
@@ -2713,7 +2727,7 @@ function update(dt) {
   updateTexts(dt);
   checkFusions();
   if (p.healPulse && Math.floor((state.time - dt) / 9) < Math.floor(state.time / 9)) p.hp = Math.min(p.maxHp, p.hp + 30);
-  if (p.hp <= 0) {
+  if (p.hp <= 0 && !tryPlayerRevive()) {
     const summary = makeRunSummary();
     state.running = false;
     state.paused = false;
@@ -3589,18 +3603,19 @@ function fireFairyBolt(f, target, damage) {
   const a = Math.atan2(target.y - f.y, target.x - f.x);
   const muzzleX = f.x + Math.cos(a) * 20;
   const muzzleY = f.y + Math.sin(a) * 20;
+  const isPixie = f.id === "pixie";
   state.projectiles.push({
-    kind: "fairyBolt",
+    kind: isPixie ? "pixieOrb" : "fairyBolt",
     x: muzzleX,
     y: muzzleY,
     px: muzzleX,
     py: muzzleY,
     vx: Math.cos(a) * 430,
     vy: Math.sin(a) * 430,
-    damage: damage * (f.id === "pixie" ? 0.95 : 1.05),
-    r: 7 + f.tier,
+    damage: damage * (isPixie ? 0.95 : 1.05),
+    r: isPixie ? 12 : 7 + f.tier,
     element: "poison",
-    color: "rgba(150,255,110,.9)",
+    color: isPixie ? "rgba(206,255,112,.95)" : "rgba(150,255,110,.9)",
     life: 1.25,
     pierce: false,
     hit: new Set(),
@@ -3946,7 +3961,7 @@ function updateProjectiles(dt) {
       if (!pr.hit.has(m) && Math.hypot(pr.x - m.x, pr.y - m.y) < pr.r + m.r) {
         hitMonster(m, pr.damage, pr.element);
         pr.hit.add(m);
-        if (pr.kind === "fairyBolt") applyPoison(m, Math.max(2, pr.damage * 0.12), 4.5);
+        if (pr.kind === "fairyBolt" || pr.kind === "pixieOrb") applyPoison(m, Math.max(2, pr.damage * 0.12), 4.5);
         if (pr.kind === "spiritBolt") {
           m.slow = Math.max(m.slow || 0, pr.slow || 0.2);
           addRing(pr.x, pr.y, 24 + pr.r * 0.9, "rgba(218,238,255,.55)", 0.2);
@@ -6750,6 +6765,44 @@ function drawProjectile(pr) {
     ctx.translate(pr.x, pr.y);
     ctx.rotate((pr.angle || 0) + Math.PI / 2);
     drawCleanSpirit(pr.size || 30, state.time * 4 + (pr.phase || 0), 0.92);
+    ctx.restore();
+    return;
+  }
+  if (pr.kind === "pixieOrb") {
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = "rgba(186,255,114,.34)";
+    ctx.globalAlpha = 0.7;
+    ctx.lineWidth = 7;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(pr.px, pr.py);
+    ctx.lineTo(pr.x, pr.y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.translate(pr.x, pr.y);
+    const pulse = 1 + Math.sin(state.time * 14 + (pr.x + pr.y) * 0.02) * 0.12;
+    const aura = ctx.createRadialGradient(0, 0, 1, 0, 0, pr.r * 2.4);
+    aura.addColorStop(0, "rgba(255,255,205,.95)");
+    aura.addColorStop(0.38, "rgba(192,255,104,.82)");
+    aura.addColorStop(1, "rgba(76,224,130,0)");
+    ctx.fillStyle = aura;
+    ctx.beginPath();
+    ctx.arc(0, 0, pr.r * 2.35 * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.shadowColor = "rgba(172,255,98,.9)";
+    ctx.shadowBlur = 14;
+    drawCircle(0, 0, pr.r * pulse, "rgba(218,255,134,.95)");
+    ctx.strokeStyle = "rgba(86,255,154,.85)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, pr.r * 1.35 * pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.86)";
+    ctx.beginPath();
+    ctx.arc(-pr.r * 0.35, -pr.r * 0.35, pr.r * 0.22, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
     return;
   }
