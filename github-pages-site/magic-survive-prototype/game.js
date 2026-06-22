@@ -488,13 +488,16 @@ for (const [id, file] of Object.entries({ fireBreath: "FireBreath.png", breathOf
   effectImages[id] = img;
 }
 const terrainImages = {};
-for (const [id, file] of Object.entries({ forest: "Forest.jpg", pond: "Swamp.jpg", desert: "Desert.jpg", grassland: "Grassland.jpg", graveyard: "Graveyard.jpg", hell: "Hell.jpg", snowfield: "Snowfield.jpg" })) {
+for (const [id, file] of Object.entries({ forest: "ForestRealistic.png", pond: "SwampRealistic.png", desert: "DesertRealistic.png", grassland: "GrasslandRealistic.png", graveyard: "GraveyardRealistic.png", hell: "HellRealistic.png", snowfield: "SnowfieldRealistic.png" })) {
   const img = new Image();
+  img.onload = () => {
+    if (Object.values(terrainImages).every(texture => texture.complete && texture.naturalWidth)) worldMapCanvas = null;
+  };
   img.src = `./assets/terrains/${file}`;
   terrainImages[id] = img;
 }
 const npcImages = {};
-for (const [id, file] of Object.entries({ blackMarket: "BlackMarketMerchant.png" })) {
+for (const [id, file] of Object.entries({ blackMarket: "BlackMarketMerchant.png", altar: "SacrificeAltar.png" })) {
   const img = new Image();
   img.src = `./assets/npcs/${file}`;
   npcImages[id] = img;
@@ -540,13 +543,13 @@ const WORLD_MAP_SAMPLE = 8;
 let worldMapCanvas = null;
 
 const biomeProfiles = [
-  { id: "grassland", x: 0.48, y: 0.52, sx: 0.48, sy: 0.38, base: 0.22, color: [93, 116, 62] },
-  { id: "forest", x: 0.22, y: 0.25, sx: 0.25, sy: 0.24, base: 0.02, color: [36, 67, 42] },
-  { id: "desert", x: 0.79, y: 0.66, sx: 0.28, sy: 0.25, base: 0.01, color: [157, 124, 74] },
-  { id: "snowfield", x: 0.62, y: 0.17, sx: 0.27, sy: 0.22, base: 0.01, color: [171, 190, 193] },
-  { id: "pond", x: 0.23, y: 0.72, sx: 0.27, sy: 0.22, base: 0.01, color: [42, 62, 51] },
-  { id: "graveyard", x: 0.43, y: 0.82, sx: 0.24, sy: 0.18, base: 0.01, color: [67, 65, 57] },
-  { id: "hell", x: 0.83, y: 0.27, sx: 0.24, sy: 0.2, base: 0.01, color: [54, 34, 28] }
+  { id: "grassland", x: 0.48, y: 0.52, sx: 0.48, sy: 0.38, base: 0.22, color: [82, 96, 58] },
+  { id: "forest", x: 0.22, y: 0.25, sx: 0.25, sy: 0.24, base: 0.02, color: [34, 54, 38] },
+  { id: "desert", x: 0.79, y: 0.66, sx: 0.28, sy: 0.25, base: 0.01, color: [137, 108, 68] },
+  { id: "snowfield", x: 0.62, y: 0.17, sx: 0.27, sy: 0.22, base: 0.01, color: [153, 168, 174] },
+  { id: "pond", x: 0.23, y: 0.72, sx: 0.27, sy: 0.22, base: 0.01, color: [35, 49, 43] },
+  { id: "graveyard", x: 0.43, y: 0.82, sx: 0.24, sy: 0.18, base: 0.01, color: [57, 57, 53] },
+  { id: "hell", x: 0.83, y: 0.27, sx: 0.24, sy: 0.2, base: 0.01, color: [47, 29, 25] }
 ];
 
 function terrainAt(x, y) {
@@ -653,6 +656,10 @@ const FUSION_AREA_MULT = 1.25;
 const ENEMY_DAMAGE_MULT = 3;
 const PLAYER_SIZE_MULT = 1.22;
 const MONSTER_SIZE_MULT = 1.2;
+const MOBILE_PERFORMANCE_MODE = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+const MAX_MONSTERS = MOBILE_PERFORMANCE_MODE ? 110 : 175;
+const MAX_EFFECTS = MOBILE_PERFORMANCE_MODE ? 115 : 180;
+const MAX_ZONES = MOBILE_PERFORMANCE_MODE ? 58 : 86;
 
 function isFusionSkill(id) {
   return ["flameTornado", "doom", "absoluteZero", "lightningStorm", "iceRing", "forkLightning", "virulentPlague", "iceAge", "breathOfFire", "dimensionalSlash"].includes(id);
@@ -669,7 +676,7 @@ const skillBook = {
   earthquake: { name: "Earthquake", element: "earth", cd: 5.4, damage: 48, area: 220, type: "quake", desc: "Shockwave around the caster" },
   fireball: { name: "Fireball", element: "fire", cd: 2.4, damage: 32, area: 0, type: "fireball", desc: "Piercing fireballs in a straight line; count scales with level" },
   arrowRain: { name: "Arrow Rain", element: "physical", cd: 4.9, damage: 38, area: 155, type: "arrowRain", desc: "Calls down a volley of arrows over an area" },
-  spiritTaming: { name: "Spirit Taming", element: "arcane", cd: 0, damage: 60, area: 92, type: "spiritOrbit", desc: "Orbiting spirits damage enemies on touch" },
+  spiritTaming: { name: "Spirit Taming", element: "arcane", cd: 0, damage: 60, area: 92, type: "spiritOrbit", desc: "Spirits orbit the hero, charge nearby enemies, then return" },
   chainLightning: { name: "Chain Lightning", element: "lightning", cd: 2.8, damage: 29, area: 250, type: "chain", desc: "Jumps between nearby enemies up to 2 x level" },
   poisonCloud: { name: "Poison Cloud", element: "poison", cd: 4.1, damage: 13, area: 145, type: "cloud", desc: "Growing poison field" },
   blackPlague: { name: "Black Plague", element: "poison", cd: 5.6, damage: 56, area: 150, type: "plagueBolt", desc: "Plague projectile that erupts into disease cloud" },
@@ -736,6 +743,8 @@ const gearBook = [
   { name: "符文胸甲", rarity: "common", desc: "防御力+3", apply: s => s.defense += 3 },
   { name: "守望军旗", rarity: "uncommon", desc: "群体减伤+8%", apply: s => s.groupReduce += 0.08 },
   { name: "踏风靴", rarity: "common", desc: "移速+10%", apply: s => s.speed *= 1.1 },
+  { name: "女巫扫帚", rarity: "common", desc: "移速+10%", apply: s => { s.speed *= 1.1; } },
+  { name: "喷气式背包", rarity: "rare", desc: "移速+15%", apply: s => { s.speed *= 1.15; } },
   { name: "焰纹宝珠", rarity: "rare", desc: "火伤+18%", apply: s => s.fire *= 1.18 },
   { name: "霜银吊坠", rarity: "rare", desc: "冰伤+18%", apply: s => s.ice *= 1.18 },
   { name: "复苏藤环", rarity: "common", desc: "生命恢复+0.8/秒", apply: s => s.regen += 0.8 },
@@ -965,6 +974,7 @@ function newState(classId = "elementMage") {
     gold: 0,
     saveClock: 0,
     projectiles: [],
+    spiritWisps: [],
     enemyShots: [],
     zones: [],
     effects: [],
@@ -986,6 +996,7 @@ function newState(classId = "elementMage") {
     gear: [],
     artifacts: [],
     blackMarket: { x: W / 2 + 280, y: H / 2 - 150, r: 88, wasNear: false, cycle: -1 },
+    sacrificeAltar: { x: W / 2 - 520, y: H / 2 + 360, r: 112, wasNear: false },
     worldBosses: Object.fromEntries(Object.entries(WORLD_BOSS_SITES).map(([id, site]) => [id, { ...site, spawned: false, defeated: false }])),
     last: performance.now()
   };
@@ -1014,7 +1025,8 @@ function saveGame() {
     followerId: m.followerId || null, followerTier: m.followerTier || 0, followerElement: m.followerElement || null,
     hit: 0, shoot: m.shoot || 0, attackMul: m.attackMul || 1,
     attackCd: m.attackCd || 0, specialCd: m.specialCd || 0,
-    slow: m.slow || 0, poison: m.poison || null, disease: m.disease || null, burn: m.burn || null, blind: m.blind || 0, fear: m.fear || 0, disarm: m.disarm || 0
+    slow: m.slow || 0, poison: m.poison || null, disease: m.disease || null, burn: m.burn || null, blind: m.blind || 0, fear: m.fear || 0, disarm: m.disarm || 0,
+    awaken: m.awaken || 0
   });
   const save = {
     version: 2,
@@ -1032,6 +1044,7 @@ function saveGame() {
     artifacts: state.artifacts,
     worldBosses: state.worldBosses,
     blackMarket: state.blackMarket,
+    sacrificeAltar: state.sacrificeAltar,
     monsters: state.monsters.map(cleanMonster),
     gems: state.gems,
     chests: state.chests,
@@ -1082,6 +1095,7 @@ function restoreState(save) {
   restored.gear = save.gear || [];
   restored.artifacts = save.artifacts || [];
   restored.blackMarket = { ...restored.blackMarket, ...(save.blackMarket || {}), wasNear: false };
+  restored.sacrificeAltar = { ...restored.sacrificeAltar, ...(save.sacrificeAltar || {}), wasNear: false };
   restored.worldBosses = { ...restored.worldBosses, ...(save.worldBosses || {}) };
   restored.monsters = (save.monsters || []).map(m => ({
     ...m,
@@ -1093,6 +1107,7 @@ function restoreState(save) {
   restored.gems = save.gems || [];
   restored.chests = save.chests || [];
   restored.heals = save.heals || [];
+  restored.spiritWisps = [];
   restored.terrain = terrainAt(restored.player.x, restored.player.y);
   restored.last = performance.now();
   return restored;
@@ -1238,7 +1253,7 @@ function spawnBossAt(name, x, y, worldBoss = false) {
       name: src[0], color: src[1], hp: src[2] * scale, maxHp: src[2] * scale, baseMaxHp: src[2] * baseScale,
       speed: src[3] * terrainMod("monsterSpeed") * 0.62,
       xp: src[4], tag: src[5], kind: "boss", worldBoss,
-      hit: 0, shoot: rand(1, 3), attackMul: 1.25, specialCd: rand(0.8, 1.6)
+      hit: 0, shoot: rand(1, 3), attackMul: 1.25, specialCd: 5.5, awaken: 4.5
     };
     state.monsters.push(m);
     addText("Typhon awakens", x - 70, y - radius - 42, "#ff9a46");
@@ -1312,7 +1327,7 @@ function castSkill(s) {
   const fusionArea = isFusionSkill(s.id) ? FUSION_AREA_MULT : 1;
   const dmg = b.damage * SKILL_POWER_MULT * fusionDamage * skillDamageMultiplier(lvl) * p.damage * (1 + (p.classDamageAura || 0)) * diseaseAttackMult(p) * elementMult(b.element);
   const area = b.area * fusionArea * skillAreaMultiplier(lvl) * areaMult(b.element);
-  p.castAnim = 0.24;
+  p.castAnim = state.classId === "necromancer" ? 0.46 : 0.24;
 
   if (b.type === "bolt") {
     const target = nearestEnemy(p);
@@ -2402,7 +2417,7 @@ function spawnHeal() {
 }
 
 function addLine(x1, y1, x2, y2, color, width, life, jagged = false) {
-  if (state.effects.length > 180) return;
+  if (state.effects.length >= MAX_EFFECTS) return;
   const points = [];
   const count = jagged ? 4 : 2;
   for (let i = 0; i < count; i++) {
@@ -2422,11 +2437,13 @@ function addLightning(x1, y1, x2, y2) {
 }
 
 function addRing(x, y, r, color, life) {
+  if (state.effects.length >= MAX_EFFECTS) return;
   state.effects.push({ type: "ring", x, y, r, color, width: 5, life, maxLife: life, grow: 120 });
 }
 
 function addParticles(x, y, color, count, radius, life) {
-  for (let i = 0; i < count; i++) {
+  const available = Math.max(0, MAX_EFFECTS - state.effects.length);
+  for (let i = 0; i < Math.min(count, available); i++) {
     const a = rand(0, Math.PI * 2);
     const d = rand(0, radius);
     state.effects.push({
@@ -2444,6 +2461,7 @@ function addParticles(x, y, color, count, radius, life) {
 }
 
 function hitMonster(m, amount, element) {
+  if ((m.awaken || 0) > 0) return;
   if (m.tag === "ghost" && element === "physical" && Math.random() < 0.5) {
     addText("MISS", m.x - 16, m.y - 18, "#cfe8ff");
     m.hit = 0.04;
@@ -2565,14 +2583,14 @@ function spiritOrbitConfig() {
   if (!s) return null;
   const b = skillBook.spiritTaming;
   const lvl = clamp(s.level, 1, 7);
-  const count = lvl * 2 + (state.player.spiritBonus || 0);
+  const count = lvl + (state.player.spiritBonus || 0);
   const area = b.area * skillAreaMultiplier(lvl) * state.player.area;
   const damage = b.damage * SKILL_POWER_MULT * skillDamageMultiplier(lvl) * state.player.damage * (1 + (state.player.classDamageAura || 0)) * elementMult(b.element);
   return {
     level: lvl,
     count,
     damage,
-    range: area * 1.45,
+    range: area * 1.6,
     inner: area * 0.78,
     outer: area * 1.34,
     hitRadius: 17 + lvl * 1.4
@@ -2598,41 +2616,97 @@ function spiritOrbitPoints(cfg) {
 
 function updateSpiritOrbit(dt) {
   const cfg = spiritOrbitConfig();
-  if (!cfg) return;
-  state.spiritAttackTimer = (state.spiritAttackTimer || 0) - dt;
-  if (state.spiritAttackTimer > 0) return;
-  state.spiritAttackTimer = Math.max(0.16, 0.42 - cfg.level * 0.025);
+  if (!cfg) {
+    state.spiritWisps = [];
+    return;
+  }
   const p = state.player;
-  const targets = state.monsters.filter(m => Math.hypot(m.x - p.x, m.y - p.y) < cfg.range + m.r);
-  if (!targets.length) return;
-  const points = spiritOrbitPoints(cfg);
-  const strikes = Math.min(targets.length, Math.max(1, Math.ceil(cfg.count / 4)));
-  for (let i = 0; i < strikes; i++) {
-    const target = pick(targets);
-    const ghost = points[(Math.floor(Math.random() * points.length) + i) % points.length] || p;
-    const a = Math.atan2(target.y - ghost.y, target.x - ghost.x);
-    const speed = 430 + cfg.level * 24;
-    state.projectiles.push({
-      kind: "spiritBolt",
-      x: ghost.x,
-      y: ghost.y,
-      px: ghost.x,
-      py: ghost.y,
-      vx: Math.cos(a) * speed,
-      vy: Math.sin(a) * speed,
-      damage: cfg.damage,
-      r: cfg.hitRadius,
-      element: "arcane",
-      color: "rgba(218,238,255,.86)",
-      life: 1.35,
-      pierce: false,
-      hit: new Set(),
-      angle: a,
-      target,
-      slow: 0.18 + cfg.level * 0.015,
-      size: 24 + cfg.level * 2 + (ghost.layer ? 4 : 0),
-      phase: rand(0, Math.PI * 2)
+  state.spiritWisps = state.spiritWisps || [];
+  while (state.spiritWisps.length < cfg.count) {
+    const index = state.spiritWisps.length;
+    state.spiritWisps.push({
+      index,
+      x: p.x + rand(-24, 24),
+      y: p.y + rand(-24, 24),
+      state: "orbit",
+      target: null,
+      cooldown: rand(0.15, 0.85),
+      phase: rand(0, Math.PI * 2),
+      angle: rand(0, Math.PI * 2)
     });
+  }
+  if (state.spiritWisps.length > cfg.count) state.spiritWisps.length = cfg.count;
+  const points = spiritOrbitPoints(cfg);
+  const nearby = state.monsters.filter(m => {
+    if (m.hp <= 0) return false;
+    const dx = m.x - p.x;
+    const dy = m.y - p.y;
+    const reach = cfg.range + m.r;
+    return dx * dx + dy * dy < reach * reach;
+  });
+  const moveToward = (wisp, x, y, speed) => {
+    const dx = x - wisp.x;
+    const dy = y - wisp.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    const step = Math.min(distance, speed * dt);
+    wisp.x += dx / distance * step;
+    wisp.y += dy / distance * step;
+    wisp.angle = Math.atan2(dy, dx);
+    return distance;
+  };
+  for (let i = 0; i < state.spiritWisps.length; i++) {
+    const wisp = state.spiritWisps[i];
+    const home = points[i] || { x: p.x, y: p.y, layer: i % 2, a: 0 };
+    wisp.layer = home.layer;
+    wisp.cooldown = Math.max(0, (wisp.cooldown || 0) - dt);
+    if (wisp.state === "orbit") {
+      moveToward(wisp, home.x, home.y, 250 + cfg.level * 14);
+      if (wisp.cooldown <= 0 && nearby.length) {
+        let target = nearby[0];
+        let best = Math.hypot(target.x - wisp.x, target.y - wisp.y);
+        for (const candidate of nearby) {
+          const distance = Math.hypot(candidate.x - wisp.x, candidate.y - wisp.y) + rand(0, 45);
+          if (distance < best) {
+            target = candidate;
+            best = distance;
+          }
+        }
+        wisp.target = target;
+        wisp.state = "attack";
+        if (state.classId === "necromancer" && (p.necroCastCooldown || 0) <= 0) {
+          p.castAnim = Math.max(p.castAnim || 0, 0.46);
+          p.necroCastCooldown = 0.82;
+        }
+      }
+      continue;
+    }
+    if (wisp.state === "attack") {
+      const target = wisp.target;
+      if (!target || target.hp <= 0 || Math.hypot(target.x - p.x, target.y - p.y) > cfg.range * 1.7) {
+        wisp.target = null;
+        wisp.state = "return";
+        continue;
+      }
+      const oldX = wisp.x;
+      const oldY = wisp.y;
+      const distance = moveToward(wisp, target.x, target.y, 410 + cfg.level * 24);
+      addLine(oldX, oldY, wisp.x, wisp.y, "rgba(188,224,255,.28)", 5 + cfg.level * 0.35, 0.13, true);
+      if (distance <= cfg.hitRadius + target.r + 6) {
+        hitMonster(target, cfg.damage, "arcane");
+        target.slow = Math.max(target.slow || 0, 0.18 + cfg.level * 0.015);
+        addRing(target.x, target.y, 24 + cfg.hitRadius, "rgba(206,235,255,.58)", 0.22);
+        addParticles(target.x, target.y, "rgba(226,241,255,.58)", 8, 24, 0.32);
+        wisp.target = null;
+        wisp.state = "return";
+        wisp.cooldown = rand(0.5, 1.05) * Math.max(0.65, state.player.cooldown);
+      }
+      continue;
+    }
+    const oldX = wisp.x;
+    const oldY = wisp.y;
+    const distance = moveToward(wisp, home.x, home.y, 470 + cfg.level * 18);
+    if (Math.random() < 0.55) addLine(oldX, oldY, wisp.x, wisp.y, "rgba(174,213,255,.18)", 4, 0.1, true);
+    if (distance < 16) wisp.state = "orbit";
   }
 }
 
@@ -2642,7 +2716,7 @@ function update(dt) {
   state.time += dt;
   state.spawn -= dt;
   state.saveClock = (state.saveClock || 0) + dt;
-  if (state.saveClock >= 4) {
+  if (state.saveClock >= 8) {
     state.saveClock = 0;
     saveGame();
   }
@@ -2653,6 +2727,7 @@ function update(dt) {
   p.ward = Math.max(0, p.ward - dt);
   p.hitGrace = Math.max(0, p.hitGrace - dt);
   p.castAnim = Math.max(0, (p.castAnim || 0) - dt);
+  p.necroCastCooldown = Math.max(0, (p.necroCastCooldown || 0) - dt);
   updatePoisonStatus(p, dt);
   updateDiseaseStatus(p, dt);
   p.hp = Math.min(p.maxHp, p.hp + p.regen * dt);
@@ -2674,8 +2749,9 @@ function update(dt) {
     spawnHeal();
     state.healTimer = rand(14, 26);
   }
-  updateWorldBossSites();
+  updateWorldBossSites(dt);
   updateBlackMarket();
+  updateSacrificeAltar();
   updateClassInnates(dt);
 
   let mx = 0, my = 0;
@@ -2689,7 +2765,7 @@ function update(dt) {
   p.x += (mx / len) * p.speed * diseaseMoveMult(p) * dt;
   p.y += (my / len) * p.speed * diseaseMoveMult(p) * dt;
 
-  if (state.spawn <= 0) {
+  if (state.spawn <= 0 && state.monsters.length < MAX_MONSTERS) {
     const count = state.time > 90 ? 3 : state.time > 35 ? 2 : 1;
     for (let i = 0; i < count; i++) spawnMonster("normal");
     if (state.time >= 300 && Math.random() < 0.08 + state.time / 3000) spawnMonster("elite");
@@ -2725,6 +2801,7 @@ function update(dt) {
   updateChests(dt);
   updateHeals(dt);
   updateTexts(dt);
+  trimRuntimeCollections();
   checkFusions();
   if (p.healPulse && Math.floor((state.time - dt) / 9) < Math.floor(state.time / 9)) p.hp = Math.min(p.maxHp, p.hp + 30);
   if (p.hp <= 0 && !tryPlayerRevive()) {
@@ -2736,6 +2813,24 @@ function update(dt) {
     startPanel.querySelector("h1").textContent = "生存结束";
     startPanel.querySelector("p").textContent = `坚持 ${Math.floor(state.time)} 秒 · 等级 ${p.level}`;
     renderStartMenu(summary);
+  }
+}
+
+function trimRuntimeCollections() {
+  const gemLimit = MOBILE_PERFORMANCE_MODE ? 110 : 180;
+  if (state.gems.length > gemLimit) {
+    const overflow = state.gems.splice(0, state.gems.length - gemLimit);
+    if (state.gems.length) state.gems[0].xp += overflow.reduce((sum, gem) => sum + (gem.xp || 0), 0);
+  }
+  const limits = [
+    [state.projectiles, MOBILE_PERFORMANCE_MODE ? 150 : 260],
+    [state.enemyShots, MOBILE_PERFORMANCE_MODE ? 120 : 210],
+    [state.chests, 28],
+    [state.heals, 24],
+    [state.texts, MOBILE_PERFORMANCE_MODE ? 55 : 90]
+  ];
+  for (const [collection, limit] of limits) {
+    if (collection.length > limit) collection.splice(0, collection.length - limit);
   }
 }
 
@@ -2883,11 +2978,39 @@ function diseaseAttackMult(target) {
   return target?.disease?.time > 0 ? 0.7 : 1;
 }
 
-function updateWorldBossSites() {
+function updateWorldBossSites(dt) {
   const p = state.player;
   for (const site of Object.values(state.worldBosses || {})) {
     if (site.spawned || site.defeated) continue;
     const d = Math.hypot(p.x - site.x, p.y - site.y);
+    if (site.id === "typhon") {
+      if (!site.summoningUntil && d < site.r) {
+        site.summoningUntil = state.time + 7;
+        const away = Math.atan2(site.y - p.y, site.x - p.x);
+        site.spawnX = site.x + Math.cos(away) * 410;
+        site.spawnY = site.y + Math.sin(away) * 410;
+        site.warningPulse = 0;
+        addText("Typhon summoning: 7 seconds", site.x - 92, site.y - 104, "#ffb35f");
+      }
+      if (site.summoningUntil) {
+        site.warningPulse = (site.warningPulse || 0) - dt;
+        if (site.warningPulse <= 0) {
+          site.warningPulse = 0.55;
+          const progress = clamp(1 - (site.summoningUntil - state.time) / 7, 0, 1);
+          addRing(site.x, site.y, site.r * (0.35 + progress * 0.62), "rgba(255,92,38,.72)", 0.5);
+        }
+        if (state.time >= site.summoningUntil) {
+          site.spawned = true;
+          const boss = spawnBossAt(site.boss, site.spawnX, site.spawnY, true);
+          if (boss) {
+            boss.awaken = 4.5;
+            boss.specialCd = 5.5;
+          }
+          addText("Typhon is awakening - retreat!", site.x - 112, site.y - 112, "#ffd36b");
+        }
+      }
+      continue;
+    }
     if (d < site.r) {
       site.spawned = true;
       spawnBossAt(site.boss, site.x, site.y, true);
@@ -2912,6 +3035,89 @@ function updateBlackMarket() {
   } else if (d > market.r + 90) {
     market.wasNear = false;
   }
+}
+
+function updateSacrificeAltar() {
+  const altar = state.sacrificeAltar;
+  if (!altar) return;
+  const distance = Math.hypot(state.player.x - altar.x, state.player.y - altar.y);
+  if (distance < altar.r && !altar.wasNear) {
+    altar.wasNear = true;
+    openSacrificeAltar();
+  } else if (distance > altar.r + 85) {
+    altar.wasNear = false;
+  }
+}
+
+function canOpenSacrificeAltar() {
+  const altar = state?.sacrificeAltar;
+  if (!state?.running || state.paused || !altar) return false;
+  return Math.hypot(state.player.x - altar.x, state.player.y - altar.y) < altar.r + 24;
+}
+
+function grantSacrificeUpgrade(index) {
+  const follower = state.followers[index];
+  if (!follower || follower.summoned) return false;
+  const x = follower.x;
+  const y = follower.y;
+  state.followers.splice(index, 1);
+  const player = state.player;
+  player.level += 1;
+  const hpGain = 10 + Math.floor(player.level * 1.5);
+  player.maxHp += hpGain;
+  player.hp = Math.min(player.maxHp, player.hp + hpGain);
+  player.damage *= 1.045;
+  player.next = Math.floor(player.next * 1.22 + 12);
+  const upgradeable = Object.values(state.skills).filter(skill => skillBook[skill.id] && skill.level < 7);
+  const skill = pick(upgradeable);
+  if (skill) skill.level += 1;
+  state.items.push(`Sacrificed: ${follower.name}`);
+  addText(skill ? `${follower.name} -> Lv.${player.level}, ${skillBook[skill.id].name} Lv.${skill.level}` : `${follower.name} -> Lv.${player.level}`, x - 70, y - 42, "#ffb35f");
+  addRing(state.sacrificeAltar.x, state.sacrificeAltar.y, 126, "rgba(255,92,32,.92)", 0.9);
+  addParticles(state.sacrificeAltar.x, state.sacrificeAltar.y, "rgba(255,137,54,.78)", 20, 88, 0.8);
+  saveGame();
+  return true;
+}
+
+function openSacrificeAltar() {
+  if (!canOpenSacrificeAltar()) return;
+  const followers = state.followers
+    .map((follower, index) => ({ follower, index }))
+    .filter(entry => !entry.follower.summoned && entry.follower.hp > 0);
+  state.paused = true;
+  choicesEl.innerHTML = "";
+  if (!followers.length) {
+    const empty = document.createElement("button");
+    empty.className = "choice";
+    empty.innerHTML = "<b>No permanent follower available</b><span>Summoned units cannot be sacrificed.</span>";
+    empty.addEventListener("click", () => {
+      state.paused = false;
+      levelPanel.classList.add("hidden");
+    });
+    choicesEl.appendChild(empty);
+  } else {
+    for (const { follower, index } of followers) {
+      const button = document.createElement("button");
+      button.className = "choice";
+      button.innerHTML = `<b>Sacrifice ${esc(follower.name)} (Tier ${follower.tier})</b><span>Gain 1 hero level and upgrade one learned skill.</span>`;
+      button.addEventListener("click", () => {
+        grantSacrificeUpgrade(index);
+        state.paused = false;
+        levelPanel.classList.add("hidden");
+        syncHud();
+      });
+      choicesEl.appendChild(button);
+    }
+  }
+  const leave = document.createElement("button");
+  leave.className = "choice";
+  leave.innerHTML = "<b>Leave Altar</b><span>Keep every follower.</span>";
+  leave.addEventListener("click", () => {
+    state.paused = false;
+    levelPanel.classList.add("hidden");
+  });
+  choicesEl.appendChild(leave);
+  levelPanel.classList.remove("hidden");
 }
 
 function isBlackMarketActive() {
@@ -3051,6 +3257,13 @@ function updateFollowers(dt) {
   }
   for (let i = state.followers.length - 1; i >= 0; i--) {
     const f = state.followers[i];
+    if (!f.durabilityBoosted) {
+      const oldMax = f.maxHp || followerMaxHp(f);
+      f.baseMaxHp = Math.floor((f.baseMaxHp || oldMax) * 1.35);
+      f.maxHp = Math.floor(oldMax * 1.35);
+      f.hp = Math.min(f.maxHp, Math.max(1, (f.hp || oldMax) + f.maxHp - oldMax));
+      f.durabilityBoosted = true;
+    }
     const grownMax = Math.floor((f.baseMaxHp || f.maxHp || followerMaxHp(f)) * timeGrowth());
     if (grownMax > f.maxHp) {
       f.hp += grownMax - f.maxHp;
@@ -3081,6 +3294,7 @@ function updateFollowers(dt) {
     updatePoisonStatus(f, dt);
     updateDiseaseStatus(f, dt);
     updateFollowerSpiritOrbit(f, dt);
+    updateReaperHeartAura(f, dt);
     updateFairyFollowerSkills(f, dt);
     updateGhostFollowerSkills(f, dt);
     updateDemonFollowerSkills(f, dt);
@@ -3368,9 +3582,9 @@ function humanCleave(f, target, damage) {
 }
 
 function followerSpiritConfig(f) {
-  if (!isSkeletonFollower(f)) return null;
+  if (f.id !== "reaper") return null;
   return {
-    count: f.tier * 2,
+    count: 6,
     radius: 34 + f.tier * 22,
     hitRadius: 11 + f.tier * 2,
     damage: (7 + f.tier * 4) * timeGrowth() * state.player.damage,
@@ -3434,6 +3648,25 @@ function updateDemonFollowerSkills(f, dt) {
   const target = nearestEnemy(f, 620) || nearestEnemy(state.player, 720);
   summonHellDemon(f, target || state.player);
   f.skillCd = 7.2 * (state.player.followerCooldown || 1);
+}
+
+function updateReaperHeartAura(f, dt) {
+  if (f.id !== "reaper" || f.hp <= 0) return;
+  f.heartAuraTick = (f.heartAuraTick || 0) - dt;
+  f.heartAuraFx = (f.heartAuraFx || 0) - dt;
+  const radius = 175;
+  if (f.heartAuraTick <= 0) {
+    f.heartAuraTick = 0.5;
+    const damage = 15 * timeGrowth() * state.player.damage;
+    for (const m of state.monsters) {
+      if (m.hp > 0 && Math.hypot(m.x - f.x, m.y - f.y) < radius + m.r) hitMonster(m, damage, "arcane");
+    }
+  }
+  if (f.heartAuraFx <= 0) {
+    f.heartAuraFx = 0.9;
+    addRing(f.x, f.y, radius, "rgba(105,30,155,.42)", 0.72);
+    addParticles(f.x, f.y, "rgba(170,70,220,.28)", 8, radius * 0.72, 0.65);
+  }
 }
 
 function updateGhoulFollowerSkills(f, dt) {
@@ -4037,6 +4270,7 @@ function updateEnemyShots(dt) {
 }
 
 function updateZones(dt) {
+  if (state.zones.length > MAX_ZONES) state.zones.splice(0, state.zones.length - MAX_ZONES);
   for (let i = state.zones.length - 1; i >= 0; i--) {
     const z = state.zones[i];
     if (z.delay > 0) {
@@ -4134,7 +4368,7 @@ function updateZones(dt) {
 }
 
 function updateEffects(dt) {
-  if (state.effects.length > 220) state.effects.splice(0, state.effects.length - 180);
+  if (state.effects.length > MAX_EFFECTS) state.effects.splice(0, state.effects.length - MAX_EFFECTS);
   for (let i = state.effects.length - 1; i >= 0; i--) {
     const e = state.effects[i];
     e.life -= dt;
@@ -4166,6 +4400,17 @@ function updateMonsters(dt) {
       m.maxHp = grownMax;
     }
     m.attackMul = m.tag === "typhon" ? 1.25 : 1;
+    if ((m.awaken || 0) > 0) {
+      m.awaken = Math.max(0, m.awaken - dt);
+      m.specialCd = Math.max(m.specialCd || 0, m.awaken + 1.2);
+      m.awakenPulse = (m.awakenPulse || 0) - dt;
+      if (m.awakenPulse <= 0) {
+        m.awakenPulse = 0.45;
+        const progress = 1 - m.awaken / 4.5;
+        addRing(m.x, m.y, m.r * (1.25 + progress * 1.45), "rgba(255,104,42,.78)", 0.42);
+      }
+      continue;
+    }
     if (m.hp <= 0) {
       maybeTriggerDeathExplosion(m);
       if (Math.random() < 0.72 || m.kind !== "normal") state.gems.push({ x: m.x, y: m.y, r: m.kind === "boss" ? 10 : 6, xp: m.xp });
@@ -4180,7 +4425,7 @@ function updateMonsters(dt) {
         if (site) site.defeated = true;
         awardArtifact("民心所向");
       } else if (m.kind === "boss") awardArtifact();
-      if (state.classId === "necromancer" && Math.random() < classLevel() * 0.01) {
+      if (state.classId === "necromancer" && Math.random() < Math.min(0.05, classLevel() * 0.01)) {
         const skeleton = followerById.skeleton;
         if (skeleton) {
           const f = spawnFollower(skeleton, m.x, m.y, false);
@@ -4193,7 +4438,7 @@ function updateMonsters(dt) {
     updateDiseaseStatus(m, dt);
     updateBurnStatus(m, dt);
     if (m.burnVulnerable) m.burnVulnerable.time -= dt;
-    const followerTarget = far > 640 ? nearestFollower(m, 300) : null;
+    const followerTarget = far > 960 ? nearestFollower(m, 230) : null;
     const target = followerTarget || p;
     const targetRadius = followerTarget ? 15 : p.r;
     const a = Math.atan2(target.y - m.y, target.x - m.x);
@@ -4343,7 +4588,7 @@ function updateMonsters(dt) {
     }
     if (m.tag === "ranged" && (m.disarm || 0) <= 0) {
       m.shoot -= dt;
-      const shotTarget = far > 720 ? nearestFollower(m, 360) || p : p;
+      const shotTarget = far > 980 ? nearestFollower(m, 280) || p : p;
       const rangeToTarget = Math.hypot(shotTarget.x - m.x, shotTarget.y - m.y);
       if (m.shoot <= 0 && rangeToTarget < 620) {
         if (!monsterAttackMisses(m)) fireEnemyShot(m, shotTarget);
@@ -4370,9 +4615,9 @@ function nearestFollower(pos, range = Infinity) {
 
 function damageFollower(f, amount) {
   if (f.hitGrace > 0) return;
-  const taken = Math.max(1, amount * 0.5 * (1 - effectiveGroupReduce()));
+  const taken = Math.max(1, amount * 0.35 * (1 - effectiveGroupReduce()));
   f.hp -= taken;
-  f.hitGrace = 0.42;
+  f.hitGrace = 0.52;
   addText(`-${Math.ceil(taken)}`, f.x - 10, f.y - 28, "#ffb089");
 }
 
@@ -4709,9 +4954,9 @@ function spawnFollower(src, x = state.player.x + rand(-28, 28), y = state.player
     addText("随从已满", state.player.x - 34, state.player.y - 42, "#ffd36b");
     return null;
   }
-  const maxHp = followerMaxHp(src);
+  const maxHp = Math.floor(followerMaxHp(src) * 1.35);
   const grownMax = Math.floor(maxHp * timeGrowth());
-  const f = { ...src, x, y, hp: grownMax, maxHp: grownMax, baseMaxHp: maxHp, hitGrace: 0, t: rand(0, 1), autoChess: true };
+  const f = { ...src, x, y, hp: grownMax, maxHp: grownMax, baseMaxHp: maxHp, durabilityBoosted: true, hitGrace: 0, t: rand(0, 1), autoChess: true };
   state.followers.push(f);
   if (!f.summoned) state.items.push(`棋子:${f.name}`);
   return f;
@@ -4779,22 +5024,32 @@ function checkFusions() {
 function draw() {
   const camX = state.player.x - W / 2;
   const camY = state.player.y - H / 2;
+  const visible = (entity, padding = 100) => {
+    const point = entity?.points?.[0];
+    const x = entity?.x ?? point?.x;
+    const y = entity?.y ?? point?.y;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return true;
+    const radius = Math.min(420, entity.r || 0);
+    return x > camX - padding - radius && x < camX + W + padding + radius
+      && y > camY - padding - radius && y < camY + H + padding + radius;
+  };
   drawTerrainTiles(camX, camY);
   drawWorldInkOverlay(camX, camY);
   ctx.save();
   ctx.translate(-camX, -camY);
   drawWorldBossSites();
   drawBlackMarket();
-  for (const g of state.gems) drawGem(g);
-  for (const c of state.chests) drawChest(c);
-  for (const h of state.heals) drawHeal(h);
-  for (const z of state.zones) drawZone(z);
-  for (const e of state.effects) drawEffect(e);
-  for (const pr of state.projectiles) drawProjectile(pr);
-  for (const s of state.enemyShots) drawEnemyShot(s);
-  for (const f of state.followers) drawFollower(f);
-  for (const f of state.followers) drawFollowerSpiritOrbit(f);
-  for (const m of state.monsters) drawMonster(m);
+  drawSacrificeAltar();
+  for (const g of state.gems) if (visible(g, 40)) drawGem(g);
+  for (const c of state.chests) if (visible(c, 50)) drawChest(c);
+  for (const h of state.heals) if (visible(h, 50)) drawHeal(h);
+  for (const z of state.zones) if (visible(z, 120)) drawZone(z);
+  for (const e of state.effects) if (visible(e, 80)) drawEffect(e);
+  for (const pr of state.projectiles) if (visible(pr, 80)) drawProjectile(pr);
+  for (const s of state.enemyShots) if (visible(s, 80)) drawEnemyShot(s);
+  for (const f of state.followers) if (visible(f, 100)) drawFollower(f);
+  for (const f of state.followers) if (visible(f, 180)) drawFollowerSpiritOrbit(f);
+  for (const m of state.monsters) if (visible(m, 120)) drawMonster(m);
   drawSpiritOrbit();
   drawPlayer();
   ctx.restore();
@@ -4830,7 +5085,7 @@ function drawPauseOverlay() {
 
 function drawWorldInkOverlay(camX, camY) {
   ctx.save();
-  ctx.globalAlpha = 0.08;
+  ctx.globalAlpha = 0.025;
   ctx.strokeStyle = "rgba(0,0,0,.9)";
   ctx.lineWidth = 1;
   const step = 160;
@@ -4870,19 +5125,21 @@ function drawWorldBossSites() {
       continue;
     }
     const pulse = 1 + Math.sin(state.time * 2.2) * 0.08;
+    const summoning = !!site.summoningUntil && !site.spawned;
     ctx.save();
-    ctx.globalAlpha = site.spawned ? 0.38 : 0.72;
-    ctx.strokeStyle = site.spawned ? "rgba(255,108,70,.72)" : "rgba(218,106,255,.9)";
+    ctx.globalAlpha = site.spawned ? 0.38 : summoning ? 0.9 : 0.72;
+    ctx.strokeStyle = site.spawned ? "rgba(255,108,70,.72)" : summoning ? "rgba(255,118,42,.95)" : "rgba(218,106,255,.9)";
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(site.x, site.y, site.r * 0.55 * pulse, 0, Math.PI * 2);
     ctx.stroke();
     ctx.globalAlpha *= 0.5;
-    drawCircle(site.x, site.y, site.r * 0.34, site.spawned ? "rgba(255,92,54,.35)" : "rgba(160,70,220,.34)");
+    drawCircle(site.x, site.y, site.r * 0.34, site.spawned ? "rgba(255,92,54,.35)" : summoning ? "rgba(255,92,32,.42)" : "rgba(160,70,220,.34)");
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#f7e7ff";
     ctx.font = "14px Microsoft YaHei";
-    ctx.fillText(site.spawned ? `${site.boss} 已苏醒` : site.name, site.x - 48, site.y - site.r * 0.64);
+    const countdown = summoning ? Math.max(0, Math.ceil(site.summoningUntil - state.time)) : 0;
+    ctx.fillText(site.spawned ? `${site.boss} 已苏醒` : summoning ? `Typhon arrives in ${countdown}s` : site.name, site.x - 62, site.y - site.r * 0.64);
     ctx.restore();
   }
 }
@@ -4924,6 +5181,46 @@ function drawTerrainTiles(camX, camY) {
   drawWrappedWorldMap(camX, camY);
 }
 
+function drawSacrificeAltar() {
+  const altar = state.sacrificeAltar;
+  if (!altar) return;
+  const image = npcImages.altar;
+  const pulse = 1 + Math.sin(state.time * 2.4) * 0.035;
+  ctx.save();
+  const glow = ctx.createRadialGradient(altar.x, altar.y, 18, altar.x, altar.y, 112 * pulse);
+  glow.addColorStop(0, "rgba(255,112,36,.38)");
+  glow.addColorStop(0.68, "rgba(105,30,18,.18)");
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(altar.x, altar.y, 118 * pulse, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(altar.x, altar.y, 96, 0, Math.PI * 2);
+  ctx.clip();
+  if (image?.complete && image.naturalWidth) {
+    const size = 194;
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(image, altar.x - size * 0.5, altar.y - size * 0.53, size, size);
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = altar.wasNear ? "rgba(255,194,92,.95)" : "rgba(255,105,42,.62)";
+  ctx.lineWidth = altar.wasNear ? 4 : 2;
+  ctx.beginPath();
+  ctx.arc(altar.x, altar.y, 98 * pulse, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = altar.wasNear ? "#ffe1a0" : "#ffc078";
+  ctx.font = altar.wasNear ? "18px Microsoft YaHei" : "14px Microsoft YaHei";
+  ctx.textAlign = "center";
+  ctx.fillText("Sacrifice Altar", altar.x, altar.y - 112);
+  if (altar.wasNear) {
+    ctx.font = "13px Microsoft YaHei";
+    ctx.fillText("Press E to sacrifice a follower", altar.x, altar.y - 92);
+  }
+  ctx.restore();
+}
+
 function rgbString(color, alpha = 1) {
   const r = Math.round(clamp(color[0], 0, 255));
   const g = Math.round(clamp(color[1], 0, 255));
@@ -4940,13 +5237,13 @@ function terrainMapColor(x, y, blend) {
   const height = mapNoise(u, v, 5.5, 231) * 0.58 + mapNoise(u, v, 19, 233) * 0.28 + mapNoise(u, v, 43, 235) * 0.14;
   const ridge = Math.sin((x * 0.008 + y * 0.006) + mapNoise(u, v, 16, 12) * 5.2) * 7;
   const edgeBlend = blend.second ? clamp(1 - (blend.dominant.weight - blend.second.weight) * 2.1, 0, 1) : 0;
-  const ink = [54, 45, 35];
+  const ink = [38, 35, 31];
   const muted = [
-    blend.color[0] * 0.82 + ink[0] * 0.18,
-    blend.color[1] * 0.84 + ink[1] * 0.16,
-    blend.color[2] * 0.86 + ink[2] * 0.14
+    blend.color[0] * 0.76 + ink[0] * 0.24,
+    blend.color[1] * 0.78 + ink[1] * 0.22,
+    blend.color[2] * 0.8 + ink[2] * 0.2
   ];
-  const relief = (height - 0.48) * 28 + ridge + large + detail + grain;
+  const relief = (height - 0.48) * 24 + ridge * 0.72 + large * 0.62 + detail * 0.7 + grain * 0.45;
   const color = [
     muted[0] + relief * 0.95 + edgeBlend * 7,
     muted[1] + relief * 0.82 + edgeBlend * 5,
@@ -5030,7 +5327,7 @@ function drawWorldMapRelief(g) {
 
 function drawWorldMapGlaze(g) {
   g.save();
-  g.fillStyle = "rgba(70,48,26,.08)";
+  g.fillStyle = "rgba(35,31,28,.1)";
   g.fillRect(0, 0, WORLD_MAP_SIZE, WORLD_MAP_SIZE);
   const sun = g.createLinearGradient(0, 0, WORLD_MAP_SIZE, WORLD_MAP_SIZE);
   sun.addColorStop(0, "rgba(255,236,183,.12)");
@@ -5041,6 +5338,44 @@ function drawWorldMapGlaze(g) {
   g.restore();
 }
 
+function drawWorldMapTextureRegions(g) {
+  const patch = document.createElement("canvas");
+  patch.width = 640;
+  patch.height = 640;
+  const pg = patch.getContext("2d");
+  for (const biome of biomeProfiles) {
+    const img = terrainImages[biome.id];
+    if (!img?.complete || !img.naturalWidth) continue;
+    pg.clearRect(0, 0, patch.width, patch.height);
+    pg.save();
+    pg.filter = "saturate(.88) contrast(1.06) brightness(.9)";
+    pg.drawImage(img, 0, 0, patch.width, patch.height);
+    pg.filter = "none";
+    pg.globalCompositeOperation = "destination-in";
+    const mask = pg.createRadialGradient(patch.width * 0.5, patch.height * 0.5, patch.width * 0.12, patch.width * 0.5, patch.height * 0.5, patch.width * 0.5);
+    mask.addColorStop(0, "rgba(255,255,255,.92)");
+    mask.addColorStop(0.56, "rgba(255,255,255,.62)");
+    mask.addColorStop(1, "rgba(255,255,255,0)");
+    pg.fillStyle = mask;
+    pg.fillRect(0, 0, patch.width, patch.height);
+    pg.restore();
+    const w = biome.sx * WORLD_MAP_SIZE * 2.25;
+    const h = biome.sy * WORLD_MAP_SIZE * 2.25;
+    const cx = biome.x * WORLD_MAP_SIZE;
+    const cy = biome.y * WORLD_MAP_SIZE;
+    g.save();
+    g.globalAlpha = biome.id === "grassland" ? 0.7 : biome.id === "snowfield" ? 0.74 : 0.76;
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = "high";
+    for (const ox of [-WORLD_MAP_SIZE, 0, WORLD_MAP_SIZE]) {
+      for (const oy of [-WORLD_MAP_SIZE, 0, WORLD_MAP_SIZE]) {
+        g.drawImage(patch, cx + ox - w * 0.5, cy + oy - h * 0.5, w, h);
+      }
+    }
+    g.restore();
+  }
+}
+
 function ensureWorldMapCanvas() {
   if (worldMapCanvas) return worldMapCanvas;
   const canvas = document.createElement("canvas");
@@ -5048,17 +5383,25 @@ function ensureWorldMapCanvas() {
   canvas.height = WORLD_MAP_SIZE;
   const g = canvas.getContext("2d");
   g.imageSmoothingEnabled = true;
-  for (let y = 0; y < WORLD_MAP_SIZE; y += WORLD_MAP_SAMPLE) {
-    for (let x = 0; x < WORLD_MAP_SIZE; x += WORLD_MAP_SAMPLE) {
-      const blend = biomeBlendAt(x + WORLD_MAP_SAMPLE * 0.5, y + WORLD_MAP_SAMPLE * 0.5);
-      g.fillStyle = rgbString(terrainMapColor(x, y, blend));
-      g.fillRect(x, y, WORLD_MAP_SAMPLE + 1, WORLD_MAP_SAMPLE + 1);
+  const base = document.createElement("canvas");
+  base.width = Math.ceil(WORLD_MAP_SIZE / WORLD_MAP_SAMPLE);
+  base.height = Math.ceil(WORLD_MAP_SIZE / WORLD_MAP_SAMPLE);
+  const bg = base.getContext("2d");
+  for (let py = 0; py < base.height; py++) {
+    for (let px = 0; px < base.width; px++) {
+      const x = px * WORLD_MAP_SAMPLE + WORLD_MAP_SAMPLE * 0.5;
+      const y = py * WORLD_MAP_SAMPLE + WORLD_MAP_SAMPLE * 0.5;
+      const blend = biomeBlendAt(x, y);
+      bg.fillStyle = rgbString(terrainMapColor(x, y, blend));
+      bg.fillRect(px, py, 1, 1);
     }
   }
+  g.imageSmoothingQuality = "high";
+  g.drawImage(base, 0, 0, WORLD_MAP_SIZE, WORLD_MAP_SIZE);
+  drawWorldMapTextureRegions(g);
   drawWorldMapRelief(g);
   drawWorldMapRiver(g);
   drawWorldMapRoads(g);
-  drawWorldMapDetails(g);
   drawWorldMapGlaze(g);
   drawWorldMapAtmosphere(g);
   worldMapCanvas = canvas;
@@ -6076,14 +6419,16 @@ function drawCleanSpirit(size, phase = 0, alpha = 0.85) {
 function drawSpiritOrbit() {
   const cfg = spiritOrbitConfig();
   if (!cfg) return;
-  const points = spiritOrbitPoints(cfg);
+  const wisps = state.spiritWisps || [];
   ctx.save();
-  for (const g of points) {
+  for (const g of wisps) {
     const size = g.layer ? 38 + cfg.level * 2.2 : 32 + cfg.level * 1.8;
     ctx.save();
     ctx.translate(g.x, g.y);
-    ctx.rotate(g.a + Math.PI / 2 + Math.sin(state.time * 2.3 + g.index) * 0.16);
-    drawCleanSpirit(size, state.time * 3 + g.index, g.layer ? 0.62 : 0.78);
+    const facing = g.state === "orbit" ? Math.sin(state.time * 1.4 + g.index) * 0.28 : (g.angle || 0) + Math.PI / 2;
+    ctx.rotate(facing);
+    const alpha = g.state === "attack" ? 0.96 : g.state === "return" ? 0.72 : g.layer ? 0.64 : 0.8;
+    drawCleanSpirit(size, state.time * 3 + g.phase, alpha);
     ctx.restore();
   }
   ctx.restore();
@@ -6105,6 +6450,75 @@ function drawFollowerSpiritOrbit(f) {
   ctx.restore();
 }
 
+function drawNecromancerCast(p, image, size) {
+  const duration = 0.46;
+  const progress = clamp(1 - (p.castAnim || 0) / duration, 0, 1);
+  const lift = Math.sin(progress * Math.PI);
+  const pulse = 0.35 + lift * 0.65;
+
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.translate(p.x, p.y + 20);
+  ctx.globalAlpha = 0.24 + pulse * 0.24;
+  ctx.strokeStyle = "rgba(72,255,158,.9)";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.ellipse(0, 20, 38 + lift * 13, 13 + lift * 5, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.rotate(-state.time * 1.9);
+  ctx.setLineDash([5, 8]);
+  ctx.beginPath();
+  ctx.ellipse(0, 20, 29 + lift * 9, 10 + lift * 4, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  for (let i = 0; i < 3; i++) {
+    const angle = state.time * 4.4 + i * Math.PI * 2 / 3;
+    const radius = 24 + lift * 18;
+    const x = Math.cos(angle) * radius;
+    const y = -17 + Math.sin(angle) * radius * 0.42;
+    const glow = ctx.createRadialGradient(x, y, 1, x, y, 9);
+    glow.addColorStop(0, "rgba(232,255,242,.98)");
+    glow.addColorStop(0.35, "rgba(73,255,157,.78)");
+    glow.addColorStop(1, "rgba(19,159,98,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(x, y, 9, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalAlpha = lift * 0.2;
+  ctx.imageSmoothingEnabled = false;
+  ctx.translate(p.x - 5, p.y - 7 - lift * 10);
+  ctx.scale(1.08, 1.08);
+  ctx.drawImage(image, -size / 2, -size * 0.6, size, size);
+  ctx.restore();
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.translate(p.x, p.y - lift * 8);
+  ctx.rotate(-lift * 0.07 + Math.sin(progress * Math.PI * 2) * 0.018);
+  ctx.scale(1 + lift * 0.045, 1 + lift * 0.075);
+  ctx.drawImage(image, -size / 2, -size * 0.6, size, size);
+  ctx.restore();
+
+  const orbX = p.x + 29 + lift * 7;
+  const orbY = p.y - 22 - lift * 13;
+  const orb = ctx.createRadialGradient(orbX, orbY, 1, orbX, orbY, 15 + lift * 5);
+  orb.addColorStop(0, "rgba(244,255,248,1)");
+  orb.addColorStop(0.2, "rgba(91,255,169,.94)");
+  orb.addColorStop(0.58, "rgba(31,210,127,.54)");
+  orb.addColorStop(1, "rgba(15,120,76,0)");
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.fillStyle = orb;
+  ctx.beginPath();
+  ctx.arc(orbX, orbY, 15 + lift * 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawPlayer() {
   const p = state.player;
   drawCircle(p.x, p.y, p.r + (p.ward ? 9 : 0), p.ward ? "rgba(125,190,255,.38)" : "rgba(255,255,255,.08)");
@@ -6114,11 +6528,14 @@ function drawPlayer() {
   const classImg = castImg?.complete && castImg.naturalWidth ? castImg : classFile && classImages[classFile];
   if (classImg?.complete && classImg.naturalWidth && typeof ctx.drawImage === "function") {
     const size = 100;
-    ctx.save();
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(classImg, p.x - size / 2, p.y - size * 0.6, size, size);
-    ctx.imageSmoothingEnabled = true;
-    ctx.restore();
+    if (state.classId === "necromancer" && p.castAnim > 0) {
+      drawNecromancerCast(p, classImg, size);
+    } else {
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(classImg, p.x - size / 2, p.y - size * 0.6, size, size);
+      ctx.restore();
+    }
   } else {
     drawCircle(p.x, p.y, p.r, "#73d1ff");
   }
@@ -7121,7 +7538,7 @@ function loop(now) {
   state.last = now;
   update(dt);
   draw();
-  if (Math.floor(now / 250) !== Math.floor((now - dt * 1000) / 250)) syncHud();
+  if (Math.floor(now / 400) !== Math.floor((now - dt * 1000) / 400)) syncHud();
   requestAnimationFrame(loop);
 }
 
@@ -7231,9 +7648,12 @@ window.addEventListener("keydown", e => {
     if (guidePanel && !guidePanel.classList.contains("hidden")) closeGuidePanel();
     else openGuide();
   }
-  if (e.code === "KeyE" && canOpenBlackMarket()) {
-    state.blackMarket.wasNear = true;
-    openBlackMarket();
+  if (e.code === "KeyE") {
+    if (canOpenSacrificeAltar()) openSacrificeAltar();
+    else if (canOpenBlackMarket()) {
+      state.blackMarket.wasNear = true;
+      openBlackMarket();
+    }
   }
   if (e.code === "Space" && state?.running) state.paused = !state.paused;
   if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
