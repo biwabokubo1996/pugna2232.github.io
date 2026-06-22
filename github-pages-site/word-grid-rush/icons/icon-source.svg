@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#2f6f73"/>
+  <rect x="54" y="54" width="404" height="404" rx="72" fill="#f5f2e8"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="92" text-anchor="middle">
+    <rect x="86" y="86" width="156" height="156" rx="28" fill="#ffffff" stroke="#d9d2c3" stroke-width="8"/>
+    <text x="164" y="196" fill="#202124">W</text>
+    <rect x="270" y="86" width="156" height="156" rx="28" fill="#ffffff" stroke="#d9d2c3" stroke-width="8"/>
+    <text x="348" y="196" fill="#202124">R</text>
+    <rect x="86" y="270" width="156" height="156" rx="28" fill="#ffffff" stroke="#d9d2c3" stroke-width="8"/>
+    <text x="164" y="380" fill="#202124">D</text>
+    <rect x="270" y="270" width="156" height="156" rx="28" fill="#f1b74c" stroke="#d28c20" stroke-width="8"/>
+    <text x="348" y="380" fill="#6d4300">α</text>
+  </g>
+</svg>
