@@ -205,6 +205,32 @@ li {
   text-align: left;
 }
 
+.codex-tabs {
+  position: sticky;
+  top: -1px;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(8, 11, 13, 0.96);
+}
+
+.codex-tabs button {
+  min-height: 36px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #dfe9e3;
+  font-size: 12px;
+}
+
+.codex-tabs button.active {
+  background: #f4b24e;
+  color: #18130c;
+}
+
 .guide-section {
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -239,6 +265,30 @@ li {
   color: #fff7cc;
   font-size: 13px;
 }
+
+.guide-card span,
+.guide-card small {
+  display: block;
+}
+
+.guide-card small {
+  margin-top: 4px;
+  color: #bccbc3;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.codex-grid .guide-card {
+  min-height: 74px;
+  border-left: 3px solid rgba(255, 255, 255, 0.16);
+}
+
+.codex-grid .rarity-common { border-left-color: #e5e7eb; }
+.codex-grid .rarity-uncommon { border-left-color: #8df29f; }
+.codex-grid .rarity-rare { border-left-color: #83c7ff; }
+.codex-grid .rarity-epic { border-left-color: #d58cff; }
+.codex-grid .rarity-legendary { border-left-color: #ffb84d; }
+.fusion-card { border-left-color: #9aa7ff !important; }
 
 .start-actions,
 .class-panel {
@@ -401,5 +451,9 @@ button:hover {
 
   .touch-controls {
     display: block;
+  }
+
+  .codex-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

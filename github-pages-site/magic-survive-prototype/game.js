@@ -40,6 +40,7 @@ WORLD_BOSS_SITES.typhon = { id: "typhon", name: "Typhon Rift", boss: "Typhon", x
 const keys = new Set();
 const touchMove = { x: 0, y: 0, active: false, pointerId: null };
 let guideWasPaused = false;
+let activeCodexTab = "guide";
 const i18n = {
   en: {
     title: "Elemental Survival",
@@ -56,6 +57,10 @@ const i18n = {
     newRun: "New Run",
     startNewRun: "Start New Run",
     guideButton: "Guide / Codex",
+    codexGuide: "Guide",
+    codexItems: "Item Codex",
+    codexCreatures: "Creature Codex",
+    codexFusions: "Fusion Codex",
     runComplete: "Run Complete",
     unknownClass: "Unknown Class",
     startSubtitle: "Open-world survival. Choose a class, build followers, fuse skills, and hunt bosses.",
@@ -115,6 +120,10 @@ const i18n = {
     newRun: "重新开始",
     startNewRun: "开始新游戏",
     guideButton: "指南 / 图鉴",
+    codexGuide: "指南",
+    codexItems: "道具图鉴",
+    codexCreatures: "生物图鉴",
+    codexFusions: "技能合成图鉴",
     runComplete: "生存结束",
     unknownClass: "未知职业",
     startSubtitle: "开放世界无限生存。选择职业，培养随从，合成技能，挑战 Boss。",
@@ -174,6 +183,10 @@ const i18n = {
     newRun: "重新開始",
     startNewRun: "開始新遊戲",
     guideButton: "指南 / 圖鑑",
+    codexGuide: "指南",
+    codexItems: "道具圖鑑",
+    codexCreatures: "生物圖鑑",
+    codexFusions: "技能合成圖鑑",
     runComplete: "生存結束",
     unknownClass: "未知職業",
     startSubtitle: "開放世界無限生存。選擇職業，培養隨從，合成技能，挑戰 Boss。",
@@ -233,6 +246,10 @@ const i18n = {
     newRun: "新規ラン",
     startNewRun: "新しく始める",
     guideButton: "ガイド / 図鑑",
+    codexGuide: "ガイド",
+    codexItems: "アイテム図鑑",
+    codexCreatures: "生物図鑑",
+    codexFusions: "スキル合成図鑑",
     runComplete: "ラン終了",
     unknownClass: "不明なクラス",
     startSubtitle: "オープンワールドで生き残り、従者を育て、スキルを融合し、Boss を狩ろう。",
@@ -292,6 +309,10 @@ const i18n = {
     newRun: "새 런",
     startNewRun: "새로 시작",
     guideButton: "가이드 / 도감",
+    codexGuide: "가이드",
+    codexItems: "아이템 도감",
+    codexCreatures: "생물 도감",
+    codexFusions: "스킬 조합 도감",
     runComplete: "런 종료",
     unknownClass: "알 수 없는 직업",
     startSubtitle: "오픈 월드에서 생존하고, 추종자를 키우고, 스킬을 융합하고, Boss 를 사냥하세요.",
@@ -351,6 +372,10 @@ const i18n = {
     newRun: "Nueva Partida",
     startNewRun: "Empezar",
     guideButton: "Guia / Codice",
+    codexGuide: "Guia",
+    codexItems: "Codice de objetos",
+    codexCreatures: "Codice de criaturas",
+    codexFusions: "Codice de fusiones",
     runComplete: "Partida Terminada",
     unknownClass: "Clase Desconocida",
     startSubtitle: "Supervivencia en mundo abierto. Elige una clase, crea seguidores, fusiona habilidades y caza Bosses.",
@@ -657,9 +682,9 @@ const ENEMY_DAMAGE_MULT = 3;
 const PLAYER_SIZE_MULT = 1.22;
 const MONSTER_SIZE_MULT = 1.2;
 const MOBILE_PERFORMANCE_MODE = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
-const MAX_MONSTERS = MOBILE_PERFORMANCE_MODE ? 110 : 175;
-const MAX_EFFECTS = MOBILE_PERFORMANCE_MODE ? 115 : 180;
-const MAX_ZONES = MOBILE_PERFORMANCE_MODE ? 58 : 86;
+const MAX_MONSTERS = MOBILE_PERFORMANCE_MODE ? 92 : 150;
+const MAX_EFFECTS = MOBILE_PERFORMANCE_MODE ? 90 : 145;
+const MAX_ZONES = MOBILE_PERFORMANCE_MODE ? 46 : 68;
 
 function isFusionSkill(id) {
   return ["flameTornado", "doom", "absoluteZero", "lightningStorm", "iceRing", "forkLightning", "virulentPlague", "iceAge", "breathOfFire", "dimensionalSlash"].includes(id);
@@ -1327,7 +1352,11 @@ function castSkill(s) {
   const fusionArea = isFusionSkill(s.id) ? FUSION_AREA_MULT : 1;
   const dmg = b.damage * SKILL_POWER_MULT * fusionDamage * skillDamageMultiplier(lvl) * p.damage * (1 + (p.classDamageAura || 0)) * diseaseAttackMult(p) * elementMult(b.element);
   const area = b.area * fusionArea * skillAreaMultiplier(lvl) * areaMult(b.element);
-  p.castAnim = state.classId === "necromancer" ? 0.46 : 0.24;
+  p.castAnim = state.classId === "necromancer" ? 0.46 : state.classId === "vampirePrincess" ? 0.42 : 0.24;
+  if (state.classId === "vampirePrincess") {
+    const castTarget = nearestEnemy(p);
+    if (castTarget) p.castAngle = Math.atan2(castTarget.y - p.y, castTarget.x - p.x);
+  }
 
   if (b.type === "bolt") {
     const target = nearestEnemy(p);
@@ -2713,6 +2742,8 @@ function updateSpiritOrbit(dt) {
 function update(dt) {
   if (!state.running || state.paused) return;
   const p = state.player;
+  const hpBeforeUpdate = p.hp;
+  p.hitFlash = Math.max(0, (p.hitFlash || 0) - dt);
   state.time += dt;
   state.spawn -= dt;
   state.saveClock = (state.saveClock || 0) + dt;
@@ -2803,6 +2834,7 @@ function update(dt) {
   updateTexts(dt);
   trimRuntimeCollections();
   checkFusions();
+  if (p.hp < hpBeforeUpdate - 0.01) p.hitFlash = 0.14;
   if (p.healPulse && Math.floor((state.time - dt) / 9) < Math.floor(state.time / 9)) p.hp = Math.min(p.maxHp, p.hp + 30);
   if (p.hp <= 0 && !tryPlayerRevive()) {
     const summary = makeRunSummary();
@@ -2817,17 +2849,20 @@ function update(dt) {
 }
 
 function trimRuntimeCollections() {
-  const gemLimit = MOBILE_PERFORMANCE_MODE ? 110 : 180;
+  const perfLevel = state.perfLevel || 0;
+  const gemLimit = MOBILE_PERFORMANCE_MODE ? 95 : Math.max(120, 170 - perfLevel * 20);
   if (state.gems.length > gemLimit) {
     const overflow = state.gems.splice(0, state.gems.length - gemLimit);
     if (state.gems.length) state.gems[0].xp += overflow.reduce((sum, gem) => sum + (gem.xp || 0), 0);
   }
   const limits = [
-    [state.projectiles, MOBILE_PERFORMANCE_MODE ? 150 : 260],
-    [state.enemyShots, MOBILE_PERFORMANCE_MODE ? 120 : 210],
+    [state.projectiles, MOBILE_PERFORMANCE_MODE ? 120 : Math.max(160, 230 - perfLevel * 25)],
+    [state.enemyShots, MOBILE_PERFORMANCE_MODE ? 100 : Math.max(135, 185 - perfLevel * 20)],
     [state.chests, 28],
     [state.heals, 24],
-    [state.texts, MOBILE_PERFORMANCE_MODE ? 55 : 90]
+    [state.texts, MOBILE_PERFORMANCE_MODE ? 45 : Math.max(55, 80 - perfLevel * 10)],
+    [state.effects, Math.max(75, MAX_EFFECTS - perfLevel * 28)],
+    [state.zones, Math.max(38, MAX_ZONES - perfLevel * 12)]
   ];
   for (const [collection, limit] of limits) {
     if (collection.length > limit) collection.splice(0, collection.length - limit);
@@ -3291,6 +3326,7 @@ function updateFollowers(dt) {
       }
     }
     f.hitGrace = Math.max(0, (f.hitGrace || 0) - dt);
+    f.hitFlash = Math.max(0, (f.hitFlash || 0) - dt);
     updatePoisonStatus(f, dt);
     updateDiseaseStatus(f, dt);
     updateFollowerSpiritOrbit(f, dt);
@@ -4389,7 +4425,7 @@ function updateMonsters(dt) {
   for (let i = state.monsters.length - 1; i >= 0; i--) {
     const m = state.monsters[i];
     const far = Math.hypot(p.x - m.x, p.y - m.y);
-    if (m.kind === "normal" && far > 1250) {
+    if (m.kind === "normal" && far > 1080) {
       state.monsters.splice(i, 1);
       continue;
     }
@@ -4618,6 +4654,7 @@ function damageFollower(f, amount) {
   const taken = Math.max(1, amount * 0.35 * (1 - effectiveGroupReduce()));
   f.hp -= taken;
   f.hitGrace = 0.52;
+  f.hitFlash = 0.14;
   addText(`-${Math.ceil(taken)}`, f.x - 10, f.y - 28, "#ffb089");
 }
 
@@ -5043,8 +5080,17 @@ function draw() {
   for (const g of state.gems) if (visible(g, 40)) drawGem(g);
   for (const c of state.chests) if (visible(c, 50)) drawChest(c);
   for (const h of state.heals) if (visible(h, 50)) drawHeal(h);
-  for (const z of state.zones) if (visible(z, 120)) drawZone(z);
-  for (const e of state.effects) if (visible(e, 80)) drawEffect(e);
+  const perfLevel = state.perfLevel || 0;
+  for (let i = 0; i < state.zones.length; i++) {
+    const z = state.zones[i];
+    if (perfLevel >= 2 && z.type === "visual" && i % 2) continue;
+    if (visible(z, 120)) drawZone(z);
+  }
+  for (let i = 0; i < state.effects.length; i++) {
+    const e = state.effects[i];
+    if (e.type === "particle" && perfLevel > 0 && i % (perfLevel + 1)) continue;
+    if (visible(e, 80)) drawEffect(e);
+  }
   for (const pr of state.projectiles) if (visible(pr, 80)) drawProjectile(pr);
   for (const s of state.enemyShots) if (visible(s, 80)) drawEnemyShot(s);
   for (const f of state.followers) if (visible(f, 100)) drawFollower(f);
@@ -6519,6 +6565,74 @@ function drawNecromancerCast(p, image, size) {
   ctx.restore();
 }
 
+function drawVampireCast(p, image, size) {
+  const duration = 0.42;
+  const progress = clamp(1 - (p.castAnim || 0) / duration, 0, 1);
+  const thrust = Math.sin(progress * Math.PI);
+  const angle = p.castAngle || 0;
+  const forwardX = Math.cos(angle);
+  const forwardY = Math.sin(angle);
+  const lunge = thrust * 14;
+
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.globalAlpha = 0.3 + thrust * 0.24;
+  ctx.strokeStyle = "rgba(255,54,104,.9)";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 29, 34 + thrust * 13, 12 + thrust * 4, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.rotate(0);
+  for (let i = 0; i < 4; i++) {
+    const a = state.time * 3.8 + i * Math.PI * 0.5;
+    const r = 25 + thrust * 16;
+    const x = p.x + Math.cos(a) * r;
+    const y = p.y - 9 + Math.sin(a) * r * 0.42;
+    ctx.fillStyle = i % 2 ? "rgba(255,42,92,.72)" : "rgba(148,25,78,.72)";
+    ctx.beginPath();
+    ctx.arc(x, y, 2.5 + thrust * 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  for (let i = 2; i >= 1; i--) {
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha = thrust * (0.11 + i * 0.035);
+    ctx.filter = "sepia(1) saturate(7) hue-rotate(305deg) brightness(0.85)";
+    ctx.translate(p.x - forwardX * i * 8, p.y - forwardY * i * 8 - thrust * 3);
+    ctx.rotate(-forwardY * thrust * 0.06);
+    ctx.drawImage(image, -size / 2, -size * 0.6, size, size);
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.translate(p.x + forwardX * lunge, p.y + forwardY * lunge - thrust * 5);
+  ctx.rotate(forwardY * thrust * 0.08);
+  ctx.scale(1 + thrust * 0.075, 1 - thrust * 0.025);
+  ctx.drawImage(image, -size / 2, -size * 0.6, size, size);
+  ctx.restore();
+
+  const spearStartX = p.x + forwardX * (28 + lunge);
+  const spearStartY = p.y - 12 + forwardY * (28 + lunge);
+  const spearEndX = spearStartX + forwardX * (42 + thrust * 34);
+  const spearEndY = spearStartY + forwardY * (42 + thrust * 34);
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  const bloodGlow = ctx.createLinearGradient(spearStartX, spearStartY, spearEndX, spearEndY);
+  bloodGlow.addColorStop(0, "rgba(255,70,120,0)");
+  bloodGlow.addColorStop(0.45, "rgba(255,42,92,.88)");
+  bloodGlow.addColorStop(1, "rgba(255,210,220,0)");
+  ctx.strokeStyle = bloodGlow;
+  ctx.lineWidth = 4 + thrust * 5;
+  ctx.beginPath();
+  ctx.moveTo(spearStartX, spearStartY);
+  ctx.lineTo(spearEndX, spearEndY);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawPlayer() {
   const p = state.player;
   drawCircle(p.x, p.y, p.r + (p.ward ? 9 : 0), p.ward ? "rgba(125,190,255,.38)" : "rgba(255,255,255,.08)");
@@ -6528,14 +6642,17 @@ function drawPlayer() {
   const classImg = castImg?.complete && castImg.naturalWidth ? castImg : classFile && classImages[classFile];
   if (classImg?.complete && classImg.naturalWidth && typeof ctx.drawImage === "function") {
     const size = 100;
+    ctx.save();
+    if (p.hitFlash > 0) ctx.filter = "sepia(1) saturate(8) hue-rotate(315deg) brightness(1.2)";
     if (state.classId === "necromancer" && p.castAnim > 0) {
       drawNecromancerCast(p, classImg, size);
+    } else if (state.classId === "vampirePrincess" && p.castAnim > 0) {
+      drawVampireCast(p, classImg, size);
     } else {
-      ctx.save();
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(classImg, p.x - size / 2, p.y - size * 0.6, size, size);
-      ctx.restore();
     }
+    ctx.restore();
   } else {
     drawCircle(p.x, p.y, p.r, "#73d1ff");
   }
@@ -6624,7 +6741,9 @@ function drawFollower(f) {
       ctx.globalAlpha = 1;
     }
     if (isGhostFollower(f)) ctx.globalAlpha = 0.88;
+    if (f.hitFlash > 0) ctx.filter = "sepia(1) saturate(8) hue-rotate(315deg) brightness(1.18)";
     ctx.drawImage(img, drawX - size / 2, drawY - size / 2, size, size);
+    ctx.filter = "none";
     ctx.globalAlpha = 1;
     drawFollowerHealth(f, drawX, drawY, size);
     ctx.restore();
@@ -7492,6 +7611,37 @@ function guideCard(title, body) {
 
 function renderGuideContent() {
   if (!guideContent) return;
+  const tabs = [
+    ["guide", t("codexGuide")],
+    ["items", t("codexItems")],
+    ["creatures", t("codexCreatures")],
+    ["fusions", t("codexFusions")]
+  ];
+  const tabHtml = `<nav class="codex-tabs">${tabs.map(([id, label]) => `<button type="button" data-codex-tab="${id}" class="${activeCodexTab === id ? "active" : ""}">${esc(label)}</button>`).join("")}</nav>`;
+
+  let content = "";
+  if (activeCodexTab === "items") {
+    const gearCards = gearBook.map(gear => {
+      const rarity = gearRarityInfo[gear.rarity] || gearRarityInfo.common;
+      return `<div class="guide-card rarity-${esc(gear.rarity)}"><b>${esc(gear.name)}</b><span style="color:${rarity.color}">${esc(rarityLabel(gear.rarity))}</span><small>${esc(gear.desc)}</small></div>`;
+    }).join("");
+    const artifactCards = artifactBook.map(item => `<div class="guide-card rarity-legendary"><b>${esc(item.name)}</b><span style="color:${gearRarityInfo.legendary.color}">Artifact</span><small>${esc(item.desc)}</small></div>`).join("");
+    content = `<section class="guide-section"><h3>${esc(t("codexItems"))} · ${gearBook.length + artifactBook.length}</h3><div class="guide-grid codex-grid">${gearCards}${artifactCards}</div></section>`;
+  } else if (activeCodexTab === "creatures") {
+    const normalCards = monsterBook.map(m => guideCard(m[0], `Normal · HP ${m[2]} · SPD ${m[3]} · ATK ${m[4]}`)).join("");
+    const eliteCards = eliteBook.map(m => guideCard(m[0], `Elite · HP ${m[2]} · SPD ${m[3]} · ATK ${m[4]}`)).join("");
+    const bossCards = bossBook.map(m => guideCard(m[0], `Boss · HP ${m[2]} · SPD ${m[3]} · Reward ${m[4]}`)).join("")
+      + guideCard("Chimera", "World Boss · Fire Breath · Poison Cloud · Charge")
+      + guideCard("Typhon", "World Boss+ · Earthquake · Fire Breath · Meteor · Cleave");
+    const followerCards = followersBook.map(f => guideCard(f.name, `Follower / Enemy · Tier ${f.tier} · ${f.element} · ATK ${f.damage} · Range ${f.range}`)).join("");
+    content = `
+      <section class="guide-section"><h3>Monsters</h3><div class="guide-grid codex-grid">${normalCards}</div></section>
+      <section class="guide-section"><h3>Elites & Bosses</h3><div class="guide-grid codex-grid">${eliteCards}${bossCards}</div></section>
+      <section class="guide-section"><h3>Followers & Summon Enemies</h3><div class="guide-grid codex-grid">${followerCards}</div></section>`;
+  } else if (activeCodexTab === "fusions") {
+    const fusionCards = fusionRecipes.map(([name, req, effect]) => `<div class="guide-card fusion-card"><b>${esc(name)}</b><span>${esc(req)}</span><small>${esc(effect)}</small></div>`).join("");
+    content = `<section class="guide-section"><h3>${esc(t("codexFusions"))} · ${fusionRecipes.length}</h3><div class="guide-grid codex-grid">${fusionCards}</div></section>`;
+  } else {
   const classCards = Object.values(classBook).map(cls => guideCard(cls.name, `${cls.innate}: ${cls.desc}`)).join("");
   const fusionCards = fusionRecipes.map(([name, req, effect]) => guideCard(name, `${req}. ${effect}`)).join("");
   const rarityCards = Object.entries(gearRarityInfo)
@@ -7502,7 +7652,7 @@ function renderGuideContent() {
     .slice(0, 18)
     .map(([id, s]) => guideCard(s.name || id, s.desc || s.type || t("skillFallback")))
     .join("");
-  guideContent.innerHTML = `
+    content = `
     <section class="guide-section">
       <h3>${esc(t("controlsGoal"))}</h3>
       <div class="guide-grid">
@@ -7517,6 +7667,14 @@ function renderGuideContent() {
     <section class="guide-section"><h3>${esc(t("gearRarity"))}</h3><div class="guide-grid">${rarityCards}</div></section>
     <section class="guide-section"><h3>${esc(t("skillExamples"))}</h3><div class="guide-grid">${starterSkills}</div></section>
   `;
+  }
+  guideContent.innerHTML = tabHtml + content;
+  guideContent.querySelectorAll("[data-codex-tab]").forEach(button => {
+    button.addEventListener("click", () => {
+      activeCodexTab = button.dataset.codexTab || "guide";
+      renderGuideContent();
+    });
+  });
 }
 
 function openGuide() {
@@ -7535,10 +7693,19 @@ function closeGuidePanel() {
 
 function loop(now) {
   const dt = Math.min(0.033, (now - state.last) / 1000);
+  const rawFrameMs = Math.max(0, now - (state.frameStamp || now));
+  state.frameStamp = now;
+  state.frameEma = state.frameEma ? state.frameEma * 0.94 + rawFrameMs * 0.06 : rawFrameMs;
+  if (now - (state.perfCheckAt || 0) > 1400) {
+    state.perfCheckAt = now;
+    if (state.frameEma > 28) state.perfLevel = 2;
+    else if (state.frameEma > 21) state.perfLevel = Math.max(state.perfLevel || 0, 1);
+    else if (state.frameEma < 18) state.perfLevel = Math.max(0, (state.perfLevel || 0) - 1);
+  }
   state.last = now;
   update(dt);
   draw();
-  if (Math.floor(now / 400) !== Math.floor((now - dt * 1000) / 400)) syncHud();
+  if (Math.floor(now / 700) !== Math.floor((now - dt * 1000) / 700)) syncHud();
   requestAnimationFrame(loop);
 }
 
