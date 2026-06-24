@@ -691,35 +691,35 @@ function isFusionSkill(id) {
 }
 
 const skillBook = {
-  fireBreath: { name: "Fire Breath", element: "fire", cd: 0.62, damage: 16, area: 165, type: "cone", desc: "Cone damage with burn" },
-  tornado: { name: "Tornado", element: "wind", cd: 2.6, damage: 18, area: 95, type: "orb", desc: "Moving spiral wind" },
-  meteor: { name: "Meteor", element: "fire", cd: 5.2, damage: 70, area: 120, type: "meteor", desc: "Large impact area" },
-  lavaField: { name: "Lava Field", element: "fire", cd: 5.0, damage: 18, area: 155, type: "cloud", desc: "Burning lava ground" },
-  blizzard: { name: "Blizzard", element: "ice", cd: 4.6, damage: 15, area: 170, type: "aura", desc: "Ice damage and slow" },
-  frostNova: { name: "Frost Nova", element: "ice", cd: 4.8, damage: 35, area: 160, type: "nova", desc: "Freeze nearby enemies" },
-  thunderCloud: { name: "Thunder Cloud", element: "lightning", cd: 2.1, damage: 34, area: 260, type: "strike", desc: "Strike N enemies in range, N equals skill level" },
-  earthquake: { name: "Earthquake", element: "earth", cd: 5.4, damage: 48, area: 220, type: "quake", desc: "Shockwave around the caster" },
-  fireball: { name: "Fireball", element: "fire", cd: 2.4, damage: 32, area: 0, type: "fireball", desc: "Piercing fireballs in a straight line; count scales with level" },
-  arrowRain: { name: "Arrow Rain", element: "physical", cd: 4.9, damage: 38, area: 155, type: "arrowRain", desc: "Calls down a volley of arrows over an area" },
-  spiritTaming: { name: "Spirit Taming", element: "arcane", cd: 0, damage: 60, area: 92, type: "spiritOrbit", desc: "Spirits orbit the hero, charge nearby enemies, then return" },
-  chainLightning: { name: "Chain Lightning", element: "lightning", cd: 2.8, damage: 29, area: 250, type: "chain", desc: "Jumps between nearby enemies up to 2 x level" },
-  poisonCloud: { name: "Poison Cloud", element: "poison", cd: 4.1, damage: 13, area: 145, type: "cloud", desc: "Growing poison field" },
-  blackPlague: { name: "Black Plague", element: "poison", cd: 5.6, damage: 56, area: 150, type: "plagueBolt", desc: "Plague projectile that erupts into disease cloud" },
-  virulentPlague: { name: "Virulent Plague", element: "poison", cd: 5.2, damage: 62, area: 175, type: "virulentPlague", desc: "Splits into six spreading plague clouds with damage and slow" },
-  sandstorm: { name: "Sandstorm", element: "wind", cd: 4.4, damage: 20, area: 185, type: "aura", desc: "Follows the player, blinds enemies" },
-  cleave: { name: "Cleave", element: "physical", cd: 2.1, damage: 45, area: 115, type: "cleave", desc: "Sweeping melee slash in front of the caster" },
-  bloodSpear: { name: "Blood Spear", element: "physical", cd: 2.1, damage: 64, area: 220, type: "bloodRect", desc: "Carves a bloody rectangle in front of the caster" },
-  painScream: { name: "Pain Scream", element: "arcane", cd: 5.1, damage: 22, area: 210, type: "fearCone", desc: "Terrifies enemies and forces them to flee" },
-  ward: { name: "Ward", element: "arcane", cd: 12, damage: 0, area: 0, type: "ward", desc: "Blocks ranged damage briefly" },
-  flameTornado: { name: "Flame Tornado", element: "fire", cd: 2.0, damage: 42, area: 165, type: "orb", desc: "Large pulling fire tornado with burn" },
-  doom: { name: "Doomsday Judgment", element: "fire", cd: 10.5, damage: 185, area: 760, type: "doom", desc: "Ultimate full-screen fire shockwave" },
-  absoluteZero: { name: "Absolute Zero", element: "ice", cd: 0, damage: 44, area: 245, type: "absoluteZero", desc: "Permanent aura that follows you; first hit freezes enemies" },
-  lightningStorm: { name: "Lightning Storm", element: "lightning", cd: 1.55, damage: 48, area: 330, type: "strike", desc: "Improved Thunder Cloud" },
-  forkLightning: { name: "Fork Lightning", element: "lightning", cd: 2.35, damage: 86, area: 420, type: "forkLightning", desc: "Branching lightning from Lv.7 Fire Breath and Chain Lightning" },
-  iceRing: { name: "Ice Ring", element: "ice", cd: 3.6, damage: 58, area: 180, type: "nova", desc: "Ring-shaped ice burst" },
-  iceAge: { name: "Ice Age", element: "ice", cd: 6.2, damage: 86, area: 260, type: "iceAge", desc: "Ice arrows rain down and trigger many freezing Frost Novas" },
-  breathOfFire: { name: "Breath of Fire", element: "fire", cd: 2.45, damage: 64, area: 245, type: "fireBreathBarrage", desc: "Several wider Fire Breath waves from Lv.7 Pain Scream and Fire Breath" },
-  dimensionalSlash: { name: "Dimensional Slash", element: "arcane", cd: 6.8, damage: 165, area: 760, type: "dimensionalSlash", desc: "Full-screen spatial slash from Lv.7 Earthquake and Cleave" }
+  fireBreath: { name: "喷火", element: "fire", cd: 0.62, damage: 16, area: 165, type: "cone", desc: "锥形火焰伤害并附加烧伤" },
+  tornado: { name: "龙卷风", element: "wind", cd: 2.6, damage: 18, area: 95, type: "orb", desc: "移动的旋转风暴" },
+  meteor: { name: "陨石坠落", element: "fire", cd: 5.2, damage: 70, area: 120, type: "meteor", desc: "大范围冲击伤害" },
+  lavaField: { name: "熔岩地带", element: "fire", cd: 5.0, damage: 18, area: 155, type: "cloud", desc: "燃烧的熔岩地面" },
+  blizzard: { name: "暴风雪", element: "ice", cd: 4.6, damage: 15, area: 170, type: "aura", desc: "冰系伤害并减速" },
+  frostNova: { name: "霜冻新星", element: "ice", cd: 4.8, damage: 35, area: 160, type: "nova", desc: "冻结附近敌人" },
+  thunderCloud: { name: "雷云", element: "lightning", cd: 2.1, damage: 34, area: 260, type: "strike", desc: "攻击范围内 N 个敌人，N 等于技能等级" },
+  earthquake: { name: "地震", element: "earth", cd: 5.4, damage: 48, area: 220, type: "quake", desc: "施法者周围地震波" },
+  fireball: { name: "火球术", element: "fire", cd: 2.4, damage: 32, area: 0, type: "fireball", desc: "沿直线穿透敌人，数量随等级增加" },
+  arrowRain: { name: "箭雨", element: "physical", cd: 4.9, damage: 38, area: 155, type: "arrowRain", desc: "在区域内召唤箭雨" },
+  spiritTaming: { name: "驭灵术", element: "arcane", cd: 0, damage: 60, area: 92, type: "spiritOrbit", desc: "幽灵环绕英雄，冲向附近敌人后返回" },
+  chainLightning: { name: "连锁闪电", element: "lightning", cd: 2.8, damage: 29, area: 250, type: "chain", desc: "在附近敌人之间跳跃，最多 2 x 等级次" },
+  poisonCloud: { name: "毒气云", element: "poison", cd: 4.1, damage: 13, area: 145, type: "cloud", desc: "逐渐扩大的毒雾区域" },
+  blackPlague: { name: "黑死病", element: "poison", cd: 5.6, damage: 56, area: 150, type: "plagueBolt", desc: "瘟疫弹道命中后爆发为疾病云" },
+  virulentPlague: { name: "恶性瘟疫", element: "poison", cd: 5.2, damage: 62, area: 175, type: "virulentPlague", desc: "分裂为六团扩散瘟疫，造成持续伤害和减速" },
+  sandstorm: { name: "沙尘暴", element: "wind", cd: 4.4, damage: 20, area: 185, type: "aura", desc: "跟随玩家并致盲敌人" },
+  cleave: { name: "劈砍", element: "physical", cd: 2.1, damage: 45, area: 115, type: "cleave", desc: "向前方横扫近战斩击" },
+  bloodSpear: { name: "鲜血之矛", element: "physical", cd: 2.1, damage: 64, area: 220, type: "bloodRect", desc: "在施法者前方造成矩形鲜血伤害" },
+  painScream: { name: "痛苦尖叫", element: "arcane", cd: 5.1, damage: 22, area: 210, type: "fearCone", desc: "恐惧敌人并迫使他们逃离" },
+  ward: { name: "防御结界", element: "arcane", cd: 12, damage: 0, area: 0, type: "ward", desc: "短时间格挡远程伤害" },
+  flameTornado: { name: "火龙卷", element: "fire", cd: 2.0, damage: 42, area: 165, type: "orb", desc: "大范围牵引火龙卷并附加烧伤" },
+  doom: { name: "末日审判", element: "fire", cd: 10.5, damage: 185, area: 760, type: "doom", desc: "终极全屏火焰冲击波" },
+  absoluteZero: { name: "绝对零度", element: "ice", cd: 0, damage: 44, area: 245, type: "absoluteZero", desc: "跟随角色的永久冰霜光环，首次命中冻结敌人" },
+  lightningStorm: { name: "闪电风暴", element: "lightning", cd: 1.55, damage: 48, area: 330, type: "strike", desc: "强化雷云" },
+  forkLightning: { name: "叉状闪电", element: "lightning", cd: 2.35, damage: 86, area: 420, type: "forkLightning", desc: "由 7 级喷火与连锁闪电合成的分叉闪电" },
+  iceRing: { name: "冰暴之环", element: "ice", cd: 3.6, damage: 58, area: 180, type: "nova", desc: "环形冰爆" },
+  iceAge: { name: "冰河期", element: "ice", cd: 6.2, damage: 86, area: 260, type: "iceAge", desc: "冰箭雨落下并触发多个冻结霜冻新星" },
+  breathOfFire: { name: "火之呼吸", element: "fire", cd: 2.45, damage: 64, area: 245, type: "fireBreathBarrage", desc: "由 7 级痛苦尖叫与喷火合成的多段大范围喷火" },
+  dimensionalSlash: { name: "次元斩", element: "arcane", cd: 6.8, damage: 165, area: 760, type: "dimensionalSlash", desc: "由 7 级地震与劈砍合成的全屏空间斩击" }
 };
 
 const followersBook = [
@@ -783,7 +783,7 @@ const gearBook = [
   { name: "Arcane Ring", rarity: "common", desc: "Magic damage +10%", apply: s => { s.damage *= 1.1; } },
   { name: "Fire Spirit Orb", rarity: "rare", desc: "Fire magic damage +20%", apply: s => { s.fire *= 1.2; } },
   { name: "Ice Crystal", rarity: "rare", desc: "Ice magic damage +20%", apply: s => { s.ice *= 1.2; } },
-  { name: "牧灵之笛", rarity: "common", desc: "Spirit Taming ghosts +4", apply: s => { s.spiritBonus = (s.spiritBonus || 0) + 4; } },
+  { name: "牧灵之笛", rarity: "common", desc: "驭灵术幽灵数量 +4", apply: s => { s.spiritBonus = (s.spiritBonus || 0) + 4; } },
   { name: "回春法杖", rarity: "rare", desc: "Area healing +2 HP/sec", apply: s => { s.healAura = (s.healAura || 0) + 2; s.healAuraRange = Math.max(s.healAuraRange || 0, 190); } },
   { name: "蝎狮尾针", rarity: "legendary", desc: "Dead enemies have 75% chance to explode", apply: s => { s.deathExplosionChance = Math.min(1, (s.deathExplosionChance || 0) + 0.75); } },
   { name: "增幅器", rarity: "rare", desc: "Magic area +10%", apply: s => { s.area *= 1.1; } },
@@ -804,7 +804,7 @@ const gearBook = [
   { name: "混乱之雨", rarity: "epic", desc: "陨石坠落分两轮降落，每块威力降低", apply: s => { s.chaosRain = true; } },
   { name: "空间扭曲外套", rarity: "epic", desc: "50% chance to reflect ranged attacks", apply: s => { s.rangedReflectChance = Math.max(s.rangedReflectChance || 0, 0.5); } },
   { name: "招财猫", rarity: "common", desc: "Gold gain +10%", apply: s => { s.goldGainBonus = (s.goldGainBonus || 0) + 0.10; } },
-  { name: "优惠券", rarity: "rare", desc: "One random Black Market offer is 50% off each visit", apply: s => { s.marketCoupon = true; } },
+  { name: "优惠券", rarity: "rare", desc: "每次访问黑市时随机一个商品五折。", apply: s => { s.marketCoupon = true; } },
   { name: "备用心脏", rarity: "epic", desc: "最大生命+100，死亡时重生一次", apply: s => { s.maxHp += 100; s.hp += 100; s.reviveCharges = (s.reviveCharges || 0) + 1; } }
 ];
 
@@ -898,10 +898,10 @@ const bossBook = [
 
 const classBook = {
   elementMage: {
-    name: "Grand Witch",
+    name: "大魔女",
     icon: "GrandWitch.png",
-    innate: "Element Mastery",
-    desc: "Innate: elemental magic damage +N%. Starts with Chain Lightning.",
+    innate: "元素精通",
+    desc: "先天：元素魔法伤害 +N%。初始技能：连锁闪电。",
     skills: ["chainLightning"],
     apply(player) {
       player.fire *= 1.08;
@@ -909,10 +909,10 @@ const classBook = {
     }
   },
   necromancer: {
-    name: "Necromancer",
+    name: "死灵法师",
     icon: "Necromancer.png",
-    innate: "Soul Raise",
-    desc: "Innate: +N% chance to turn dead enemies into Skeleton followers. Starts with Spirit Taming.",
+    innate: "亡者复生",
+    desc: "先天：击杀敌人有 +N% 几率转化为骷髅兵随从。初始技能：驭灵术。",
     skills: ["spiritTaming"],
     apply(player) {
       player.arcane *= 1.12;
@@ -922,10 +922,10 @@ const classBook = {
     }
   },
   roundTableKnight: {
-    name: "Round Table Knight",
+    name: "元帅",
     icon: "RoundTableKnight.png",
-    innate: "Round Table Aura",
-    desc: "Innate: aura grants +N% attack and N% damage reduction. Starts with Cleave.",
+    innate: "圆桌光环",
+    desc: "先天：光环提供 +N% 攻击力和 N% 减伤。初始技能：劈砍。",
     skills: ["cleave"],
     apply(player) {
       player.maxHp += 55;
@@ -935,10 +935,10 @@ const classBook = {
     }
   },
   elf: {
-    name: "Elf",
+    name: "精灵",
     icon: "Elf.png",
-    innate: "Forest Mending",
-    desc: "Innate: nearby allies recover N HP per second. Starts with Arrow Rain.",
+    innate: "森林回春",
+    desc: "先天：附近友方每秒恢复 N/3 生命。初始技能：箭雨。",
     skills: ["arrowRain"],
     apply(player) {
       player.speed += 28;
@@ -947,10 +947,10 @@ const classBook = {
     }
   },
   vampirePrincess: {
-    name: "Vampire Princess",
+    name: "吸血鬼公主",
     icon: "VampirePrincess.png",
-    innate: "Blood Aura",
-    desc: "Innate: attacks restore N% of damage dealt. Starts with Blood Spear.",
+    innate: "鲜血光环",
+    desc: "先天：攻击按 N% 伤害吸血。初始技能：鲜血之矛。",
     skills: ["bloodSpear"],
     apply(player) {
       player.maxHp += 35;
@@ -961,10 +961,10 @@ const classBook = {
     }
   },
   hellLord: {
-    name: "Demon Lord",
+    name: "地狱领主",
     icon: "HellLord.png",
-    innate: "Hell Breath",
-    desc: "Innate: nearby enemies take 2N fire damage per second. Starts with Lava Field.",
+    innate: "地狱之息",
+    desc: "先天：附近敌人每秒受到 2N 火焰伤害。初始技能：熔岩地带。",
     skills: ["lavaField"],
     apply(player) {
       player.fire *= 1.24;
@@ -976,14 +976,14 @@ const classBook = {
 };
 
 const fusionRecipes = [
-  ["Flame Tornado", "Tornado Lv.7 + Fire Breath Lv.7", "Large pull field with burn damage."],
-  ["Doomsday Judgment", "Lava Field Lv.7 + Meteor Lv.7 + Earthquake Lv.7 + sacrifice Red Lotus Beast", "Full-screen fire shockwave."],
-  ["Fork Lightning", "Fire Breath Lv.7 + Chain Lightning Lv.7", "High-damage forked lightning fusion."],
-  ["Virulent Plague", "Poison Cloud Lv.7 + Black Plague Lv.7", "Splits into 6 spreading plague clouds."],
-  ["Absolute Zero", "Blizzard Lv.7 + Frost Nova Lv.7", "Permanent aura that follows the player and freezes first-hit enemies."],
-  ["Ice Age", "Arrow Rain Lv.7 + Frost Nova Lv.7", "Ice arrows fall and trigger frost nova bursts."],
-  ["Breath of Fire", "Pain Scream Lv.7 + Fire Breath Lv.7", "Wider fire breath released in several waves."],
-  ["Dimensional Slash", "Earthquake Lv.7 + Cleave Lv.7", "Full-screen dimensional slash."]
+  ["火龙卷", "龙卷风 Lv.7 + 喷火 Lv.7", "大范围牵引并造成烧伤。"],
+  ["末日审判", "熔岩地带 Lv.7 + 陨石坠落 Lv.7 + 地震 Lv.7 + 献祭红莲星兽", "全屏火系冲击波。"],
+  ["叉状闪电", "喷火 Lv.7 + 连锁闪电 Lv.7", "高伤害分叉闪电合成魔法。"],
+  ["恶性瘟疫", "毒气云 Lv.7 + 黑死病 Lv.7", "分裂成 6 团向外扩散的瘟疫云。"],
+  ["绝对零度", "暴风雪 Lv.7 + 霜冻新星 Lv.7", "持续跟随角色，冻结第一次受伤敌人。"],
+  ["冰河期", "箭雨 Lv.7 + 霜冻新星 Lv.7", "冰箭坠落并在落点触发霜冻新星。"],
+  ["火之呼吸", "痛苦尖叫 Lv.7 + 喷火 Lv.7", "更宽的喷火连续释放多波。"],
+  ["次元斩", "地震 Lv.7 + 劈砍 Lv.7", "全屏次元斩击。"]
 ];
 let state;
 
@@ -1001,6 +1001,7 @@ function newState(classId = "elementMage") {
     projectiles: [],
     spiritWisps: [],
     enemyShots: [],
+    warnings: [],
     zones: [],
     effects: [],
     monsters: [],
@@ -1009,6 +1010,8 @@ function newState(classId = "elementMage") {
     heals: [],
     texts: [],
     terrain: terrainAt(W / 2, H / 2),
+    damageStats: {},
+    damageStatsTotal: 0,
     player: {
       x: W / 2, y: H / 2, r: Math.round(16 * PLAYER_SIZE_MULT), hp: 180, maxHp: 180, xp: 0, next: 32, level: 1,
       speed: 205, damage: 1, area: 1, cooldown: 1, followerCooldown: 1, duration: 1, defense: 0, groupReduce: 0,
@@ -1352,10 +1355,13 @@ function castSkill(s) {
   const fusionArea = isFusionSkill(s.id) ? FUSION_AREA_MULT : 1;
   const dmg = b.damage * SKILL_POWER_MULT * fusionDamage * skillDamageMultiplier(lvl) * p.damage * (1 + (p.classDamageAura || 0)) * diseaseAttackMult(p) * elementMult(b.element);
   const area = b.area * fusionArea * skillAreaMultiplier(lvl) * areaMult(b.element);
-  p.castAnim = state.classId === "necromancer" ? 0.46 : state.classId === "vampirePrincess" ? 0.42 : 0.24;
-  if (state.classId === "vampirePrincess") {
+    p.castAnim = state.classId === "necromancer" ? 0.46 : state.classId === "vampirePrincess" ? 0.42 : state.classId === "hellLord" ? 0.52 : state.classId === "elf" ? 0.46 : state.classId === "roundTableKnight" ? 0.44 : 0.24;
+  if (state.classId === "vampirePrincess" || state.classId === "hellLord" || state.classId === "elf") {
     const castTarget = nearestEnemy(p);
-    if (castTarget) p.castAngle = Math.atan2(castTarget.y - p.y, castTarget.x - p.x);
+    if (castTarget) {
+      p.castAngle = Math.atan2(castTarget.y - p.y, castTarget.x - p.x);
+      p.face = p.castAngle;
+    }
   }
 
   if (b.type === "bolt") {
@@ -1762,7 +1768,7 @@ function castFireBreathBarrage(origin, target, area, damage, level) {
       0.42 + delay
     );
   }
-  addText("Breath of Fire", origin.x - 54, origin.y - 58, "#ffb35a");
+  addText("火之呼吸", origin.x - 54, origin.y - 58, "#ffb35a");
 }
 
 function fireBloodSpear(x, y, tx, ty, damage, level) {
@@ -1876,7 +1882,7 @@ function castVirulentPlague(x, y, level, area, damage) {
       diseaseDamage: damage * 0.035
     }));
   }
-  addText("Virulent Plague", x - 54, y - 42, "#b7ff62");
+  addText("恶性瘟疫", x - 54, y - 42, "#b7ff62");
 }
 
 function castChainLightning(origin, level, range, damage, element) {
@@ -2202,7 +2208,77 @@ function distanceDamageMultiplier(distance, radius, minMultiplier = 0.3) {
   return minMultiplier + (1 - minMultiplier) * (1 - t);
 }
 
+function damageStatName(source) {
+  if (!source) return "Other";
+  if (skillBook?.[source]?.name) return skillBook[source].name;
+  const labels = {
+    arcane: "Arcane",
+    burn: "Burn",
+    disease: "Disease",
+    earth: "Earth",
+    fire: "Fire",
+    follower: "Follower",
+    ice: "Ice",
+    lightning: "Lightning",
+    physical: "Physical",
+    poison: "Poison",
+    spirit: "Spirit",
+    wind: "Wind"
+  };
+  return labels[source] || String(source);
+}
+
+function recordDamage(source, amount) {
+  if (!state?.damageStats || !Number.isFinite(amount) || amount <= 0) return;
+  const key = damageStatName(source);
+  state.damageStats[key] = (state.damageStats[key] || 0) + amount;
+  state.damageStatsTotal = (state.damageStatsTotal || 0) + amount;
+}
+
+function formatDamageAmount(value) {
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+  if (value >= 10000) return `${Math.round(value / 1000)}K`;
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+  return `${Math.round(value)}`;
+}
+
+function addSkillWarning(shape, x, y, opts = {}) {
+  if (!state?.warnings || !Number.isFinite(x) || !Number.isFinite(y)) return;
+  const duration = opts.duration ?? 0.5;
+  state.warnings.push({
+    shape,
+    x,
+    y,
+    radius: opts.radius || 80,
+    angle: opts.angle || 0,
+    length: opts.length || 120,
+    width: opts.width || 60,
+    arc: opts.arc || Math.PI / 3,
+    color: opts.color || "#ff6a5a",
+    life: duration,
+    maxLife: duration
+  });
+  if (state.warnings.length > 70) {
+    state.warnings.splice(0, state.warnings.length - 70);
+  }
+}
+
+function updateSkillWarnings(dt) {
+  if (!state?.warnings) return;
+  for (let i = state.warnings.length - 1; i >= 0; i--) {
+    state.warnings[i].life -= dt;
+    if (state.warnings[i].life <= 0) state.warnings.splice(i, 1);
+  }
+}
+
 function damagePlayerAndFollowersCircle(x, y, radius, damage, color = "#ff7a66", opts = {}) {
+  if (!opts.noWarning) {
+    addSkillWarning("circle", x, y, {
+      radius,
+      color,
+      duration: opts.warningDuration ?? 0.45
+    });
+  }
   const p = state.player;
   const playerDistance = Math.hypot(p.x - x, p.y - y);
   if (playerDistance < radius + p.r && p.hitGrace <= 0) {
@@ -2221,7 +2297,16 @@ function damagePlayerAndFollowersCircle(x, y, radius, damage, color = "#ff7a66",
   }
 }
 
-function damagePlayerAndFollowersRect(x, y, angle, length, width, damage) {
+function damagePlayerAndFollowersRect(x, y, angle, length, width, damage, color = "#71ffa0", opts = {}) {
+  if (!opts.noWarning) {
+    addSkillWarning("rect", x, y, {
+      angle,
+      length,
+      width,
+      color,
+      duration: opts.warningDuration ?? 0.45
+    });
+  }
   const hitTarget = target => {
     const dx = target.x - x;
     const dy = target.y - y;
@@ -2234,7 +2319,7 @@ function damagePlayerAndFollowersRect(x, y, angle, length, width, damage) {
     const taken = Math.max(1, damage - effectiveDefense() * 0.35) * (1 - effectiveGroupReduce());
     p.hp -= taken;
     p.hitGrace = 0.55;
-    addText(`-${Math.ceil(taken)}`, p.x - 10, p.y - 28, "#71ffa0");
+    addText(`-${Math.ceil(taken)}`, p.x - 10, p.y - 28, color);
   }
   for (const f of state.followers) {
     if (f.hp > 0 && hitTarget(f)) damageFollower(f, damage * 0.78);
@@ -2257,7 +2342,16 @@ function knockbackPlayerAndFollowersRect(x, y, angle, length, width, push) {
   }
 }
 
-function damagePlayerAndFollowersCone(x, y, angle, range, arc, damage, color = "#ff7a66") {
+function damagePlayerAndFollowersCone(x, y, angle, range, arc, damage, color = "#ff7a66", opts = {}) {
+  if (!opts.noWarning) {
+    addSkillWarning("cone", x, y, {
+      angle,
+      radius: range,
+      arc,
+      color,
+      duration: opts.warningDuration ?? 0.45
+    });
+  }
   const hitTarget = target => {
     const dx = target.x - x;
     const dy = target.y - y;
@@ -2489,7 +2583,7 @@ function addParticles(x, y, color, count, radius, life) {
   }
 }
 
-function hitMonster(m, amount, element) {
+function hitMonster(m, amount, element, source) {
   if ((m.awaken || 0) > 0) return;
   if (m.tag === "ghost" && element === "physical" && Math.random() < 0.5) {
     addText("MISS", m.x - 16, m.y - 18, "#cfe8ff");
@@ -2499,8 +2593,10 @@ function hitMonster(m, amount, element) {
   const p = state.player;
   const crit = Math.random() < p.crit;
   const vulnerable = m.burnVulnerable?.time > 0 ? 1 + (m.burnVulnerable.amp || 0) : 1;
+  const beforeHp = Math.max(0, m.hp);
   const dmg = amount * vulnerable * (crit ? p.critMul : 1);
   m.hp -= dmg;
+  recordDamage(source || element, Math.min(beforeHp, Math.max(0, dmg)));
   if (state.classId === "vampirePrincess" && dmg > 0) {
     p.hp = Math.min(p.maxHp, p.hp + dmg * classLevel() * 0.01);
   }
@@ -2546,7 +2642,7 @@ function damageCircle(x, y, r, damage, element, slow, opts = {}) {
     const distance = Math.hypot(m.x - x, m.y - y);
     if (distance < r + m.r) {
       const falloff = opts.falloff ? distanceDamageMultiplier(distance, r, opts.minMultiplier) : 1;
-      hitMonster(m, damage * falloff, element);
+      hitMonster(m, damage * falloff, element, opts.source || opts.skill || opts.name || element);
       if (slow) {
         m.slow = 1;
         if (element === "ice") m.frozen = Math.max(m.frozen || 0, 1.15);
@@ -2568,7 +2664,7 @@ function updateAbsoluteZero(dt) {
   const damage = b.damage * SKILL_POWER_MULT * FUSION_DAMAGE_MULT * skillDamageMultiplier(lvl) * p.damage * (1 + (p.classDamageAura || 0)) * elementMult("ice") * dt;
   for (const m of state.monsters) {
     if (Math.hypot(m.x - p.x, m.y - p.y) >= area + m.r) continue;
-    hitMonster(m, damage, "ice");
+    hitMonster(m, damage, "ice", "absoluteZero");
     m.slow = Math.max(m.slow || 0, 1);
     if (!m.absoluteZeroTouched) {
       m.absoluteZeroTouched = true;
@@ -2721,7 +2817,7 @@ function updateSpiritOrbit(dt) {
       const distance = moveToward(wisp, target.x, target.y, 410 + cfg.level * 24);
       addLine(oldX, oldY, wisp.x, wisp.y, "rgba(188,224,255,.28)", 5 + cfg.level * 0.35, 0.13, true);
       if (distance <= cfg.hitRadius + target.r + 6) {
-        hitMonster(target, cfg.damage, "arcane");
+        hitMonster(target, cfg.damage, "arcane", "spiritTaming");
         target.slow = Math.max(target.slow || 0, 0.18 + cfg.level * 0.015);
         addRing(target.x, target.y, 24 + cfg.hitRadius, "rgba(206,235,255,.58)", 0.22);
         addParticles(target.x, target.y, "rgba(226,241,255,.58)", 8, 24, 0.32);
@@ -2741,6 +2837,7 @@ function updateSpiritOrbit(dt) {
 
 function update(dt) {
   if (!state.running || state.paused) return;
+  updateSkillWarnings(dt);
   const p = state.player;
   const hpBeforeUpdate = p.hp;
   p.hitFlash = Math.max(0, (p.hitFlash || 0) - dt);
@@ -2793,6 +2890,7 @@ function update(dt) {
   mx += touchMove.x;
   my += touchMove.y;
   const len = Math.hypot(mx, my) || 1;
+  if (Math.abs(mx) + Math.abs(my) > 0.04) p.face = Math.atan2(my, mx);
   p.x += (mx / len) * p.speed * diseaseMoveMult(p) * dt;
   p.y += (my / len) * p.speed * diseaseMoveMult(p) * dt;
 
@@ -3187,11 +3285,11 @@ function openBlackMarket() {
   const followerPool = [...followerChoices].sort(() => Math.random() - 0.5).slice(0, 3);
   followerPool.forEach((f, index) => {
     const cost = (70 + f.tier * 25 + index * 12) * 10;
-    const next = followerEvolvesTo[f.id] ? followerById[followerEvolvesTo[f.id]].name : "higher tier";
+    const next = followerEvolvesTo[f.id] ? followerById[followerEvolvesTo[f.id]].name : "更高阶";
     saleEntries.push({
       label: f.name,
       cost,
-      desc: `Follower piece. Three ${f.name} merge into ${next}.`,
+      desc: `随从碎片：集齐 3 个 ${f.name} 可合成为${next}。`,
       buy: finalCost => buyFollowerOffer(f, finalCost)
     });
   });
@@ -3214,20 +3312,20 @@ function openBlackMarket() {
     const cost = discounted ? Math.ceil(entry.cost * 0.5) : entry.cost;
     offers.push({
       title: `${entry.label} - ${cost} Gold${discounted ? " (50% off)" : ""}`,
-      desc: discounted ? `${entry.desc} Coupon discount applied.` : entry.desc,
+      desc: discounted ? `${entry.desc} 优惠券已生效。` : entry.desc,
       run: () => entry.buy(cost)
     });
   });
   if (!marketGear.size) {
     offers.push({
-      title: "Gear Sold Out",
-      desc: "You already own every non-duplicate gear item.",
+      title: "装备已售罄",
+      desc: "你已经拥有全部不可重复道具。",
       run: () => false
     });
   }
   offers.push({
-    title: "Leave Black Market",
-    desc: "Close the merchant panel.",
+    title: "离开黑市",
+    desc: "关闭商人面板。",
     run: () => true
   });
 
@@ -3253,7 +3351,7 @@ function openBlackMarket() {
 
 function buyFollowerOffer(follower, cost) {
   if ((state.gold || 0) < cost) {
-    addText("Need more Gold", state.player.x - 42, state.player.y - 46, "#ffd36b");
+    addText("金币不足", state.player.x - 42, state.player.y - 46, "#ffd36b");
     return false;
   }
   if (permanentFollowerCount() >= followerLimit()) {
@@ -3262,21 +3360,21 @@ function buyFollowerOffer(follower, cost) {
   }
   state.gold -= cost;
   addFollower(follower);
-  addText(`Bought ${follower.name}`, state.player.x - 56, state.player.y - 48, "#ffd36b");
+  addText(`已购买 ${follower.name}`, state.player.x - 56, state.player.y - 48, "#ffd36b");
   return false;
 }
 
 function buyGearOffer(gear, cost) {
   if ((state.gold || 0) < cost) {
-    addText("Need more Gold", state.player.x - 42, state.player.y - 46, "#ffd36b");
+    addText("金币不足", state.player.x - 42, state.player.y - 46, "#ffd36b");
     return false;
   }
-  if (!applyUniqueGear(gear, "Black Market")) {
-    addText("Already owned", state.player.x - 42, state.player.y - 46, "#ffd36b");
+  if (!applyUniqueGear(gear, "黑市")) {
+    addText("已拥有", state.player.x - 42, state.player.y - 46, "#ffd36b");
     return false;
   }
   state.gold -= cost;
-  addText(`Bought ${gearTitle(gear)}`, state.player.x - 56, state.player.y - 48, gearRarityInfo[gear.rarity]?.color || "#ffd36b");
+  addText(`已购买 ${gearTitle(gear)}`, state.player.x - 56, state.player.y - 48, gearRarityInfo[gear.rarity]?.color || "#ffd36b");
   addRing(state.player.x, state.player.y, 52, "rgba(255,211,107,.85)", 0.45);
   return false;
 }
@@ -3348,9 +3446,11 @@ function updateFollowers(dt) {
     const speedBoost = isRogueFollower(f) ? (f.id === "ninjaGirl" ? 1.65 : f.id === "assassinGirl" ? 1.45 : 1.35) : isSpiderFollower(f) ? (f.id === "jorogumo" ? 1.12 : f.id === "bigSpider" ? 1.18 : 1.32) : isGhostFollower(f) ? 1.28 : isFairyFollower(f) ? 1.2 : f.id === "littleDemon" ? 1.32 : isDemonFollower(f) ? 1.12 : f.id === "ghoul" ? 1.16 : f.id === "abomination" ? 0.82 : f.id === "abominationGiant" ? 0.72 : 1;
     const speed = (target ? 185 : 230) * speedBoost * (1 + (p.followerMoveAura || 0)) * diseaseMoveMult(f);
     if (!target || d > desired) {
+      f.face = Math.atan2(dy, dx);
       f.x += (dx / d) * speed * dt;
       f.y += (dy / d) * speed * dt;
     } else if (target && d < desired * 0.7) {
+      f.face = Math.atan2(-dy, -dx);
       f.x -= (dx / d) * speed * 0.55 * dt;
       f.y -= (dy / d) * speed * 0.55 * dt;
     }
@@ -3714,7 +3814,7 @@ function updateGhoulFollowerSkills(f, dt) {
   f.cast = 0.72;
   f.face = Math.atan2(target.y - f.y, target.x - f.x);
   firePlagueBolt(f.x, f.y - 10, target.x, target.y, f.damage * timeGrowth() * state.player.damage * 1.45, 175, 3);
-  addText("Black Plague", f.x - 48, f.y - 52, "#a8ff55");
+  addText("黑死病", f.x - 48, f.y - 52, "#a8ff55");
   f.skillCd = 6.8 * (state.player.followerCooldown || 1);
 }
 
@@ -3884,7 +3984,7 @@ function fireFairyBolt(f, target, damage) {
     damage: damage * (isPixie ? 0.95 : 1.05),
     r: isPixie ? 12 : 7 + f.tier,
     element: "poison",
-    color: isPixie ? "rgba(206,255,112,.95)" : "rgba(150,255,110,.9)",
+    color: isPixie ? "rgba(66,255,118,.98)" : "rgba(150,255,110,.9)",
     life: 1.25,
     pierce: false,
     hit: new Set(),
@@ -3912,7 +4012,7 @@ function castFairyPoisonCloud(f, target) {
     poisonDamage: damage * 0.18
   });
   addParticles(target.x, target.y, "rgba(142,255,103,.65)", 14 + f.tier * 3, area * 0.35, 1.7);
-  addText("Poison Cloud", target.x - 42, target.y - 36, "#9bff75");
+  addText("毒气云", target.x - 42, target.y - 36, "#9bff75");
 }
 
 function summonTreantGuardian(f, target) {
@@ -3948,7 +4048,7 @@ function fireFollowerFireball(f, target, damage) {
   const muzzleX = f.x + Math.cos(a) * 20;
   const muzzleY = f.y + Math.sin(a) * 20;
   state.projectiles.push({
-    kind: "furnaceFireball",
+    kind: f.id === "furnace" ? "furnaceOrb" : "furnaceFireball",
     x: muzzleX,
     y: muzzleY,
     px: muzzleX,
@@ -4109,11 +4209,16 @@ function spawnMeteorProjectile(tx, ty, area, damage, kind = "playerMeteor", dela
     angle: Math.atan2(ty - startY, tx - startX),
     spin: rand(0, Math.PI * 2)
   });
+  addSkillWarning("circle", tx, ty, {
+    radius: Math.max(42, area),
+    color: "#ff8a3a",
+    duration: Math.max(0.55, delay + 0.55)
+  });
   if (delay <= 0.05) addRing(tx, ty, Math.max(48, area * 0.55), "rgba(255,82,34,.38)", 0.45);
 }
 
 function meteorImpact(x, y, area, damage) {
-  damageCircle(x, y, area, damage, "fire", false);
+  damageCircle(x, y, area, damage, "fire", false, { source: "meteor" });
   state.zones.push({ x, y, r: area, life: 0.62, maxLife: 0.62, damage: 0, element: "fire", type: "meteorExplosionFx", color: "rgba(255,72,32,.34)", grow: 1.75, spin: rand(0, Math.PI * 2) });
   addRing(x, y, area * 1.04, "rgba(255,180,62,.75)", 0.45);
   addParticles(x, y, "rgba(255,118,42,.86)", 26, area * 0.52, 0.55);
@@ -4123,7 +4228,7 @@ function meteorImpact(x, y, area, damage) {
   }
 }
 
-function damageCone(x, y, tx, ty, range, arc, damage, element) {
+function damageCone(x, y, tx, ty, range, arc, damage, element, source) {
   const facing = Math.atan2(ty - y, tx - x);
   for (const m of state.monsters) {
     const dx = m.x - x;
@@ -4131,7 +4236,7 @@ function damageCone(x, y, tx, ty, range, arc, damage, element) {
     const d = Math.hypot(dx, dy);
     if (d > range + m.r) continue;
     let diff = Math.atan2(Math.sin(Math.atan2(dy, dx) - facing), Math.cos(Math.atan2(dy, dx) - facing));
-    if (Math.abs(diff) <= arc * 0.5) hitMonster(m, damage * (1 - d / (range * 1.35)), element);
+    if (Math.abs(diff) <= arc * 0.5) hitMonster(m, damage * (1 - d / (range * 1.35)), element, source || element);
   }
 }
 
@@ -4190,7 +4295,7 @@ function updateProjectiles(dt) {
     }
     pr.x += pr.vx * dt;
     pr.y += pr.vy * dt;
-    if (pr.kind === "furnaceFireball") {
+    if (pr.kind === "furnaceFireball" || pr.kind === "furnaceOrb") {
       pr.spin += dt * 12;
       pr.trail = (pr.trail || 0) - dt;
       if (pr.trail <= 0) {
@@ -4231,6 +4336,10 @@ function updateProjectiles(dt) {
         hitMonster(m, pr.damage, pr.element);
         pr.hit.add(m);
         if (pr.kind === "fairyBolt" || pr.kind === "pixieOrb") applyPoison(m, Math.max(2, pr.damage * 0.12), 4.5);
+        if (pr.kind === "pixieOrb") {
+          addRing(pr.x, pr.y, 32, "rgba(66,255,118,.78)", 0.24);
+          addParticles(pr.x, pr.y, "rgba(118,255,154,.68)", 7, 24, 0.3);
+        }
         if (pr.kind === "spiritBolt") {
           m.slow = Math.max(m.slow || 0, pr.slow || 0.2);
           addRing(pr.x, pr.y, 24 + pr.r * 0.9, "rgba(218,238,255,.55)", 0.2);
@@ -4244,7 +4353,7 @@ function updateProjectiles(dt) {
             addLine(pr.x, pr.y, pr.x + Math.cos(a) * rand(12, 32), pr.y + Math.sin(a) * rand(12, 32), "rgba(126,94,62,.62)", rand(2, 5), 0.18, true);
           }
         }
-        if (pr.kind === "furnaceFireball") {
+        if (pr.kind === "furnaceFireball" || pr.kind === "furnaceOrb") {
           damageCircle(pr.x, pr.y, 34, pr.damage * 0.35, "fire", false);
           addRing(pr.x, pr.y, 42, "rgba(255,130,36,.9)", 0.32);
           for (let k = 0; k < 3; k++) {
@@ -4478,6 +4587,7 @@ function updateMonsters(dt) {
     const target = followerTarget || p;
     const targetRadius = followerTarget ? 15 : p.r;
     const a = Math.atan2(target.y - m.y, target.x - m.x);
+    m.face = a;
     const slow = m.slow ? 0.55 : 1;
     m.slow = Math.max(0, (m.slow || 0) - dt);
     m.frozen = Math.max(0, (m.frozen || 0) - dt);
@@ -4754,8 +4864,8 @@ function openLevelChoices() {
       const iceAgeFusion = id === "iceAge" && !state.skills.iceAge;
       const breathFusion = id === "breathOfFire" && !state.skills.breathOfFire;
       const dimensionalFusion = id === "dimensionalSlash" && !state.skills.dimensionalSlash;
-      const title = fusion ? "Fusion: Flame Tornado" : doomFusion ? "Fusion: Doomsday Judgment" : forkFusion ? "Fusion: Fork Lightning" : plagueFusion ? "Fusion: Virulent Plague" : absoluteFusion ? "Fusion: Absolute Zero" : iceAgeFusion ? "Fusion: Ice Age" : breathFusion ? "Fusion: Breath of Fire" : dimensionalFusion ? "Fusion: Dimensional Slash" : current ? skillBook[id].name + " Lv." + Math.min(7, current + 1) : "Learn " + skillBook[id].name;
-      const desc = fusion ? "Consumes Lv.7 Fire Breath and Lv.7 Tornado." : doomFusion ? "Consumes Lv.7 Lava Field, Meteor, Earthquake and sacrifices 1 Red Lotus Beast." : forkFusion ? "Consumes Lv.7 Fire Breath and Lv.7 Chain Lightning." : plagueFusion ? "Consumes Lv.7 Poison Cloud and Lv.7 Black Plague." : absoluteFusion ? "Consumes Lv.7 Blizzard and Lv.7 Frost Nova." : iceAgeFusion ? "Consumes Lv.7 Arrow Rain and Lv.7 Frost Nova." : breathFusion ? "Consumes Lv.7 Pain Scream and Lv.7 Fire Breath." : dimensionalFusion ? "Consumes Lv.7 Earthquake and Lv.7 Cleave." : skillBook[id].desc;
+      const title = fusion ? "合成：火龙卷" : doomFusion ? "合成：末日审判" : forkFusion ? "合成：叉状闪电" : plagueFusion ? "合成：恶性瘟疫" : absoluteFusion ? "合成：绝对零度" : iceAgeFusion ? "合成：冰河期" : breathFusion ? "合成：火之呼吸" : dimensionalFusion ? "合成：次元斩" : current ? skillBook[id].name + " Lv." + Math.min(7, current + 1) : "学习 " + skillBook[id].name;
+      const desc = fusion ? "消耗 7 级喷火和 7 级龙卷风。" : doomFusion ? "消耗 7 级熔岩地带、陨石坠落、地震，并献祭 1 个红莲星兽。" : forkFusion ? "消耗 7 级喷火和 7 级连锁闪电。" : plagueFusion ? "消耗 7 级毒气云和 7 级黑死病。" : absoluteFusion ? "消耗 7 级暴风雪和 7 级霜冻新星。" : iceAgeFusion ? "消耗 7 级箭雨和 7 级霜冻新星。" : breathFusion ? "消耗 7 级痛苦尖叫和 7 级喷火。" : dimensionalFusion ? "消耗 7 级地震和 7 级劈砍。" : skillBook[id].desc;
       choices.push({ title, desc, run: () => learnSkill(id) });
     } else {
       const f = pick(followerChoices);
@@ -4904,20 +5014,20 @@ function learnSkill(id) {
     delete state.skills.fireBreath;
     delete state.skills.tornado;
     state.skills.flameTornado = skillState("flameTornado");
-    addText("Fusion: Flame Tornado", state.player.x - 68, state.player.y - 56, "#ffb35a");
+    addText("合成：火龙卷", state.player.x - 68, state.player.y - 56, "#ffb35a");
     addRing(state.player.x, state.player.y, 96, "rgba(255,110,36,.9)", 0.75);
     return;
   }
   if (id === "doom" && !state.skills.doom) {
     if (!doomAvailable() || !sacrificeRedLotusBeast()) {
-      addText("Doomsday needs Lv.7 Lava, Meteor, Quake and Red Lotus Beast", state.player.x - 140, state.player.y - 58, "#ffb35a");
+      addText("末日审判需要 7 级熔岩地带、陨石坠落、地震和红莲星兽", state.player.x - 140, state.player.y - 58, "#ffb35a");
       return;
     }
     delete state.skills.lavaField;
     delete state.skills.meteor;
     delete state.skills.earthquake;
     state.skills.doom = skillState("doom");
-    addText("Fusion: Doomsday Judgment", state.player.x - 88, state.player.y - 72, "#ff7038");
+    addText("合成：末日审判", state.player.x - 88, state.player.y - 72, "#ff7038");
     addRing(state.player.x, state.player.y, 160, "rgba(255,82,30,.95)", 1.1);
     return;
   }
@@ -4926,7 +5036,7 @@ function learnSkill(id) {
     delete state.skills.fireBreath;
     delete state.skills.chainLightning;
     state.skills.forkLightning = skillState("forkLightning");
-    addText("Fusion: Fork Lightning", state.player.x - 74, state.player.y - 62, "#7fd4ff");
+    addText("合成：叉状闪电", state.player.x - 74, state.player.y - 62, "#7fd4ff");
     addRing(state.player.x, state.player.y, 118, "rgba(94,184,255,.9)", 0.82);
     return;
   }
@@ -4935,7 +5045,7 @@ function learnSkill(id) {
     delete state.skills.poisonCloud;
     delete state.skills.blackPlague;
     state.skills.virulentPlague = skillState("virulentPlague");
-    addText("Fusion: Virulent Plague", state.player.x - 82, state.player.y - 66, "#b7ff62");
+    addText("合成：恶性瘟疫", state.player.x - 82, state.player.y - 66, "#b7ff62");
     addRing(state.player.x, state.player.y, 128, "rgba(145,255,64,.9)", 0.88);
     return;
   }
@@ -4944,7 +5054,7 @@ function learnSkill(id) {
     delete state.skills.blizzard;
     delete state.skills.frostNova;
     state.skills.absoluteZero = skillState("absoluteZero");
-    addText("Fusion: Absolute Zero", state.player.x - 78, state.player.y - 66, "#aee9ff");
+    addText("合成：绝对零度", state.player.x - 78, state.player.y - 66, "#aee9ff");
     addRing(state.player.x, state.player.y, 138, "rgba(170,235,255,.92)", 0.92);
     return;
   }
@@ -4953,7 +5063,7 @@ function learnSkill(id) {
     delete state.skills.arrowRain;
     delete state.skills.frostNova;
     state.skills.iceAge = skillState("iceAge");
-    addText("Fusion: Ice Age", state.player.x - 62, state.player.y - 66, "#9fe7ff");
+    addText("合成：冰河期", state.player.x - 62, state.player.y - 66, "#9fe7ff");
     addRing(state.player.x, state.player.y, 132, "rgba(145,220,255,.9)", 0.9);
     return;
   }
@@ -4962,7 +5072,7 @@ function learnSkill(id) {
     delete state.skills.painScream;
     delete state.skills.fireBreath;
     state.skills.breathOfFire = skillState("breathOfFire");
-    addText("Fusion: Breath of Fire", state.player.x - 78, state.player.y - 66, "#ffb35a");
+    addText("合成：火之呼吸", state.player.x - 78, state.player.y - 66, "#ffb35a");
     addRing(state.player.x, state.player.y, 126, "rgba(255,104,38,.9)", 0.88);
     return;
   }
@@ -4971,7 +5081,7 @@ function learnSkill(id) {
     delete state.skills.earthquake;
     delete state.skills.cleave;
     state.skills.dimensionalSlash = skillState("dimensionalSlash");
-    addText("Fusion: Dimensional Slash", state.player.x - 88, state.player.y - 68, "#c67cff");
+    addText("合成：次元斩", state.player.x - 88, state.player.y - 68, "#c67cff");
     addRing(state.player.x, state.player.y, 145, "rgba(185,92,255,.9)", 0.95);
     return;
   }
@@ -5043,7 +5153,7 @@ function awardArtifact(forcedName = null) {
   if (!a) {
     const bonusGold = 420 + Math.floor(state.time / 60) * 35;
     addGold(bonusGold, state.player.x, state.player.y);
-    addText(`Artifact duplicate: +${bonusGold} Gold`, 72, 105, "#ffd36b");
+    addText(`神器重复：+${bonusGold} 金币`, 72, 105, "#ffd36b");
     return;
   }
   a.apply(state.player);
@@ -5056,6 +5166,99 @@ function checkFusions() {
   const add = id => { if (!state.skills[id]) { state.skills[id] = skillState(id); addText(`合成：${skillBook[id].name}`, 72, 165, "#ffd36b"); } };
   if (has("tornado") && has("thunderCloud")) add("lightningStorm");
   if (has("meteor") && has("frostNova")) add("iceRing");
+}
+
+function drawSkillWarnings() {
+  if (!state?.warnings?.length) return;
+  ctx.save();
+  for (const w of state.warnings) {
+    const maxLife = Math.max(0.001, w.maxLife || 0.5);
+    const progress = 1 - w.life / maxLife;
+    const pulse = 0.5 + 0.5 * Math.sin(progress * Math.PI * 6);
+    ctx.save();
+    ctx.globalAlpha = 0.14 + pulse * 0.06;
+    ctx.fillStyle = w.color;
+    ctx.strokeStyle = w.color;
+    ctx.lineWidth = 3 + pulse * 2;
+    if (ctx.setLineDash) ctx.setLineDash([12, 8]);
+    if (w.shape === "circle") {
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.72;
+      ctx.stroke();
+      if (ctx.setLineDash) ctx.setLineDash([]);
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.moveTo(w.x - w.radius * 0.22, w.y);
+      ctx.lineTo(w.x + w.radius * 0.22, w.y);
+      ctx.moveTo(w.x, w.y - w.radius * 0.22);
+      ctx.lineTo(w.x, w.y + w.radius * 0.22);
+      ctx.stroke();
+    } else if (w.shape === "rect") {
+      ctx.translate(w.x, w.y);
+      ctx.rotate(w.angle);
+      ctx.beginPath();
+      ctx.rect(0, -w.width * 0.5, w.length, w.width);
+      ctx.fill();
+      ctx.globalAlpha = 0.72;
+      ctx.stroke();
+    } else if (w.shape === "cone") {
+      ctx.beginPath();
+      ctx.moveTo(w.x, w.y);
+      ctx.arc(w.x, w.y, w.radius, w.angle - w.arc * 0.5, w.angle + w.arc * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 0.72;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawDamageStatsPanel() {
+  if (!state?.running || !state.damageStats) return;
+  const entries = Object.entries(state.damageStats)
+    .filter(([, value]) => value > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6);
+  if (!entries.length) return;
+  const panelW = 212;
+  const x = Math.max(10, W - panelW - 12);
+  const y = 94;
+  const rowH = 18;
+  const panelH = 44 + entries.length * rowH;
+  const total = Math.max(1, state.damageStatsTotal || 0);
+  ctx.save();
+  ctx.fillStyle = "rgba(8,10,18,.74)";
+  ctx.strokeStyle = "rgba(255,255,255,.18)";
+  ctx.lineWidth = 1;
+  ctx.fillRect(x, y, panelW, panelH);
+  ctx.strokeRect(x, y, panelW, panelH);
+  ctx.fillStyle = "#f8f1d6";
+  ctx.font = "700 14px system-ui";
+  ctx.fillText("伤害统计", x + 12, y + 22);
+  ctx.fillStyle = "#ffd36b";
+  ctx.font = "700 12px system-ui";
+  ctx.textAlign = "right";
+  ctx.fillText(formatDamageAmount(state.damageStatsTotal || 0), x + panelW - 12, y + 22);
+  ctx.textAlign = "left";
+  ctx.font = "11px system-ui";
+  entries.forEach(([name, value], i) => {
+    const yy = y + 40 + i * rowH;
+    const ratio = Math.min(1, value / total);
+    ctx.fillStyle = "rgba(255,211,107,.18)";
+    ctx.fillRect(x + 12, yy + 2, panelW - 24, 9);
+    ctx.fillStyle = "rgba(255,211,107,.72)";
+    ctx.fillRect(x + 12, yy + 2, (panelW - 24) * ratio, 9);
+    ctx.fillStyle = "#f3ead2";
+    ctx.fillText(String(name).slice(0, 14), x + 14, yy + 10);
+    ctx.textAlign = "right";
+    ctx.fillText(formatDamageAmount(value), x + panelW - 14, yy + 10);
+    ctx.textAlign = "left";
+  });
+  ctx.restore();
 }
 
 function draw() {
@@ -5077,6 +5280,7 @@ function draw() {
   drawWorldBossSites();
   drawBlackMarket();
   drawSacrificeAltar();
+  drawSkillWarnings();
   for (const g of state.gems) if (visible(g, 40)) drawGem(g);
   for (const c of state.chests) if (visible(c, 50)) drawChest(c);
   for (const h of state.heals) if (visible(h, 50)) drawHeal(h);
@@ -5100,6 +5304,7 @@ function draw() {
   drawPlayer();
   ctx.restore();
   drawTopHud();
+  drawDamageStatsPanel();
   for (const t of state.texts) {
     const onScreen = t.x > camX - 120 && t.x < camX + W + 120 && t.y > camY - 120 && t.y < camY + H + 120;
     if (!onScreen) continue;
@@ -5213,7 +5418,7 @@ function drawBlackMarket() {
   ctx.fillStyle = near ? "#ffe28a" : "#e7d2ff";
   ctx.font = near ? "18px Microsoft YaHei" : "14px Microsoft YaHei";
   ctx.textAlign = "center";
-  ctx.fillText("Black Market", market.x, market.y - 72);
+  ctx.fillText(t("blackMarket"), market.x, market.y - 72);
   if (near) {
     ctx.fillStyle = "#fff5c9";
     ctx.font = "13px Microsoft YaHei";
@@ -6427,6 +6632,35 @@ function shadeColor(hex, amount) {
   return `rgb(${r | 0},${g | 0},${b | 0})`;
 }
 
+function drawUnitGroundShadow(x, y, size, alpha = 0.28) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const shadow = ctx.createRadialGradient(x, y + size * 0.39, size * 0.05, x, y + size * 0.39, size * 0.42);
+  shadow.addColorStop(0, "rgba(4,7,10,.8)");
+  shadow.addColorStop(0.58, "rgba(4,7,10,.42)");
+  shadow.addColorStop(1, "rgba(4,7,10,0)");
+  ctx.fillStyle = shadow;
+  ctx.beginPath();
+  ctx.ellipse(x, y + size * 0.39, size * 0.42, size * 0.13, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawUnifiedUnitSprite(img, x, y, size, face = 0, options = {}) {
+  const flip = options.flip === false ? 1 : Math.cos(face || 0) < -0.04 ? -1 : 1;
+  if (options.shadow !== false) drawUnitGroundShadow(x, y, size, options.shadowAlpha ?? 0.28);
+  ctx.save();
+  ctx.globalCompositeOperation = "source-over";
+  ctx.globalAlpha = options.alpha ?? 1;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  if (options.filter) ctx.filter = options.filter;
+  ctx.translate(x, y);
+  ctx.scale(flip, 1);
+  ctx.drawImage(img, -size * 0.5, -size * 0.58, size, size);
+  ctx.restore();
+}
+
 function drawCleanSpirit(size, phase = 0, alpha = 0.85) {
   ctx.save();
   ctx.globalAlpha *= alpha;
@@ -6537,7 +6771,7 @@ function drawNecromancerCast(p, image, size) {
   ctx.globalAlpha = lift * 0.2;
   ctx.imageSmoothingEnabled = false;
   ctx.translate(p.x - 5, p.y - 7 - lift * 10);
-  ctx.scale(1.08, 1.08);
+  ctx.scale((Math.cos(p.face || 0) < 0 ? -1 : 1) * 1.08, 1.08);
   ctx.drawImage(image, -size / 2, -size * 0.6, size, size);
   ctx.restore();
 
@@ -6545,7 +6779,7 @@ function drawNecromancerCast(p, image, size) {
   ctx.imageSmoothingEnabled = false;
   ctx.translate(p.x, p.y - lift * 8);
   ctx.rotate(-lift * 0.07 + Math.sin(progress * Math.PI * 2) * 0.018);
-  ctx.scale(1 + lift * 0.045, 1 + lift * 0.075);
+  ctx.scale((Math.cos(p.face || 0) < 0 ? -1 : 1) * (1 + lift * 0.045), 1 + lift * 0.075);
   ctx.drawImage(image, -size / 2, -size * 0.6, size, size);
   ctx.restore();
 
@@ -6602,6 +6836,7 @@ function drawVampireCast(p, image, size) {
     ctx.filter = "sepia(1) saturate(7) hue-rotate(305deg) brightness(0.85)";
     ctx.translate(p.x - forwardX * i * 8, p.y - forwardY * i * 8 - thrust * 3);
     ctx.rotate(-forwardY * thrust * 0.06);
+    ctx.scale(forwardX < 0 ? -1 : 1, 1);
     ctx.drawImage(image, -size / 2, -size * 0.6, size, size);
     ctx.restore();
   }
@@ -6610,7 +6845,7 @@ function drawVampireCast(p, image, size) {
   ctx.imageSmoothingEnabled = false;
   ctx.translate(p.x + forwardX * lunge, p.y + forwardY * lunge - thrust * 5);
   ctx.rotate(forwardY * thrust * 0.08);
-  ctx.scale(1 + thrust * 0.075, 1 - thrust * 0.025);
+  ctx.scale((forwardX < 0 ? -1 : 1) * (1 + thrust * 0.075), 1 - thrust * 0.025);
   ctx.drawImage(image, -size / 2, -size * 0.6, size, size);
   ctx.restore();
 
@@ -6633,6 +6868,217 @@ function drawVampireCast(p, image, size) {
   ctx.restore();
 }
 
+function drawHellLordCast(p, image, size) {
+  const duration = 0.52;
+  const progress = clamp(1 - (p.castAnim || 0) / duration, 0, 1);
+  const charge = Math.sin(Math.min(1, progress * 1.65) * Math.PI * 0.5);
+  const burst = Math.sin(progress * Math.PI);
+  const angle = p.castAngle || 0;
+  const recoil = Math.sin(progress * Math.PI * 2) * 3.5;
+
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.globalAlpha = 0.34 + burst * 0.32;
+  const groundGlow = ctx.createRadialGradient(p.x, p.y + 31, 3, p.x, p.y + 31, 56 + burst * 24);
+  groundGlow.addColorStop(0, "rgba(255,210,72,.82)");
+  groundGlow.addColorStop(0.32, "rgba(255,72,18,.52)");
+  groundGlow.addColorStop(1, "rgba(108,12,4,0)");
+  ctx.fillStyle = groundGlow;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 31, 55 + burst * 24, 18 + burst * 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,126,34,.82)";
+  ctx.lineWidth = 2.5 + burst * 2;
+  for (let i = 0; i < 7; i++) {
+    const a = angle + Math.PI + (i - 3) * 0.43 + Math.sin(state.time * 3 + i) * 0.08;
+    const inner = 13 + i % 2 * 5;
+    const outer = 42 + burst * 31 + (i % 3) * 7;
+    ctx.beginPath();
+    ctx.moveTo(p.x + Math.cos(a) * inner, p.y + 30 + Math.sin(a) * inner * 0.35);
+    ctx.lineTo(p.x + Math.cos(a) * outer * 0.56, p.y + 30 + Math.sin(a) * outer * 0.2);
+    ctx.lineTo(p.x + Math.cos(a) * outer, p.y + 30 + Math.sin(a) * outer * 0.35);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  for (let i = 2; i >= 1; i--) {
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha = burst * (0.08 + i * 0.04);
+    ctx.filter = "sepia(1) saturate(8) hue-rotate(330deg) brightness(1.05)";
+    ctx.translate(p.x - Math.cos(angle) * i * 5, p.y + charge * i * 3);
+    ctx.rotate(-Math.cos(angle) * burst * 0.045);
+    ctx.scale(Math.cos(angle) < 0 ? -1 : 1, 1);
+    ctx.drawImage(image, -size / 2, -size * 0.6, size, size);
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.translate(p.x + Math.cos(angle) * recoil, p.y + charge * 7 - burst * 5);
+  ctx.rotate(-Math.cos(angle) * burst * 0.06);
+  ctx.scale((Math.cos(angle) < 0 ? -1 : 1) * (1 + burst * 0.09), 1 - charge * 0.07 + burst * 0.12);
+  ctx.drawImage(image, -size / 2, -size * 0.6, size, size);
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 5; i++) {
+    const a = state.time * 3.8 + i * Math.PI * 0.4;
+    const r = 24 + burst * 18;
+    const x = p.x + Math.cos(a) * r;
+    const y = p.y - 8 + Math.sin(a) * r * 0.55 - charge * 8;
+    const ember = ctx.createRadialGradient(x, y, 0, x, y, 5 + burst * 4);
+    ember.addColorStop(0, "rgba(255,244,174,1)");
+    ember.addColorStop(0.38, "rgba(255,98,22,.88)");
+    ember.addColorStop(1, "rgba(255,30,8,0)");
+    ctx.fillStyle = ember;
+    ctx.beginPath();
+    ctx.arc(x, y, 5 + burst * 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawElfCast(p, image, size) {
+  const duration = 0.46;
+  const progress = clamp(1 - (p.castAnim || 0) / duration, 0, 1);
+  const draw = Math.sin(Math.min(1, progress * 1.45) * Math.PI * 0.5);
+  const release = clamp((progress - 0.58) / 0.42, 0, 1);
+  const snap = Math.sin(release * Math.PI);
+  const angle = p.castAngle || p.face || 0;
+  const fx = Math.cos(angle);
+  const fy = Math.sin(angle);
+  const retreat = draw * 8 - snap * 15;
+
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.globalAlpha = 0.3 + draw * 0.28;
+  ctx.strokeStyle = "rgba(148,255,102,.92)";
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 30, 37 + draw * 12, 12 + draw * 4, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  for (let i = 0; i < 5; i++) {
+    const a = state.time * 2.8 + i * Math.PI * 0.4;
+    const r = 24 + draw * 15;
+    const x = p.x + Math.cos(a) * r;
+    const y = p.y - 7 + Math.sin(a) * r * 0.42;
+    ctx.fillStyle = i % 2 ? "rgba(178,255,108,.76)" : "rgba(78,226,112,.7)";
+    ctx.beginPath();
+    ctx.ellipse(x, y, 2 + draw * 2.8, 5 + draw * 3, a, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  for (let i = 2; i >= 1; i--) {
+    ctx.save();
+    ctx.globalAlpha = snap * (0.08 + i * 0.035);
+    ctx.filter = "sepia(1) saturate(5) hue-rotate(55deg) brightness(1.08)";
+    ctx.translate(p.x - fx * i * 7, p.y - fy * i * 5);
+    ctx.scale(fx < 0 ? -1 : 1, 1);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(image, -size * 0.5, -size * 0.58, size, size);
+    ctx.restore();
+  }
+
+  drawUnifiedUnitSprite(image, p.x - fx * retreat, p.y - fy * retreat - draw * 3, size, angle, { shadow: false });
+
+  const bowX = p.x + fx * (27 - retreat);
+  const bowY = p.y - 11 + fy * (27 - retreat);
+  const sideX = -fy;
+  const sideY = fx;
+  const half = 18 + draw * 5;
+  const stringBackX = bowX - fx * (15 + draw * 16);
+  const stringBackY = bowY - fy * (15 + draw * 16);
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.strokeStyle = "rgba(197,255,140,.92)";
+  ctx.lineWidth = 2.5 + draw * 1.5;
+  ctx.beginPath();
+  ctx.moveTo(bowX + sideX * half, bowY + sideY * half);
+  ctx.quadraticCurveTo(bowX + fx * 9, bowY + fy * 9, bowX - sideX * half, bowY - sideY * half);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(235,255,219,.82)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(bowX + sideX * half, bowY + sideY * half);
+  ctx.lineTo(stringBackX, stringBackY);
+  ctx.lineTo(bowX - sideX * half, bowY - sideY * half);
+  ctx.stroke();
+  if (release > 0) {
+    const endX = bowX + fx * (70 + snap * 52);
+    const endY = bowY + fy * (70 + snap * 52);
+    const streak = ctx.createLinearGradient(bowX, bowY, endX, endY);
+    streak.addColorStop(0, "rgba(232,255,196,.95)");
+    streak.addColorStop(1, "rgba(74,232,110,0)");
+    ctx.strokeStyle = streak;
+    ctx.lineWidth = 3 + snap * 4;
+    ctx.beginPath();
+    ctx.moveTo(bowX, bowY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawMarshalCast(p, image, size) {
+  const duration = 0.44;
+  const progress = clamp(1 - (p.castAnim || 0) / duration, 0, 1);
+  const charge = Math.sin(Math.min(1, progress * 1.2) * Math.PI);
+  const release = clamp((progress - 0.34) / 0.66, 0, 1);
+  const slash = Math.sin(release * Math.PI);
+  const angle = p.castAngle || p.face || 0;
+  const fx = Math.cos(angle);
+  const fy = Math.sin(angle);
+  const lunge = charge * 7 + slash * 13;
+
+  for (let i = 2; i >= 1; i--) {
+    ctx.save();
+    ctx.globalAlpha = slash * (0.07 + i * 0.035);
+    ctx.filter = "sepia(1) saturate(4) hue-rotate(330deg) brightness(1.08)";
+    ctx.translate(p.x - fx * i * 8, p.y - fy * i * 5);
+    ctx.scale(fx < 0 ? -1 : 1, 1);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(image, -size * 0.5, -size * 0.58, size, size);
+    ctx.restore();
+  }
+
+  drawUnifiedUnitSprite(image, p.x + fx * lunge, p.y + fy * lunge - charge * 3, size * (1.04 + slash * 0.05), angle, { shadow: false });
+
+  ctx.save();
+  ctx.translate(p.x + fx * 16, p.y + fy * 16);
+  ctx.rotate(angle);
+  ctx.globalCompositeOperation = "lighter";
+  ctx.globalAlpha = 0.22 + slash * 0.62;
+  const reach = 82 + slash * 58;
+  const width = 44 + slash * 36;
+  const grd = ctx.createRadialGradient(reach * 0.45, 0, 3, reach * 0.45, 0, reach);
+  grd.addColorStop(0, "rgba(255,248,185,.9)");
+  grd.addColorStop(0.48, "rgba(255,178,40,.58)");
+  grd.addColorStop(1, "rgba(255,104,16,0)");
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.ellipse(reach * 0.52, 0, reach * 0.58, width, 0, -0.92, 0.92);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(255,238,150,.96)";
+  ctx.lineWidth = 4 + slash * 4;
+  ctx.beginPath();
+  ctx.arc(36 + slash * 24, 0, 56 + slash * 35, -0.9, 0.9);
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(255,132,28,.72)";
+  ctx.lineWidth = 2.2;
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(8, i * 7);
+    ctx.lineTo(104 + slash * 42, i * 18);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawPlayer() {
   const p = state.player;
   drawCircle(p.x, p.y, p.r + (p.ward ? 9 : 0), p.ward ? "rgba(125,190,255,.38)" : "rgba(255,255,255,.08)");
@@ -6641,16 +7087,22 @@ function drawPlayer() {
   const castImg = castFile && classImages[castFile];
   const classImg = castImg?.complete && castImg.naturalWidth ? castImg : classFile && classImages[classFile];
   if (classImg?.complete && classImg.naturalWidth && typeof ctx.drawImage === "function") {
-    const size = 100;
+    const size = 104;
+    drawUnitGroundShadow(p.x, p.y, size, 0.32);
     ctx.save();
     if (p.hitFlash > 0) ctx.filter = "sepia(1) saturate(8) hue-rotate(315deg) brightness(1.2)";
     if (state.classId === "necromancer" && p.castAnim > 0) {
       drawNecromancerCast(p, classImg, size);
     } else if (state.classId === "vampirePrincess" && p.castAnim > 0) {
       drawVampireCast(p, classImg, size);
+    } else if (state.classId === "hellLord" && p.castAnim > 0) {
+      drawHellLordCast(p, classImg, size);
+    } else if (state.classId === "elf" && p.castAnim > 0) {
+      drawElfCast(p, classImg, size);
+    } else if (state.classId === "roundTableKnight" && p.castAnim > 0) {
+      drawMarshalCast(p, classImg, size);
     } else {
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(classImg, p.x - size / 2, p.y - size * 0.6, size, size);
+      drawUnifiedUnitSprite(classImg, p.x, p.y, size, p.face || 0, { shadow: false, filter: p.hitFlash > 0 ? "sepia(1) saturate(8) hue-rotate(315deg) brightness(1.2)" : "" });
     }
     ctx.restore();
   } else {
@@ -6677,8 +7129,10 @@ function drawMonster(m) {
       drawCircle(m.x, m.y, size * 0.56, "#fff3cf");
       ctx.globalAlpha = 1;
     }
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(img, m.x - size / 2, m.y - size / 2, size, size);
+    drawUnifiedUnitSprite(img, m.x, m.y, size, m.face || 0, {
+      shadowAlpha: m.kind === "boss" ? 0.42 : m.kind === "elite" ? 0.35 : 0.28,
+      filter: m.hit > 0 ? "sepia(1) saturate(7) hue-rotate(315deg) brightness(1.16)" : ""
+    });
     if (m.frozen > 0) {
       ctx.save();
       ctx.globalAlpha = 0.46;
@@ -6696,7 +7150,6 @@ function drawMonster(m) {
       ctx.stroke();
       ctx.restore();
     }
-    ctx.imageSmoothingEnabled = true;
   } else {
     drawCircle(m.x, m.y, m.r, m.frozen > 0 ? "#063b98" : m.hit ? "#fff3cf" : m.color);
   }
@@ -6732,19 +7185,16 @@ function drawFollower(f) {
     const drawX = f.x + Math.cos(f.face || 0) * lunge;
     const drawY = f.y + Math.sin(f.face || 0) * lunge;
     ctx.save();
-    ctx.imageSmoothingEnabled = true;
-    ctx.shadowColor = isHumanFollower(f) ? "rgba(255,218,118,.72)" : isGhostFollower(f) ? "rgba(190,226,255,.82)" : isGhoulFollower(f) ? "rgba(150,255,80,.78)" : f.id === "reaper" || f.id === "skeletonWarrior" || f.id === "skeleton" ? "rgba(118,205,255,.78)" : f.id === "furnace" || f.id === "balrog" || f.id === "lotus" || isDemonFollower(f) ? "rgba(255,112,32,.85)" : f.id === "rock" || f.id === "golem" || isGiantFollower(f) ? "rgba(90,62,38,.75)" : "rgba(85,225,255,.65)";
-    ctx.shadowBlur = f.cast ? 24 : 14;
     if (f.cast) {
       ctx.globalAlpha = 0.78;
       drawCircle(drawX, drawY, size * 0.42, isHumanFollower(f) ? "rgba(255,220,120,.22)" : isGhostFollower(f) ? "rgba(190,226,255,.22)" : isGhoulFollower(f) ? "rgba(145,255,75,.24)" : isSkeletonFollower(f) ? "rgba(150,210,255,.22)" : f.id === "rock" || f.id === "golem" || isGiantFollower(f) ? "rgba(160,118,74,.24)" : isDemonFollower(f) ? "rgba(255,70,30,.28)" : "rgba(255,101,31,.26)");
       ctx.globalAlpha = 1;
     }
-    if (isGhostFollower(f)) ctx.globalAlpha = 0.88;
-    if (f.hitFlash > 0) ctx.filter = "sepia(1) saturate(8) hue-rotate(315deg) brightness(1.18)";
-    ctx.drawImage(img, drawX - size / 2, drawY - size / 2, size, size);
-    ctx.filter = "none";
-    ctx.globalAlpha = 1;
+    drawUnifiedUnitSprite(img, drawX, drawY, size, f.face || 0, {
+      alpha: isGhostFollower(f) ? 0.88 : 1,
+      shadowAlpha: isGiantFollower(f) ? 0.4 : 0.28,
+      filter: f.hitFlash > 0 ? "sepia(1) saturate(8) hue-rotate(315deg) brightness(1.18)" : ""
+    });
     drawFollowerHealth(f, drawX, drawY, size);
     ctx.restore();
     return;
@@ -7215,6 +7665,10 @@ function drawProjectile(pr) {
     drawLotusMeteor(pr);
     return;
   }
+  if (pr.kind === "furnaceOrb") {
+    drawFurnaceOrb(pr);
+    return;
+  }
   if (pr.kind === "furnaceFireball") {
     drawFurnaceFireball(pr);
     return;
@@ -7307,7 +7761,7 @@ function drawProjectile(pr) {
   if (pr.kind === "pixieOrb") {
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-    ctx.strokeStyle = "rgba(186,255,114,.34)";
+    ctx.strokeStyle = "rgba(66,255,118,.38)";
     ctx.globalAlpha = 0.7;
     ctx.lineWidth = 7;
     ctx.lineCap = "round";
@@ -7319,18 +7773,19 @@ function drawProjectile(pr) {
     ctx.translate(pr.x, pr.y);
     const pulse = 1 + Math.sin(state.time * 14 + (pr.x + pr.y) * 0.02) * 0.12;
     const aura = ctx.createRadialGradient(0, 0, 1, 0, 0, pr.r * 2.4);
-    aura.addColorStop(0, "rgba(255,255,205,.95)");
-    aura.addColorStop(0.38, "rgba(192,255,104,.82)");
-    aura.addColorStop(1, "rgba(76,224,130,0)");
+    aura.addColorStop(0, "rgba(236,255,241,1)");
+    aura.addColorStop(0.32, "rgba(78,255,132,.94)");
+    aura.addColorStop(0.7, "rgba(20,210,98,.58)");
+    aura.addColorStop(1, "rgba(8,132,72,0)");
     ctx.fillStyle = aura;
     ctx.beginPath();
     ctx.arc(0, 0, pr.r * 2.35 * pulse, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalCompositeOperation = "source-over";
-    ctx.shadowColor = "rgba(172,255,98,.9)";
+    ctx.shadowColor = "rgba(42,255,122,.96)";
     ctx.shadowBlur = 14;
-    drawCircle(0, 0, pr.r * pulse, "rgba(218,255,134,.95)");
-    ctx.strokeStyle = "rgba(86,255,154,.85)";
+    drawCircle(0, 0, pr.r * pulse, "rgba(72,244,122,.98)");
+    ctx.strokeStyle = "rgba(164,255,188,.92)";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(0, 0, pr.r * 1.35 * pulse, 0, Math.PI * 2);
@@ -7609,6 +8064,46 @@ function guideCard(title, body) {
   return `<div class="guide-card"><b>${esc(title)}</b>${esc(body)}</div>`;
 }
 
+function drawFurnaceOrb(pr) {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.strokeStyle = "rgba(255,118,32,.3)";
+  ctx.lineWidth = 7;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(pr.px, pr.py);
+  ctx.lineTo(pr.x, pr.y);
+  ctx.stroke();
+  ctx.translate(pr.x, pr.y);
+  const pulse = 1 + Math.sin(state.time * 17 + (pr.spin || 0)) * 0.12;
+  const aura = ctx.createRadialGradient(0, 0, 1, 0, 0, pr.r * 2.8);
+  aura.addColorStop(0, "rgba(255,255,224,1)");
+  aura.addColorStop(0.22, "rgba(255,218,86,.96)");
+  aura.addColorStop(0.55, "rgba(255,82,20,.68)");
+  aura.addColorStop(1, "rgba(170,18,4,0)");
+  ctx.fillStyle = aura;
+  ctx.beginPath();
+  ctx.arc(0, 0, pr.r * 2.7 * pulse, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalCompositeOperation = "source-over";
+  ctx.shadowColor = "rgba(255,92,20,.95)";
+  ctx.shadowBlur = 17;
+  ctx.fillStyle = "rgba(255,132,28,.98)";
+  ctx.beginPath();
+  ctx.arc(0, 0, pr.r * 1.08 * pulse, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,245,184,.94)";
+  ctx.beginPath();
+  ctx.arc(-pr.r * 0.28, -pr.r * 0.32, pr.r * 0.38, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,225,112,.9)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, 0, pr.r * 1.42 * pulse, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function renderGuideContent() {
   if (!guideContent) return;
   const tabs = [
@@ -7625,19 +8120,19 @@ function renderGuideContent() {
       const rarity = gearRarityInfo[gear.rarity] || gearRarityInfo.common;
       return `<div class="guide-card rarity-${esc(gear.rarity)}"><b>${esc(gear.name)}</b><span style="color:${rarity.color}">${esc(rarityLabel(gear.rarity))}</span><small>${esc(gear.desc)}</small></div>`;
     }).join("");
-    const artifactCards = artifactBook.map(item => `<div class="guide-card rarity-legendary"><b>${esc(item.name)}</b><span style="color:${gearRarityInfo.legendary.color}">Artifact</span><small>${esc(item.desc)}</small></div>`).join("");
+    const artifactCards = artifactBook.map(item => `<div class="guide-card rarity-legendary"><b>${esc(item.name)}</b><span style="color:${gearRarityInfo.legendary.color}">神器</span><small>${esc(item.desc)}</small></div>`).join("");
     content = `<section class="guide-section"><h3>${esc(t("codexItems"))} · ${gearBook.length + artifactBook.length}</h3><div class="guide-grid codex-grid">${gearCards}${artifactCards}</div></section>`;
   } else if (activeCodexTab === "creatures") {
-    const normalCards = monsterBook.map(m => guideCard(m[0], `Normal · HP ${m[2]} · SPD ${m[3]} · ATK ${m[4]}`)).join("");
-    const eliteCards = eliteBook.map(m => guideCard(m[0], `Elite · HP ${m[2]} · SPD ${m[3]} · ATK ${m[4]}`)).join("");
-    const bossCards = bossBook.map(m => guideCard(m[0], `Boss · HP ${m[2]} · SPD ${m[3]} · Reward ${m[4]}`)).join("")
-      + guideCard("Chimera", "World Boss · Fire Breath · Poison Cloud · Charge")
-      + guideCard("Typhon", "World Boss+ · Earthquake · Fire Breath · Meteor · Cleave");
-    const followerCards = followersBook.map(f => guideCard(f.name, `Follower / Enemy · Tier ${f.tier} · ${f.element} · ATK ${f.damage} · Range ${f.range}`)).join("");
+    const normalCards = monsterBook.map(m => guideCard(m[0], `普通 · 生命 ${m[2]} · 速度 ${m[3]} · 攻击 ${m[4]}`)).join("");
+    const eliteCards = eliteBook.map(m => guideCard(m[0], `精英 · 生命 ${m[2]} · 速度 ${m[3]} · 攻击 ${m[4]}`)).join("");
+    const bossCards = bossBook.map(m => guideCard(m[0], `Boss · 生命 ${m[2]} · 速度 ${m[3]} · 奖励 ${m[4]}`)).join("")
+      + guideCard("奇美拉", "世界 Boss · 喷火 · 毒气云 · 冲锋")
+      + guideCard("提丰", "高阶世界 Boss · 地震 · 喷火 · 陨石坠落 · 劈砍");
+    const followerCards = followersBook.map(f => guideCard(f.name, `随从 / 敌军 · 阶级 ${f.tier} · ${f.element} · 攻击 ${f.damage} · 范围 ${f.range}`)).join("");
     content = `
-      <section class="guide-section"><h3>Monsters</h3><div class="guide-grid codex-grid">${normalCards}</div></section>
-      <section class="guide-section"><h3>Elites & Bosses</h3><div class="guide-grid codex-grid">${eliteCards}${bossCards}</div></section>
-      <section class="guide-section"><h3>Followers & Summon Enemies</h3><div class="guide-grid codex-grid">${followerCards}</div></section>`;
+      <section class="guide-section"><h3>普通怪物</h3><div class="guide-grid codex-grid">${normalCards}</div></section>
+      <section class="guide-section"><h3>精英与 Boss</h3><div class="guide-grid codex-grid">${eliteCards}${bossCards}</div></section>
+      <section class="guide-section"><h3>随从与召唤敌军</h3><div class="guide-grid codex-grid">${followerCards}</div></section>`;
   } else if (activeCodexTab === "fusions") {
     const fusionCards = fusionRecipes.map(([name, req, effect]) => `<div class="guide-card fusion-card"><b>${esc(name)}</b><span>${esc(req)}</span><small>${esc(effect)}</small></div>`).join("");
     content = `<section class="guide-section"><h3>${esc(t("codexFusions"))} · ${fusionRecipes.length}</h3><div class="guide-grid codex-grid">${fusionCards}</div></section>`;
