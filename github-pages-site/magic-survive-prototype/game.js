@@ -1121,24 +1121,49 @@ const monsterAssetByName = {
   "Jorogumo": "Jorogumo.png"
 };
 const monsterImages = {};
+const assetLoadPromises = [];
+let assetsWarmPromise = null;
+
+function trackAssetImage(img) {
+  img.loading = "eager";
+  img.decoding = "async";
+  const loaded = img.complete && img.naturalWidth
+    ? Promise.resolve()
+    : new Promise(resolve => {
+      img.addEventListener("load", resolve, { once: true });
+      img.addEventListener("error", resolve, { once: true });
+    });
+  assetLoadPromises.push(loaded.then(() => img.decode ? img.decode().catch(() => {}) : null));
+  return img;
+}
+
+function ensureAssetsWarm() {
+  if (!assetsWarmPromise) {
+    assetsWarmPromise = Promise.allSettled(assetLoadPromises).then(() => {
+      ensureWorldMapCanvas();
+    });
+  }
+  return assetsWarmPromise;
+}
+
 for (const file of new Set(Object.values(monsterAssetByName))) {
-  const img = new Image();
+  const img = trackAssetImage(new Image());
   img.src = `./assets/monsters/${file}`;
   monsterImages[file] = img;
 }
-const arrowImage = new Image();
+const arrowImage = trackAssetImage(new Image());
 arrowImage.src = "./assets/monsters/Arrow.png";
-const stoneImage = new Image();
+const stoneImage = trackAssetImage(new Image());
 stoneImage.src = "./assets/monsters/StoneProjectile.png";
 const effectImages = {};
 for (const [id, file] of Object.entries({ fireBreath: "FireBreath.png", breathOfFire: "BreathOfFire.png", blizzard: "Blizzard.png", absoluteZero: "AbsoluteZero.png", poisonCloud: "PoisonCloud.png", sandstorm: "Sandstorm.png", spiritTaming: "SpiritOrbit.png", blackPlague: "BlackPlague.png", virulentPlague: "VirulentPlague.png", chainLightning: "ChainLightning.png", thunderCloud: "ThunderCloud.png", forkLightning: "ForkLightning.png", fireball: "Fireball.png", slash: "Slash.png", dimensionalSlash: "DimensionalSlash.png", tornado: "Tornado.png", flameTornado: "FlameTornado.png", doom: "Doomsday.png", meteor: "Meteor.png", meteorExplosion: "MeteorExplosion.png", earthquake: "Earthquake.png", frostNova: "FrostNova.png", iceAge: "IceAge.png", lavaField: "LavaField.png", arrowRain: "ArrowRain.png", surge: "Surge.png", bloodSpear: "BloodSpear.png", painScream: "PainScream.png" })) {
-  const img = new Image();
+  const img = trackAssetImage(new Image());
   img.src = `./assets/effects/${file}`;
   effectImages[id] = img;
 }
 const terrainImages = {};
 for (const [id, file] of Object.entries({ forest: "ForestRealistic.png", pond: "SwampRealistic.png", desert: "DesertRealistic.png", grassland: "GrasslandRealistic.png", graveyard: "GraveyardRealistic.png", hell: "HellRealistic.png", snowfield: "SnowfieldRealistic.png" })) {
-  const img = new Image();
+  const img = trackAssetImage(new Image());
   img.onload = () => {
     if (Object.values(terrainImages).every(texture => texture.complete && texture.naturalWidth)) worldMapCanvas = null;
   };
@@ -1147,14 +1172,14 @@ for (const [id, file] of Object.entries({ forest: "ForestRealistic.png", pond: "
 }
 const npcImages = {};
 for (const [id, file] of Object.entries({ blackMarket: "BlackMarketMerchant.png", altar: "SacrificeAltar.png" })) {
-  const img = new Image();
+  const img = trackAssetImage(new Image());
   img.src = `./assets/npcs/${file}`;
   npcImages[id] = img;
 }
 const followerAssetById = { furnace: "FurnaceSpirit.png", balrog: "Balrog.png", lotus: "RedLotusBeast.png", rock: "RockSpirit.png", golem: "Golem.png", giant: "MountainGiant.png", skeleton: "SkeletonFollower.png", skeletonWarrior: "SkeletonWarrior.png", reaper: "DeathReaper.png", militia: "Militia.png", swordsman: "Swordsman.png", knight: "Knight.png", rogueGirl: "RogueGirl.png", assassinGirl: "AssassinGirl.png", ninjaGirl: "NinjaGirl.png", pixie: "Pixie.png", flowerFairy: "FlowerFairy.png", fairyPrincess: "FairyPrincess.png", ghostFollower: "GhostFollower.png", wraith: "Wraith.png", banshee: "Banshee.png", littleDemon: "LittleDemon.png", demonFollower: "DemonFollower.png", hellKing: "HellKing.png", ghoul: "Ghoul.png", abomination: "Abomination.png", abominationGiant: "AbominationGiant.png", spider: "SmallSpider.png", bigSpider: "BigSpider.png", jorogumo: "Jorogumo.png", treantGuardian: "TreantGuardian.png" };
 const followerImages = {};
 for (const file of new Set(Object.values(followerAssetById))) {
-  const img = new Image();
+  const img = trackAssetImage(new Image());
   img.src = `./assets/followers/${file}`;
   followerImages[file] = img;
 }
@@ -1171,7 +1196,7 @@ const classCastAssetById = {
 };
 const classImages = {};
 for (const file of new Set([...Object.values(classAssetById), ...Object.values(classCastAssetById)])) {
-  const img = new Image();
+  const img = trackAssetImage(new Image());
   img.src = `./assets/classes/${file}`;
   classImages[file] = img;
 }
@@ -1331,7 +1356,7 @@ const skillBook = {
   blackPlague: { name: "黑死病", element: "poison", cd: 5.6, damage: 56, area: 150, type: "plagueBolt", desc: "瘟疫弹道命中后爆发为疾病云" },
   virulentPlague: { name: "恶性瘟疫", element: "poison", cd: 5.2, damage: 62, area: 175, type: "virulentPlague", desc: "分裂为六团扩散瘟疫，造成持续伤害和减速" },
   sandstorm: { name: "沙尘暴", element: "wind", cd: 4.4, damage: 20, area: 185, type: "aura", desc: "跟随玩家并致盲敌人" },
-  cleave: { name: "劈砍", element: "physical", cd: 2.1, damage: 45, area: 115, type: "cleave", desc: "向前方横扫近战斩击" },
+  cleave: { name: "劈砍", element: "physical", cd: 2.1, damage: 45, area: 155, type: "cleave", desc: "向前方横扫近战斩击" },
   bloodSpear: { name: "鲜血之矛", element: "physical", cd: 2.1, damage: 64, area: 220, type: "bloodRect", desc: "在施法者前方造成矩形鲜血伤害" },
   painScream: { name: "痛苦尖叫", element: "arcane", cd: 5.1, damage: 34, area: 210, type: "fearCone", desc: "恐惧敌人并迫使他们逃离" },
   ward: { name: "防御结界", element: "arcane", cd: 12, damage: 0, area: 0, type: "ward", desc: "短时间格挡远程伤害" },
@@ -2772,7 +2797,7 @@ function castDimensionalSlash(origin, area, damage, level) {
 
 function castPlayerCleave(origin, target, area, damage, level) {
   const angle = Math.atan2(target.y - origin.y, target.x - origin.x);
-  const arc = Math.PI * (0.62 + level * 0.025);
+  const arc = Math.PI * (0.82 + level * 0.035);
   for (const m of state.monsters) {
     const dx = m.x - origin.x;
     const dy = m.y - origin.y;
@@ -5341,11 +5366,6 @@ function spawnMeteorProjectile(tx, ty, area, damage, kind = "playerMeteor", dela
     angle: Math.atan2(ty - startY, tx - startX),
     spin: rand(0, Math.PI * 2)
   });
-  addSkillWarning("circle", tx, ty, {
-    radius: Math.max(42, area),
-    color: "#ff8a3a",
-    duration: Math.max(0.55, delay + 0.55)
-  });
   if (delay <= 0.05) addRing(tx, ty, Math.max(48, area * 0.55), "rgba(255,82,34,.38)", 0.45);
 }
 
@@ -6361,12 +6381,21 @@ function drawSkillWarnings() {
       ctx.globalAlpha = 0.72;
       ctx.stroke();
     } else if (w.shape === "cone") {
+      const start = w.angle - w.arc * 0.5;
+      const end = w.angle + w.arc * 0.5;
       ctx.beginPath();
       ctx.moveTo(w.x, w.y);
-      ctx.arc(w.x, w.y, w.radius, w.angle - w.arc * 0.5, w.angle + w.arc * 0.5);
+      ctx.arc(w.x, w.y, w.radius, start, end);
       ctx.closePath();
       ctx.fill();
-      ctx.globalAlpha = 0.72;
+      if (ctx.setLineDash) ctx.setLineDash([]);
+      ctx.globalAlpha = 0.26 + pulse * 0.08;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(w.x, w.y);
+      ctx.lineTo(w.x + Math.cos(start) * w.radius, w.y + Math.sin(start) * w.radius);
+      ctx.moveTo(w.x, w.y);
+      ctx.lineTo(w.x + Math.cos(end) * w.radius, w.y + Math.sin(end) * w.radius);
       ctx.stroke();
     }
     ctx.restore();
@@ -8140,40 +8169,43 @@ function drawElfCast(p, image, size) {
 
   drawUnifiedUnitSprite(image, p.x - fx * retreat, p.y - fy * retreat - draw * 3, size, angle, { shadow: false });
 
-  const bowX = p.x + fx * (27 - retreat);
-  const bowY = p.y - 11 + fy * (27 - retreat);
-  const sideX = -fy;
-  const sideY = fx;
-  const half = 18 + draw * 5;
-  const stringBackX = bowX - fx * (15 + draw * 16);
-  const stringBackY = bowY - fy * (15 + draw * 16);
+  const orbX = p.x + fx * (30 - retreat);
+  const orbY = p.y - 10 + fy * (30 - retreat);
+  const orbR = 11 + draw * 8 + snap * 4;
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
-  ctx.strokeStyle = "rgba(197,255,140,.92)";
-  ctx.lineWidth = 2.5 + draw * 1.5;
+  const aura = ctx.createRadialGradient(orbX, orbY, 1, orbX, orbY, orbR * 2.8);
+  aura.addColorStop(0, "rgba(242,255,238,.98)");
+  aura.addColorStop(0.28, "rgba(86,255,132,.88)");
+  aura.addColorStop(0.72, "rgba(26,204,92,.34)");
+  aura.addColorStop(1, "rgba(12,126,62,0)");
+  ctx.fillStyle = aura;
   ctx.beginPath();
-  ctx.moveTo(bowX + sideX * half, bowY + sideY * half);
-  ctx.quadraticCurveTo(bowX + fx * 9, bowY + fy * 9, bowX - sideX * half, bowY - sideY * half);
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(235,255,219,.82)";
-  ctx.lineWidth = 1.4;
+  ctx.arc(orbX, orbY, orbR * 2.45, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowColor = "rgba(72,255,128,.95)";
+  ctx.shadowBlur = 18;
+  drawCircle(orbX, orbY, orbR, "rgba(72,244,122,.96)");
+  ctx.strokeStyle = "rgba(190,255,202,.9)";
+  ctx.lineWidth = 2.4;
   ctx.beginPath();
-  ctx.moveTo(bowX + sideX * half, bowY + sideY * half);
-  ctx.lineTo(stringBackX, stringBackY);
-  ctx.lineTo(bowX - sideX * half, bowY - sideY * half);
+  ctx.arc(orbX, orbY, orbR * 1.35, 0, Math.PI * 2);
   ctx.stroke();
   if (release > 0) {
-    const endX = bowX + fx * (70 + snap * 52);
-    const endY = bowY + fy * (70 + snap * 52);
-    const streak = ctx.createLinearGradient(bowX, bowY, endX, endY);
-    streak.addColorStop(0, "rgba(232,255,196,.95)");
+    const endX = orbX + fx * (48 + snap * 58);
+    const endY = orbY + fy * (48 + snap * 58);
+    const streak = ctx.createLinearGradient(orbX, orbY, endX, endY);
+    streak.addColorStop(0, "rgba(236,255,241,.95)");
+    streak.addColorStop(0.42, "rgba(82,255,128,.72)");
     streak.addColorStop(1, "rgba(74,232,110,0)");
     ctx.strokeStyle = streak;
-    ctx.lineWidth = 3 + snap * 4;
+    ctx.lineWidth = 8 + snap * 6;
+    ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.moveTo(bowX, bowY);
+    ctx.moveTo(orbX, orbY);
     ctx.lineTo(endX, endY);
     ctx.stroke();
+    drawCircle(endX, endY, 8 + snap * 8, "rgba(88,255,142,.84)");
   }
   ctx.restore();
 }
@@ -9503,7 +9535,8 @@ function showClassSelect() {
   classPanel.classList.remove("hidden");
   startPanel.querySelector("p").textContent = t("overwriteSave");
 }
-function startWithClass(classId) {
+async function startWithClass(classId) {
+  await ensureAssetsWarm();
   clearSave();
   state = newState(classId);
   applySettings();
@@ -9515,12 +9548,13 @@ function startWithClass(classId) {
   syncHud();
 }
 
-function continueGame() {
+async function continueGame() {
   const save = loadSavedGame();
   if (!save) {
     renderStartMenu();
     return;
   }
+  await ensureAssetsWarm();
   state = restoreState(save);
   applySettings();
   startPanel.classList.add("hidden");
@@ -9606,6 +9640,7 @@ state = newState();
 applySettings();
 applyStaticLanguage();
 renderStartMenu();
+ensureAssetsWarm();
 draw();
 syncHud();
 requestAnimationFrame(loop);
