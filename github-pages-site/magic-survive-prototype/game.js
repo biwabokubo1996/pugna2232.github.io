@@ -13,6 +13,10 @@ const classPanel = document.querySelector("#classPanel");
 const guidePanel = document.querySelector("#guidePanel");
 const guideContent = document.querySelector("#guideContent");
 const closeGuide = document.querySelector("#closeGuide");
+const settingsPanel = document.querySelector("#settingsPanel");
+const settingsContent = document.querySelector("#settingsContent");
+const settingsTitle = document.querySelector("#settingsTitle");
+const closeSettings = document.querySelector("#closeSettings");
 const languageSelect = document.querySelector("#languageSelect");
 const languageLabel = document.querySelector("#languageLabel");
 const levelPanelTitle = document.querySelector("#levelPanelTitle");
@@ -31,6 +35,7 @@ const H = canvas.height;
 const TILE = 520;
 const SAVE_KEY = "elemental-survival-save-v1";
 const LANG_KEY = "elemental-survival-language";
+const SETTINGS_KEY = "elemental-survival-settings-v1";
 const BASE_FOLLOWER_LIMIT = 7;
 const SUMMONED_UNIT_LIFETIME = 60;
 const WORLD_BOSS_SITES = {
@@ -40,6 +45,7 @@ WORLD_BOSS_SITES.typhon = { id: "typhon", name: "Typhon Rift", boss: "Typhon", x
 const keys = new Set();
 const touchMove = { x: 0, y: 0, active: false, pointerId: null };
 let guideWasPaused = false;
+let settingsWasPaused = false;
 let activeCodexTab = "guide";
 const i18n = {
   en: {
@@ -126,7 +132,7 @@ const i18n = {
     codexFusions: "技能合成图鉴",
     runComplete: "生存结束",
     unknownClass: "未知职业",
-    startSubtitle: "开放世界无限生存。选择职业，培养随从，合成技能，挑战 Boss。",
+    startSubtitle: "开放世界无限生存。选择职业，培养随从，合成技能，挑战首领。",
     saveFound: "发现存档：{className} - {seconds}秒 - Lv.{level}",
     runSummary: "{className} 生存 {seconds} 秒 - Lv.{level} - 击杀 {kills} - 金币 {gold}",
     chooseClass: "选择职业",
@@ -155,7 +161,7 @@ const i18n = {
     blackMarket: "黑市",
     blackMarketBody: "靠近黑市商人并按 E，可以用金币购买随从和装备。",
     survivalLoop: "生存循环",
-    survivalLoopBody: "击杀敌人、收集经验、升级技能或随从、开宝箱、猎杀 Boss 获得神器。",
+    survivalLoopBody: "击杀敌人、收集经验、升级技能或随从、开宝箱、猎杀首领获得神器。",
     classes: "职业",
     fusionSkills: "合成技能",
     gearRarity: "装备稀有度",
@@ -189,7 +195,7 @@ const i18n = {
     codexFusions: "技能合成圖鑑",
     runComplete: "生存結束",
     unknownClass: "未知職業",
-    startSubtitle: "開放世界無限生存。選擇職業，培養隨從，合成技能，挑戰 Boss。",
+    startSubtitle: "開放世界無限生存。選擇職業，培養隨從，合成技能，挑戰首領。",
     saveFound: "發現存檔：{className} - {seconds}秒 - Lv.{level}",
     runSummary: "{className} 生存 {seconds} 秒 - Lv.{level} - 擊殺 {kills} - 金幣 {gold}",
     chooseClass: "選擇職業",
@@ -218,7 +224,7 @@ const i18n = {
     blackMarket: "黑市",
     blackMarketBody: "靠近黑市商人並按 E，可以用金幣購買隨從和裝備。",
     survivalLoop: "生存循環",
-    survivalLoopBody: "擊殺敵人、收集經驗、升級技能或隨從、開寶箱、獵殺 Boss 獲得神器。",
+    survivalLoopBody: "擊殺敵人、收集經驗、升級技能或隨從、開寶箱、獵殺首領獲得神器。",
     classes: "職業",
     fusionSkills: "合成技能",
     gearRarity: "裝備稀有度",
@@ -252,9 +258,9 @@ const i18n = {
     codexFusions: "スキル合成図鑑",
     runComplete: "ラン終了",
     unknownClass: "不明なクラス",
-    startSubtitle: "オープンワールドで生き残り、従者を育て、スキルを融合し、Boss を狩ろう。",
+    startSubtitle: "オープンワールドで生き残り、従者を育て、スキルを融合し、強敵を狩ろう。",
     saveFound: "セーブあり：{className} - {seconds}秒 - Lv.{level}",
-    runSummary: "{className} 生存 {seconds}秒 - Lv.{level} - 撃破 {kills} - Gold {gold}",
+    runSummary: "{className} 生存 {seconds}秒 - Lv.{level} - 撃破 {kills} - ゴールド {gold}",
     chooseClass: "クラス選択",
     back: "戻る",
     overwriteSave: "新しく始めると現在のセーブは上書きされます。",
@@ -267,7 +273,7 @@ const i18n = {
     statHp: "HP",
     statLevel: "レベル",
     statTime: "時間",
-    statGold: "Gold",
+    statGold: "ゴールド",
     statGrowth: "成長",
     statFollowers: "従者",
     statInnate: "固有",
@@ -279,9 +285,9 @@ const i18n = {
     pause: "一時停止",
     pauseBody: "Space またはモバイルの停止ボタン。Gでガイドを開きます。",
     blackMarket: "闇市",
-    blackMarketBody: "商人に近づいて E を押すと、Gold で従者や装備を購入できます。",
+    blackMarketBody: "商人に近づいて E を押すと、ゴールドで従者や装備を購入できます。",
     survivalLoop: "サバイバルの流れ",
-    survivalLoopBody: "敵を倒し、経験値を集め、スキルや従者を育て、宝箱を開け、Boss から神器を入手します。",
+    survivalLoopBody: "敵を倒し、経験値を集め、スキルや従者を育て、宝箱を開け、強敵から神器を入手します。",
     classes: "クラス",
     fusionSkills: "融合スキル",
     gearRarity: "装備レア度",
@@ -315,9 +321,9 @@ const i18n = {
     codexFusions: "스킬 조합 도감",
     runComplete: "런 종료",
     unknownClass: "알 수 없는 직업",
-    startSubtitle: "오픈 월드에서 생존하고, 추종자를 키우고, 스킬을 융합하고, Boss 를 사냥하세요.",
+    startSubtitle: "오픈 월드에서 생존하고, 추종자를 키우고, 스킬을 융합하고, 우두머리를 사냥하세요.",
     saveFound: "저장 발견: {className} - {seconds}초 - Lv.{level}",
-    runSummary: "{className} 생존 {seconds}초 - Lv.{level} - 처치 {kills} - Gold {gold}",
+    runSummary: "{className} 생존 {seconds}초 - Lv.{level} - 처치 {kills} - 골드 {gold}",
     chooseClass: "직업 선택",
     back: "뒤로",
     overwriteSave: "새로 시작하면 현재 저장이 덮어쓰기 됩니다.",
@@ -330,7 +336,7 @@ const i18n = {
     statHp: "HP",
     statLevel: "레벨",
     statTime: "시간",
-    statGold: "Gold",
+    statGold: "골드",
     statGrowth: "성장",
     statFollowers: "추종자",
     statInnate: "고유",
@@ -342,9 +348,9 @@ const i18n = {
     pause: "일시정지",
     pauseBody: "Space 또는 모바일 일시정지 버튼. G로 가이드를 엽니다.",
     blackMarket: "암시장",
-    blackMarketBody: "상인에게 다가가 E를 누르면 Gold 로 추종자와 장비를 살 수 있습니다.",
+    blackMarketBody: "상인에게 다가가 E를 누르면 골드로 추종자와 장비를 살 수 있습니다.",
     survivalLoop: "생존 흐름",
-    survivalLoopBody: "적을 처치하고 경험치를 모아 스킬 또는 추종자를 성장시키며, 상자를 열고 Boss 를 사냥해 유물을 얻습니다.",
+    survivalLoopBody: "적을 처치하고 경험치를 모아 스킬 또는 추종자를 성장시키며, 상자를 열고 우두머리를 사냥해 유물을 얻습니다.",
     classes: "직업",
     fusionSkills: "융합 스킬",
     gearRarity: "장비 희귀도",
@@ -378,7 +384,7 @@ const i18n = {
     codexFusions: "Codice de fusiones",
     runComplete: "Partida Terminada",
     unknownClass: "Clase Desconocida",
-    startSubtitle: "Supervivencia en mundo abierto. Elige una clase, crea seguidores, fusiona habilidades y caza Bosses.",
+    startSubtitle: "Supervivencia en mundo abierto. Elige una clase, crea seguidores, fusiona habilidades y caza jefes.",
     saveFound: "Guardado encontrado: {className} - {seconds}s - Nv.{level}",
     runSummary: "{className} sobrevivio {seconds}s - Nv.{level} - {kills} bajas - {gold} oro",
     chooseClass: "Elegir Clase",
@@ -407,7 +413,7 @@ const i18n = {
     blackMarket: "Mercado Negro",
     blackMarketBody: "Acercate al mercader y pulsa E para comprar seguidores y equipo con oro.",
     survivalLoop: "Bucle de Supervivencia",
-    survivalLoopBody: "Mata enemigos, recoge gemas, mejora habilidades o seguidores, abre cofres y caza Bosses para obtener artefactos.",
+    survivalLoopBody: "Mata enemigos, recoge gemas, mejora habilidades o seguidores, abre cofres y caza jefes para obtener artefactos.",
     classes: "Clases",
     fusionSkills: "Habilidades Fusionadas",
     gearRarity: "Rareza de Equipo",
@@ -422,6 +428,428 @@ const i18n = {
   }
 };
 let currentLang = loadLanguage();
+
+const extraI18n = {
+  en: {
+    settlementTitle: "Run Settlement",
+    settlementSurvived: "Survived",
+    settlementLevel: "Level",
+    settlementKills: "Kills",
+    settlementGold: "Gold",
+    settlementDamage: "Top Damage",
+    settlementSkills: "Final Skills",
+    settlementFollowers: "Followers",
+    settlementItems: "Recent Gear",
+    settlementArtifacts: "Artifacts",
+    settlementNone: "None",
+    settlementScore: "Score",
+    settingsButton: "Settings",
+    settingsTitle: "Settings",
+    settingsAudio: "Audio",
+    settingsVolume: "Volume",
+    settingsQuality: "Quality",
+    settingsQualityLow: "Low",
+    settingsQualityMedium: "Medium",
+    settingsQualityHigh: "High",
+    settingsFullscreen: "Fullscreen",
+    settingsEnterFullscreen: "Enter Fullscreen",
+    settingsExitFullscreen: "Exit Fullscreen",
+    settingsControls: "Controls",
+    settingsLanguage: "Language",
+    settingsResetSave: "Reset Save",
+    settingsResetSaveDesc: "Delete the current run save and return to the title screen.",
+    settingsResetConfirm: "Reset save?",
+    settingsResetDone: "Save reset",
+    settingsRebind: "Rebind",
+    settingsPressKey: "Press a key...",
+    settingsDefaultKeys: "Default Keys",
+    settingsMoveUp: "Move Up",
+    settingsMoveDown: "Move Down",
+    settingsMoveLeft: "Move Left",
+    settingsMoveRight: "Move Right",
+    settingsInteract: "Interact",
+    settingsPause: "Pause",
+    settingsGuide: "Guide",
+    settingsOpen: "Open Settings",
+    secondsShort: "{seconds}s",
+    artifactKind: "Artifact",
+    creatureNormal: "Normal",
+    creatureElite: "Elite",
+    creatureBoss: "Boss",
+    creatureWorldBoss: "World Boss",
+    creatureFollower: "Follower / Summon",
+    creatureLife: "HP",
+    creatureSpeed: "Speed",
+    creatureAttack: "Attack",
+    creatureReward: "Reward",
+    creatureTier: "Tier",
+    creatureRange: "Range",
+    creatureElement: "Element",
+    sectionNormalMonsters: "Normal Monsters",
+    sectionEliteBosses: "Elites and Bosses",
+    sectionFollowersSummons: "Followers and Summons",
+    element_fire: "Fire",
+    element_wind: "Wind",
+    element_ice: "Ice",
+    element_earth: "Earth",
+    element_lightning: "Lightning",
+    element_arcane: "Arcane",
+    element_poison: "Poison",
+    element_physical: "Physical"
+  },
+  "zh-CN": {
+    settlementTitle: "本局结算",
+    settlementSurvived: "生存时间",
+    settlementLevel: "等级",
+    settlementKills: "击杀",
+    settlementGold: "金币",
+    settlementDamage: "主要伤害",
+    settlementSkills: "最终技能",
+    settlementFollowers: "随从阵容",
+    settlementItems: "近期装备",
+    settlementArtifacts: "神器",
+    settlementNone: "无",
+    settlementScore: "评分",
+    settingsButton: "设置",
+    settingsTitle: "设置",
+    settingsAudio: "音频",
+    settingsVolume: "音量",
+    settingsQuality: "画质",
+    settingsQualityLow: "低",
+    settingsQualityMedium: "中",
+    settingsQualityHigh: "高",
+    settingsFullscreen: "全屏",
+    settingsEnterFullscreen: "进入全屏",
+    settingsExitFullscreen: "退出全屏",
+    settingsControls: "按键",
+    settingsLanguage: "语言",
+    settingsResetSave: "重置存档",
+    settingsResetSaveDesc: "删除当前生存存档并回到标题界面。",
+    settingsResetConfirm: "确认重置存档？",
+    settingsResetDone: "存档已重置",
+    settingsRebind: "改键",
+    settingsPressKey: "请按一个键...",
+    settingsDefaultKeys: "恢复默认按键",
+    settingsMoveUp: "向上移动",
+    settingsMoveDown: "向下移动",
+    settingsMoveLeft: "向左移动",
+    settingsMoveRight: "向右移动",
+    settingsInteract: "互动",
+    settingsPause: "暂停",
+    settingsGuide: "图鉴",
+    settingsOpen: "打开设置",
+    secondsShort: "{seconds}秒",
+    artifactKind: "神器",
+    creatureNormal: "普通",
+    creatureElite: "精英",
+    creatureBoss: "首领",
+    creatureWorldBoss: "世界首领",
+    creatureFollower: "随从 / 召唤物",
+    creatureLife: "生命",
+    creatureSpeed: "速度",
+    creatureAttack: "攻击",
+    creatureReward: "奖励",
+    creatureTier: "阶级",
+    creatureRange: "范围",
+    creatureElement: "元素",
+    sectionNormalMonsters: "普通怪物",
+    sectionEliteBosses: "精英与首领",
+    sectionFollowersSummons: "随从与召唤物",
+    element_fire: "火焰",
+    element_wind: "风",
+    element_ice: "冰霜",
+    element_earth: "大地",
+    element_lightning: "闪电",
+    element_arcane: "奥术",
+    element_poison: "毒素",
+    element_physical: "物理"
+  },
+  "zh-TW": {
+    settlementTitle: "本局結算",
+    settlementSurvived: "生存時間",
+    settlementLevel: "等級",
+    settlementKills: "擊殺",
+    settlementGold: "金幣",
+    settlementDamage: "主要傷害",
+    settlementSkills: "最終技能",
+    settlementFollowers: "隨從陣容",
+    settlementItems: "近期裝備",
+    settlementArtifacts: "神器",
+    settlementNone: "無",
+    settlementScore: "評分",
+    settingsButton: "設定",
+    settingsTitle: "設定",
+    settingsAudio: "音訊",
+    settingsVolume: "音量",
+    settingsQuality: "畫質",
+    settingsQualityLow: "低",
+    settingsQualityMedium: "中",
+    settingsQualityHigh: "高",
+    settingsFullscreen: "全螢幕",
+    settingsEnterFullscreen: "進入全螢幕",
+    settingsExitFullscreen: "退出全螢幕",
+    settingsControls: "按鍵",
+    settingsLanguage: "語言",
+    settingsResetSave: "重置存檔",
+    settingsResetSaveDesc: "刪除目前生存存檔並回到標題畫面。",
+    settingsResetConfirm: "確認重置存檔？",
+    settingsResetDone: "存檔已重置",
+    settingsRebind: "改鍵",
+    settingsPressKey: "請按一個鍵...",
+    settingsDefaultKeys: "恢復預設按鍵",
+    settingsMoveUp: "向上移動",
+    settingsMoveDown: "向下移動",
+    settingsMoveLeft: "向左移動",
+    settingsMoveRight: "向右移動",
+    settingsInteract: "互動",
+    settingsPause: "暫停",
+    settingsGuide: "圖鑑",
+    settingsOpen: "開啟設定",
+    secondsShort: "{seconds}秒",
+    artifactKind: "神器",
+    creatureNormal: "普通",
+    creatureElite: "精英",
+    creatureBoss: "首領",
+    creatureWorldBoss: "世界首領",
+    creatureFollower: "隨從 / 召喚物",
+    creatureLife: "生命",
+    creatureSpeed: "速度",
+    creatureAttack: "攻擊",
+    creatureReward: "獎勵",
+    creatureTier: "階級",
+    creatureRange: "範圍",
+    creatureElement: "元素",
+    sectionNormalMonsters: "普通怪物",
+    sectionEliteBosses: "精英與首領",
+    sectionFollowersSummons: "隨從與召喚物",
+    element_fire: "火焰",
+    element_wind: "風",
+    element_ice: "冰霜",
+    element_earth: "大地",
+    element_lightning: "閃電",
+    element_arcane: "奧術",
+    element_poison: "毒素",
+    element_physical: "物理"
+  },
+  ja: {
+    settlementTitle: "ラン結果",
+    settlementSurvived: "生存時間",
+    settlementLevel: "レベル",
+    settlementKills: "撃破",
+    settlementGold: "ゴールド",
+    settlementDamage: "主なダメージ",
+    settlementSkills: "最終スキル",
+    settlementFollowers: "従者編成",
+    settlementItems: "最近の装備",
+    settlementArtifacts: "神器",
+    settlementNone: "なし",
+    settlementScore: "スコア",
+    settingsButton: "設定",
+    settingsTitle: "設定",
+    settingsAudio: "オーディオ",
+    settingsVolume: "音量",
+    settingsQuality: "画質",
+    settingsQualityLow: "低",
+    settingsQualityMedium: "中",
+    settingsQualityHigh: "高",
+    settingsFullscreen: "全画面",
+    settingsEnterFullscreen: "全画面にする",
+    settingsExitFullscreen: "全画面を終了",
+    settingsControls: "キー設定",
+    settingsLanguage: "言語",
+    settingsResetSave: "セーブをリセット",
+    settingsResetSaveDesc: "現在のランのセーブを削除してタイトルに戻ります。",
+    settingsResetConfirm: "セーブをリセットしますか？",
+    settingsResetDone: "セーブをリセットしました",
+    settingsRebind: "変更",
+    settingsPressKey: "キーを押してください...",
+    settingsDefaultKeys: "既定のキーに戻す",
+    settingsMoveUp: "上へ移動",
+    settingsMoveDown: "下へ移動",
+    settingsMoveLeft: "左へ移動",
+    settingsMoveRight: "右へ移動",
+    settingsInteract: "操作",
+    settingsPause: "一時停止",
+    settingsGuide: "図鑑",
+    settingsOpen: "設定を開く",
+    secondsShort: "{seconds}秒",
+    artifactKind: "神器",
+    creatureNormal: "通常",
+    creatureElite: "精鋭",
+    creatureBoss: "強敵",
+    creatureWorldBoss: "世界の強敵",
+    creatureFollower: "従者 / 召喚",
+    creatureLife: "生命",
+    creatureSpeed: "速度",
+    creatureAttack: "攻撃",
+    creatureReward: "報酬",
+    creatureTier: "段階",
+    creatureRange: "範囲",
+    creatureElement: "属性",
+    sectionNormalMonsters: "通常モンスター",
+    sectionEliteBosses: "精鋭と強敵",
+    sectionFollowersSummons: "従者と召喚",
+    element_fire: "火",
+    element_wind: "風",
+    element_ice: "氷",
+    element_earth: "大地",
+    element_lightning: "雷",
+    element_arcane: "秘術",
+    element_poison: "毒",
+    element_physical: "物理"
+  },
+  ko: {
+    settlementTitle: "런 결산",
+    settlementSurvived: "생존 시간",
+    settlementLevel: "레벨",
+    settlementKills: "처치",
+    settlementGold: "골드",
+    settlementDamage: "주요 피해",
+    settlementSkills: "최종 스킬",
+    settlementFollowers: "추종자 편성",
+    settlementItems: "최근 장비",
+    settlementArtifacts: "유물",
+    settlementNone: "없음",
+    settlementScore: "점수",
+    settingsButton: "설정",
+    settingsTitle: "설정",
+    settingsAudio: "오디오",
+    settingsVolume: "음량",
+    settingsQuality: "화질",
+    settingsQualityLow: "낮음",
+    settingsQualityMedium: "중간",
+    settingsQualityHigh: "높음",
+    settingsFullscreen: "전체 화면",
+    settingsEnterFullscreen: "전체 화면 켜기",
+    settingsExitFullscreen: "전체 화면 끄기",
+    settingsControls: "키 설정",
+    settingsLanguage: "언어",
+    settingsResetSave: "저장 초기화",
+    settingsResetSaveDesc: "현재 런 저장을 삭제하고 타이틀로 돌아갑니다.",
+    settingsResetConfirm: "저장을 초기화할까요?",
+    settingsResetDone: "저장이 초기화되었습니다",
+    settingsRebind: "변경",
+    settingsPressKey: "키를 누르세요...",
+    settingsDefaultKeys: "기본 키 복원",
+    settingsMoveUp: "위로 이동",
+    settingsMoveDown: "아래로 이동",
+    settingsMoveLeft: "왼쪽 이동",
+    settingsMoveRight: "오른쪽 이동",
+    settingsInteract: "상호작용",
+    settingsPause: "일시정지",
+    settingsGuide: "도감",
+    settingsOpen: "설정 열기",
+    secondsShort: "{seconds}초",
+    artifactKind: "유물",
+    creatureNormal: "일반",
+    creatureElite: "정예",
+    creatureBoss: "우두머리",
+    creatureWorldBoss: "세계 우두머리",
+    creatureFollower: "추종자 / 소환물",
+    creatureLife: "생명력",
+    creatureSpeed: "속도",
+    creatureAttack: "공격",
+    creatureReward: "보상",
+    creatureTier: "단계",
+    creatureRange: "범위",
+    creatureElement: "속성",
+    sectionNormalMonsters: "일반 몬스터",
+    sectionEliteBosses: "정예와 우두머리",
+    sectionFollowersSummons: "추종자와 소환물",
+    element_fire: "화염",
+    element_wind: "바람",
+    element_ice: "얼음",
+    element_earth: "대지",
+    element_lightning: "번개",
+    element_arcane: "비전",
+    element_poison: "독",
+    element_physical: "물리"
+  },
+  es: {
+    settlementTitle: "Resumen de partida",
+    settlementSurvived: "Supervivencia",
+    settlementLevel: "Nivel",
+    settlementKills: "Bajas",
+    settlementGold: "Oro",
+    settlementDamage: "Daño principal",
+    settlementSkills: "Habilidades finales",
+    settlementFollowers: "Seguidores",
+    settlementItems: "Equipo reciente",
+    settlementArtifacts: "Artefactos",
+    settlementNone: "Nada",
+    settlementScore: "Puntuacion",
+    settingsButton: "Ajustes",
+    settingsTitle: "Ajustes",
+    settingsAudio: "Audio",
+    settingsVolume: "Volumen",
+    settingsQuality: "Calidad",
+    settingsQualityLow: "Baja",
+    settingsQualityMedium: "Media",
+    settingsQualityHigh: "Alta",
+    settingsFullscreen: "Pantalla completa",
+    settingsEnterFullscreen: "Entrar",
+    settingsExitFullscreen: "Salir",
+    settingsControls: "Teclas",
+    settingsLanguage: "Idioma",
+    settingsResetSave: "Reiniciar guardado",
+    settingsResetSaveDesc: "Borra la partida guardada actual y vuelve al titulo.",
+    settingsResetConfirm: "Reiniciar guardado?",
+    settingsResetDone: "Guardado reiniciado",
+    settingsRebind: "Cambiar",
+    settingsPressKey: "Pulsa una tecla...",
+    settingsDefaultKeys: "Teclas por defecto",
+    settingsMoveUp: "Mover arriba",
+    settingsMoveDown: "Mover abajo",
+    settingsMoveLeft: "Mover izquierda",
+    settingsMoveRight: "Mover derecha",
+    settingsInteract: "Interactuar",
+    settingsPause: "Pausa",
+    settingsGuide: "Codice",
+    settingsOpen: "Abrir ajustes",
+    secondsShort: "{seconds}s",
+    artifactKind: "Artefacto",
+    creatureNormal: "Normal",
+    creatureElite: "Elite",
+    creatureBoss: "Jefe",
+    creatureWorldBoss: "Jefe mundial",
+    creatureFollower: "Seguidor / invocacion",
+    creatureLife: "Vida",
+    creatureSpeed: "Velocidad",
+    creatureAttack: "Ataque",
+    creatureReward: "Recompensa",
+    creatureTier: "Grado",
+    creatureRange: "Alcance",
+    creatureElement: "Elemento",
+    sectionNormalMonsters: "Monstruos normales",
+    sectionEliteBosses: "Elites y jefes",
+    sectionFollowersSummons: "Seguidores e invocaciones",
+    element_fire: "Fuego",
+    element_wind: "Viento",
+    element_ice: "Hielo",
+    element_earth: "Tierra",
+    element_lightning: "Rayo",
+    element_arcane: "Arcano",
+    element_poison: "Veneno",
+    element_physical: "Fisico"
+  }
+};
+for (const [lang, entries] of Object.entries(extraI18n)) Object.assign(i18n[lang], entries);
+const DEFAULT_SETTINGS = {
+  volume: 80,
+  quality: "medium",
+  keys: {
+    up: "KeyW",
+    down: "KeyS",
+    left: "KeyA",
+    right: "KeyD",
+    interact: "KeyE",
+    pause: "Space",
+    guide: "KeyG",
+    settings: "Escape"
+  }
+};
+let settings = loadSettings();
+let rebindingAction = null;
 
 function loadLanguage() {
   try {
@@ -448,9 +876,11 @@ function applyStaticLanguage() {
   if (languageSelect) languageSelect.value = currentLang;
   if (languageLabel) languageLabel.textContent = t("language");
   if (levelPanelTitle) levelPanelTitle.textContent = t("levelUp");
-  if (levelPanelClass) levelPanelClass.textContent = state?.className || t("class");
+  if (levelPanelClass) levelPanelClass.textContent = state?.classId ? localizeClassName(state.classId) : t("class");
   if (guideTitle) guideTitle.textContent = t("guideTitle");
   if (closeGuide) closeGuide.textContent = t("close");
+  if (settingsTitle) settingsTitle.textContent = t("settingsTitle");
+  if (closeSettings) closeSettings.textContent = t("close");
   if (statsTitle) statsTitle.textContent = t("status");
   if (skillsTitle) skillsTitle.textContent = t("skills");
   if (followersTitle) followersTitle.textContent = t("followers");
@@ -465,7 +895,201 @@ function setLanguage(lang) {
   applyStaticLanguage();
   if (startPanel && !startPanel.classList.contains("hidden")) renderStartMenu();
   if (guidePanel && !guidePanel.classList.contains("hidden")) renderGuideContent();
+  if (settingsPanel && !settingsPanel.classList.contains("hidden")) renderSettingsContent();
   if (statsEl && state?.player) syncHud();
+}
+
+function normalizeSettings(raw = {}) {
+  const merged = {
+    ...DEFAULT_SETTINGS,
+    ...raw,
+    keys: { ...DEFAULT_SETTINGS.keys, ...(raw.keys || {}) }
+  };
+  merged.volume = Math.max(0, Math.min(100, Number(merged.volume) || DEFAULT_SETTINGS.volume));
+  if (!["low", "medium", "high"].includes(merged.quality)) merged.quality = DEFAULT_SETTINGS.quality;
+  for (const [action, code] of Object.entries(DEFAULT_SETTINGS.keys)) {
+    if (typeof merged.keys[action] !== "string" || !merged.keys[action]) merged.keys[action] = code;
+  }
+  return merged;
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    return normalizeSettings(raw ? JSON.parse(raw) : {});
+  } catch {
+    return normalizeSettings();
+  }
+}
+
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+}
+
+function qualityFloor() {
+  return settings.quality === "low" ? 2 : settings.quality === "medium" ? 1 : 0;
+}
+
+function applySettings() {
+  document.body.dataset.quality = settings.quality;
+  if (state) state.perfLevel = Math.max(state.perfLevel || 0, qualityFloor());
+}
+
+function setSetting(key, value) {
+  settings = normalizeSettings({ ...settings, [key]: value });
+  saveSettings();
+  applySettings();
+  renderSettingsContent();
+}
+
+function setKeyBinding(action, code) {
+  settings = normalizeSettings({ ...settings, keys: { ...settings.keys, [action]: code } });
+  rebindingAction = null;
+  saveSettings();
+  renderSettingsContent();
+}
+
+function keyFor(action) {
+  return settings.keys[action] || DEFAULT_SETTINGS.keys[action];
+}
+
+function isKeyAction(code, action) {
+  if (code === keyFor(action)) return true;
+  if (action === "up") return code === "ArrowUp";
+  if (action === "down") return code === "ArrowDown";
+  if (action === "left") return code === "ArrowLeft";
+  if (action === "right") return code === "ArrowRight";
+  return false;
+}
+
+function isActionHeld(action) {
+  if (keys.has(keyFor(action))) return true;
+  if (action === "up") return keys.has("ArrowUp");
+  if (action === "down") return keys.has("ArrowDown");
+  if (action === "left") return keys.has("ArrowLeft");
+  if (action === "right") return keys.has("ArrowRight");
+  return false;
+}
+
+function keyLabel(code) {
+  if (!code) return "-";
+  const labels = { Space: "Space", Escape: "Esc", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→" };
+  if (labels[code]) return labels[code];
+  if (code.startsWith("Key")) return code.slice(3);
+  if (code.startsWith("Digit")) return code.slice(5);
+  return code.replace(/^Numpad/, "Num ");
+}
+
+function resetKeyBindings() {
+  settings = normalizeSettings({ ...settings, keys: { ...DEFAULT_SETTINGS.keys } });
+  rebindingAction = null;
+  saveSettings();
+  renderSettingsContent();
+}
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  else document.documentElement.requestFullscreen?.();
+}
+
+function resetSaveFromSettings() {
+  if (!confirm(t("settingsResetConfirm"))) return;
+  clearSave();
+  if (state) {
+    state.running = false;
+    state.paused = false;
+  }
+  startPanel?.classList.remove("hidden");
+  levelPanel?.classList.add("hidden");
+  guidePanel?.classList.add("hidden");
+  closeSettingsPanel();
+  renderStartMenu();
+  addText(t("settingsResetDone"), W / 2 - 46, 120, "#ffd36b");
+}
+
+function renderSettingsContent() {
+  if (!settingsContent) return;
+  const keyRows = [
+    ["up", t("settingsMoveUp")],
+    ["down", t("settingsMoveDown")],
+    ["left", t("settingsMoveLeft")],
+    ["right", t("settingsMoveRight")],
+    ["interact", t("settingsInteract")],
+    ["pause", t("settingsPause")],
+    ["guide", t("settingsGuide")],
+    ["settings", t("settingsOpen")]
+  ].map(([action, label]) => `
+    <div class="settings-key-row">
+      <span>${esc(label)}</span>
+      <button type="button" data-rebind="${esc(action)}" class="${rebindingAction === action ? "active" : ""}">
+        ${rebindingAction === action ? esc(t("settingsPressKey")) : `${esc(keyLabel(keyFor(action)))} · ${esc(t("settingsRebind"))}`}
+      </button>
+    </div>`).join("");
+  settingsContent.innerHTML = `
+    <section class="settings-section">
+      <h3>${esc(t("settingsAudio"))}</h3>
+      <label class="settings-slider">
+        <span>${esc(t("settingsVolume"))}</span>
+        <input id="settingVolume" type="range" min="0" max="100" step="1" value="${settings.volume}">
+        <b>${settings.volume}%</b>
+      </label>
+    </section>
+    <section class="settings-section">
+      <h3>${esc(t("settingsQuality"))}</h3>
+      <div class="settings-segment" role="group" aria-label="${esc(t("settingsQuality"))}">
+        ${["low", "medium", "high"].map(q => `<button type="button" data-quality="${q}" class="${settings.quality === q ? "active" : ""}">${esc(t(`settingsQuality${q[0].toUpperCase() + q.slice(1)}`))}</button>`).join("")}
+      </div>
+    </section>
+    <section class="settings-section">
+      <h3>${esc(t("settingsFullscreen"))}</h3>
+      <button type="button" id="settingsFullscreenBtn">${esc(document.fullscreenElement ? t("settingsExitFullscreen") : t("settingsEnterFullscreen"))}</button>
+    </section>
+    <section class="settings-section">
+      <h3>${esc(t("settingsLanguage"))}</h3>
+      <select id="settingsLanguageSelect" aria-label="${esc(t("settingsLanguage"))}">
+        ${Object.keys(i18n).map(lang => `<option value="${lang}" ${lang === currentLang ? "selected" : ""}>${esc(languageName(lang))}</option>`).join("")}
+      </select>
+    </section>
+    <section class="settings-section">
+      <h3>${esc(t("settingsControls"))}</h3>
+      <div class="settings-keys">${keyRows}</div>
+      <button type="button" class="secondary" id="settingsDefaultKeys">${esc(t("settingsDefaultKeys"))}</button>
+    </section>
+    <section class="settings-section danger">
+      <h3>${esc(t("settingsResetSave"))}</h3>
+      <p>${esc(t("settingsResetSaveDesc"))}</p>
+      <button type="button" id="settingsResetSave">${esc(t("settingsResetSave"))}</button>
+    </section>`;
+  settingsContent.querySelector("#settingVolume")?.addEventListener("input", e => setSetting("volume", e.target.value));
+  settingsContent.querySelectorAll("[data-quality]").forEach(button => button.addEventListener("click", () => setSetting("quality", button.dataset.quality)));
+  settingsContent.querySelector("#settingsFullscreenBtn")?.addEventListener("click", toggleFullscreen);
+  settingsContent.querySelector("#settingsLanguageSelect")?.addEventListener("change", e => setLanguage(e.target.value));
+  settingsContent.querySelectorAll("[data-rebind]").forEach(button => button.addEventListener("click", () => {
+    rebindingAction = button.dataset.rebind;
+    renderSettingsContent();
+  }));
+  settingsContent.querySelector("#settingsDefaultKeys")?.addEventListener("click", resetKeyBindings);
+  settingsContent.querySelector("#settingsResetSave")?.addEventListener("click", resetSaveFromSettings);
+}
+
+function languageName(lang) {
+  return { en: "English", "zh-CN": "简体中文", "zh-TW": "繁體中文", ja: "日本語", ko: "한국어", es: "Español" }[lang] || lang;
+}
+
+function openSettings() {
+  if (!settingsPanel) return;
+  renderSettingsContent();
+  settingsWasPaused = !!state?.paused;
+  if (state?.running) state.paused = true;
+  guidePanel?.classList.add("hidden");
+  settingsPanel.classList.remove("hidden");
+}
+
+function closeSettingsPanel() {
+  if (!settingsPanel) return;
+  rebindingAction = null;
+  settingsPanel.classList.add("hidden");
+  if (state?.running && !settingsWasPaused) state.paused = false;
 }
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = list => list[Math.floor(Math.random() * list.length)];
@@ -709,7 +1333,7 @@ const skillBook = {
   sandstorm: { name: "沙尘暴", element: "wind", cd: 4.4, damage: 20, area: 185, type: "aura", desc: "跟随玩家并致盲敌人" },
   cleave: { name: "劈砍", element: "physical", cd: 2.1, damage: 45, area: 115, type: "cleave", desc: "向前方横扫近战斩击" },
   bloodSpear: { name: "鲜血之矛", element: "physical", cd: 2.1, damage: 64, area: 220, type: "bloodRect", desc: "在施法者前方造成矩形鲜血伤害" },
-  painScream: { name: "痛苦尖叫", element: "arcane", cd: 5.1, damage: 22, area: 210, type: "fearCone", desc: "恐惧敌人并迫使他们逃离" },
+  painScream: { name: "痛苦尖叫", element: "arcane", cd: 5.1, damage: 34, area: 210, type: "fearCone", desc: "恐惧敌人并迫使他们逃离" },
   ward: { name: "防御结界", element: "arcane", cd: 12, damage: 0, area: 0, type: "ward", desc: "短时间格挡远程伤害" },
   flameTornado: { name: "火龙卷", element: "fire", cd: 2.0, damage: 42, area: 165, type: "orb", desc: "大范围牵引火龙卷并附加烧伤" },
   doom: { name: "末日审判", element: "fire", cd: 10.5, damage: 185, area: 760, type: "doom", desc: "终极全屏火焰冲击波" },
@@ -901,7 +1525,7 @@ const classBook = {
     name: "大魔女",
     icon: "GrandWitch.png",
     innate: "元素精通",
-    desc: "先天：元素魔法伤害 +N%。初始技能：连锁闪电。",
+    desc: "先天：元素魔法伤害每级 +1%。初始技能：连锁闪电。",
     skills: ["chainLightning"],
     apply(player) {
       player.fire *= 1.08;
@@ -912,7 +1536,7 @@ const classBook = {
     name: "死灵法师",
     icon: "Necromancer.png",
     innate: "亡者复生",
-    desc: "先天：击杀敌人有 +N% 几率转化为骷髅兵随从。初始技能：驭灵术。",
+    desc: "先天：击杀敌人最高 5% 几率转化为骷髅兵随从。初始技能：驭灵术。",
     skills: ["spiritTaming"],
     apply(player) {
       player.arcane *= 1.12;
@@ -925,7 +1549,7 @@ const classBook = {
     name: "元帅",
     icon: "RoundTableKnight.png",
     innate: "圆桌光环",
-    desc: "先天：光环提供 +N% 攻击力和 N% 减伤。初始技能：劈砍。",
+    desc: "先天：每级提供 +1% 攻击光环和 1% 群体减伤。初始技能：劈砍。",
     skills: ["cleave"],
     apply(player) {
       player.maxHp += 55;
@@ -938,7 +1562,7 @@ const classBook = {
     name: "精灵",
     icon: "Elf.png",
     innate: "森林回春",
-    desc: "先天：附近友方每秒恢复 N/3 生命。初始技能：箭雨。",
+    desc: "先天：附近友方每秒恢复等级 / 3 生命。初始技能：箭雨。",
     skills: ["arrowRain"],
     apply(player) {
       player.speed += 28;
@@ -950,7 +1574,7 @@ const classBook = {
     name: "吸血鬼公主",
     icon: "VampirePrincess.png",
     innate: "鲜血光环",
-    desc: "先天：攻击按 N% 伤害吸血。初始技能：鲜血之矛。",
+    desc: "先天：攻击造成伤害时吸血。初始技能：鲜血之矛。",
     skills: ["bloodSpear"],
     apply(player) {
       player.maxHp += 35;
@@ -964,7 +1588,7 @@ const classBook = {
     name: "地狱领主",
     icon: "HellLord.png",
     innate: "地狱之息",
-    desc: "先天：附近敌人每秒受到 2N 火焰伤害。初始技能：熔岩地带。",
+    desc: "先天：附近敌人每秒受到 2 x 等级的火焰伤害。初始技能：熔岩地带。",
     skills: ["lavaField"],
     apply(player) {
       player.fire *= 1.24;
@@ -985,6 +1609,515 @@ const fusionRecipes = [
   ["火之呼吸", "痛苦尖叫 Lv.7 + 喷火 Lv.7", "更宽的喷火连续释放多波。"],
   ["次元斩", "地震 Lv.7 + 劈砍 Lv.7", "全屏次元斩击。"]
 ];
+
+const localizedData = {
+  en: {
+    text: {
+      "奇美拉巢穴": "Chimera Nest",
+      "提丰裂隙": "Typhon Rift",
+      "提丰": "Typhon",
+      "冲锋": "Charge",
+      "合成": "Fusion",
+      "学习": "Learn",
+      "棋子": "Piece",
+      "宝箱": "Chest",
+      "黑市": "Black Market",
+      "献祭": "Sacrifice",
+      "已购买": "Purchased",
+      "靠近并按 E 购买随从和装备": "Approach and press E to buy followers and gear",
+      "献祭祭坛": "Sacrifice Altar",
+      "按 E 献祭一名随从": "Press E to sacrifice a follower",
+      "金币不足": "Not enough gold",
+      "随从已满": "Follower limit reached",
+      "已拥有": "Already owned",
+      "离开": "Leave",
+      "反射": "Reflect",
+      "未命中": "Miss",
+      "冻结": "Frozen",
+      "燃烧": "Burn",
+      "疾病": "Disease",
+      "闪避": "Dodge",
+      "蛛网": "Web",
+      "召唤小蜘蛛": "Summon Spider",
+      "召唤恶魔": "Summon Demon",
+      "树人守卫": "Treant Guardian",
+      "苏醒": "awakens",
+      "已苏醒": "awakened",
+      "召唤倒计时": "summoning",
+      "正在苏醒，立刻撤离！": "is awakening - retreat!",
+      "降临倒计时": "arrives in",
+      "秒": "seconds",
+      "被唤醒": "awakened",
+      "倒下": "fell",
+      "消散": "fades",
+      "神器重复": "Duplicate artifact",
+      "优惠券已生效。": "Coupon applied.",
+      "装备已售罄": "Gear sold out",
+      "你已经拥有全部不可重复道具。": "You already own every unique item.",
+      "离开黑市": "Leave Black Market",
+      "关闭商人面板。": "Close the merchant panel.",
+      "更高阶": "higher tier",
+      "无可献祭随从": "No permanent follower available",
+      "召唤物不能献祭。": "Summoned units cannot be sacrificed.",
+      "英雄等级+1，并随机升级一个已学习技能。": "Gain 1 hero level and upgrade one learned skill.",
+      "离开祭坛": "Leave Altar",
+      "保留所有随从。": "Keep every follower.",
+      "随从碎片": "Follower piece",
+      "自走棋随从": "Auto-chess follower",
+      "集齐": "Collect",
+      "个": "",
+      "可合成为": " to evolve into ",
+      "消耗": "Requires",
+      "级": "Lv.",
+      "和": "and",
+      "并献祭": "and sacrifice",
+      "森林": "Forest",
+      "池塘": "Swamp",
+      "沙漠": "Desert",
+      "草原": "Grassland",
+      "墓地": "Graveyard",
+      "地狱": "Hell",
+      "雪原": "Snowfield",
+      "火系蔓延+35%，风系伤害-20%": "Fire area +35%, wind damage -20%",
+      "火系范围-25%，冰系伤害+35%": "Fire area -25%, ice damage +35%",
+      "风系伤害+35%": "Wind damage +35%",
+      "均衡地形": "Balanced terrain",
+      "亡灵更密集": "More undead spawn here",
+      "火系伤害+25%，怪物更快": "Fire damage +25%, monsters move faster",
+      "冰系范围+25%，火系伤害-15%": "Ice area +25%, fire damage -15%",
+      "大魔女": "Grand Witch",
+      "元素精通": "Elemental Mastery",
+      "先天：元素魔法伤害每级 +1%。初始技能：连锁闪电。": "Innate: elemental magic damage +1% per hero level. Starting skill: Chain Lightning.",
+      "死灵法师": "Necromancer",
+      "亡者复生": "Rise of the Dead",
+      "先天：击杀敌人最高 5% 几率转化为骷髅兵随从。初始技能：驭灵术。": "Innate: kills have up to 5% chance to become Skeleton followers. Starting skill: Spirit Taming.",
+      "元帅": "Marshal",
+      "圆桌光环": "Round Table Aura",
+      "先天：每级提供 +1% 攻击光环和 1% 群体减伤。初始技能：劈砍。": "Innate: +1% attack aura and 1% group damage reduction per hero level. Starting skill: Cleave.",
+      "精灵": "Elf",
+      "森林回春": "Forest Renewal",
+      "先天：附近友方每秒恢复等级 / 3 生命。初始技能：箭雨。": "Innate: nearby allies recover level / 3 HP per second. Starting skill: Arrow Rain.",
+      "吸血鬼公主": "Vampire Princess",
+      "鲜血光环": "Blood Aura",
+      "先天：攻击造成伤害时吸血。初始技能：鲜血之矛。": "Innate: attacks steal life when dealing damage. Starting skill: Blood Spear.",
+      "地狱领主": "Hell Lord",
+      "地狱之息": "Hell Breath",
+      "先天：附近敌人每秒受到 2 x 等级的火焰伤害。初始技能：熔岩地带。": "Innate: nearby enemies take 2 x level fire damage per second. Starting skill: Lava Field.",
+      "喷火": "Fire Breath",
+      "锥形火焰伤害并附加烧伤": "Cone fire damage that applies burn",
+      "龙卷风": "Tornado",
+      "移动的旋转风暴": "A moving spinning storm",
+      "陨石坠落": "Meteor Fall",
+      "大范围冲击伤害": "Large impact damage",
+      "熔岩地带": "Lava Field",
+      "燃烧的熔岩地面": "Burning lava ground",
+      "暴风雪": "Blizzard",
+      "冰系伤害并减速": "Ice damage and slow",
+      "霜冻新星": "Frost Nova",
+      "冻结附近敌人": "Freezes nearby enemies",
+      "雷云": "Thunder Cloud",
+      "攻击范围内 N 个敌人，N 等于技能等级": "Strikes enemies in range; target count equals skill level",
+      "地震": "Earthquake",
+      "施法者周围地震波": "Shockwaves around the caster",
+      "火球术": "Fireball",
+      "沿直线穿透敌人，数量随等级增加": "Pierces enemies in a line; count scales with level",
+      "箭雨": "Arrow Rain",
+      "在区域内召唤箭雨": "Summons arrow rain in an area",
+      "驭灵术": "Spirit Taming",
+      "幽灵环绕英雄，冲向附近敌人后返回": "Spirits orbit the hero, strike nearby enemies, then return",
+      "连锁闪电": "Chain Lightning",
+      "在附近敌人之间跳跃，最多 2 x 等级次": "Jumps between nearby enemies up to 2 x level times",
+      "毒气云": "Poison Cloud",
+      "逐渐扩大的毒雾区域": "A poison cloud that expands over time",
+      "黑死病": "Black Plague",
+      "瘟疫弹道命中后爆发为疾病云": "A plague projectile that bursts into a disease cloud",
+      "恶性瘟疫": "Virulent Plague",
+      "分裂为六团扩散瘟疫，造成持续伤害和减速": "Splits into six spreading plague clouds for damage over time and slow",
+      "沙尘暴": "Sandstorm",
+      "跟随玩家并致盲敌人": "Follows the player and blinds enemies",
+      "劈砍": "Cleave",
+      "向前方横扫近战斩击": "Sweeping melee slash in front",
+      "鲜血之矛": "Blood Spear",
+      "在施法者前方造成矩形鲜血伤害": "Deals rectangular blood damage in front of the caster",
+      "痛苦尖叫": "Pain Scream",
+      "恐惧敌人并迫使他们逃离": "Fears enemies and forces them away",
+      "防御结界": "Defensive Ward",
+      "短时间格挡远程伤害": "Blocks ranged damage briefly",
+      "火龙卷": "Flame Tornado",
+      "大范围牵引火龙卷并附加烧伤": "Large pulling flame tornado that applies burn",
+      "末日审判": "Doomsday",
+      "终极全屏火焰冲击波": "Ultimate full-screen fire shockwave",
+      "绝对零度": "Absolute Zero",
+      "跟随角色的永久冰霜光环，首次命中冻结敌人": "Permanent frost aura that follows the hero and freezes on first hit",
+      "闪电风暴": "Lightning Storm",
+      "强化雷云": "Empowered thunder cloud",
+      "叉状闪电": "Fork Lightning",
+      "由 7 级喷火与连锁闪电合成的分叉闪电": "Forked lightning fused from level 7 Fire Breath and Chain Lightning",
+      "冰暴之环": "Ice Ring",
+      "环形冰爆": "Ring-shaped ice burst",
+      "冰河期": "Ice Age",
+      "冰箭雨落下并触发多个冻结霜冻新星": "Ice arrows fall and trigger multiple freezing frost novas",
+      "火之呼吸": "Breath of Fire",
+      "由 7 级痛苦尖叫与喷火合成的多段大范围喷火": "Multi-wave wide fire breath fused from level 7 Pain Scream and Fire Breath",
+      "次元斩": "Dimensional Slash",
+      "由 7 级地震与劈砍合成的全屏空间斩击": "Full-screen space slash fused from level 7 Earthquake and Cleave",
+      "龙卷风 Lv.7 + 喷火 Lv.7": "Tornado Lv.7 + Fire Breath Lv.7",
+      "熔岩地带 Lv.7 + 陨石坠落 Lv.7 + 地震 Lv.7 + 献祭红莲星兽": "Lava Field Lv.7 + Meteor Fall Lv.7 + Earthquake Lv.7 + sacrifice Red Lotus Beast",
+      "喷火 Lv.7 + 连锁闪电 Lv.7": "Fire Breath Lv.7 + Chain Lightning Lv.7",
+      "毒气云 Lv.7 + 黑死病 Lv.7": "Poison Cloud Lv.7 + Black Plague Lv.7",
+      "暴风雪 Lv.7 + 霜冻新星 Lv.7": "Blizzard Lv.7 + Frost Nova Lv.7",
+      "箭雨 Lv.7 + 霜冻新星 Lv.7": "Arrow Rain Lv.7 + Frost Nova Lv.7",
+      "痛苦尖叫 Lv.7 + 喷火 Lv.7": "Pain Scream Lv.7 + Fire Breath Lv.7",
+      "地震 Lv.7 + 劈砍 Lv.7": "Earthquake Lv.7 + Cleave Lv.7",
+      "大范围牵引并造成烧伤。": "Large pull that applies burn.",
+      "全屏火系冲击波。": "Full-screen fire shockwave.",
+      "高伤害分叉闪电合成魔法。": "High-damage forked lightning fusion.",
+      "分裂成 6 团向外扩散的瘟疫云。": "Splits into six spreading plague clouds.",
+      "持续跟随角色，冻结第一次受伤敌人。": "Follows the hero and freezes enemies on first hit.",
+      "冰箭坠落并在落点触发霜冻新星。": "Ice arrows fall and trigger Frost Nova at impact.",
+      "更宽的喷火连续释放多波。": "Wider fire breath released in multiple waves.",
+      "全屏次元斩击。": "Full-screen dimensional slash.",
+      "星火法杖": "Spark Staff",
+      "攻击力+12%": "Attack +12%",
+      "扩散棱镜": "Diffusion Prism",
+      "范围+14%，攻击力+6%": "Area +14%, attack +6%",
+      "疾咏指环": "Swift Chant Ring",
+      "攻速+12%，范围+6%": "Attack speed +12%, area +6%",
+      "冷月沙漏": "Cold Moon Hourglass",
+      "冷却-12%，范围-4%": "Cooldown -12%, area -4%",
+      "符文胸甲": "Rune Breastplate",
+      "防御力+3": "Defense +3",
+      "守望军旗": "Watch Banner",
+      "群体减伤+8%": "Group damage reduction +8%",
+      "踏风靴": "Windstep Boots",
+      "移速+10%": "Move speed +10%",
+      "女巫扫帚": "Witch Broom",
+      "喷气式背包": "Jetpack",
+      "移速+15%": "Move speed +15%",
+      "焰纹宝珠": "Flame Orb",
+      "火伤+18%": "Fire damage +18%",
+      "霜银吊坠": "Frostsilver Pendant",
+      "冰伤+18%": "Ice damage +18%",
+      "复苏藤环": "Revival Vine Ring",
+      "生命恢复+0.8/秒": "HP regen +0.8/sec",
+      "牧灵之笛": "Spirit Herding Flute",
+      "驭灵术幽灵数量 +4": "Spirit Taming spirit count +4",
+      "回春法杖": "Rejuvenation Staff",
+      "蝎狮尾针": "Manticore Tail Needle",
+      "增幅器": "Amplifier",
+      "火药": "Gunpowder",
+      "放射元素": "Radiant Element",
+      "太阳镜": "Sunglasses",
+      "彩虹挂饰": "Rainbow Charm",
+      "袖箭": "Sleeve Dart",
+      "处刑者之斧": "Executioner's Axe",
+      "影子风衣": "Shadow Coat",
+      "三尖两刃刀": "Triple-Edged Blade",
+      "盗贼匕首": "Rogue Dagger",
+      "奥数指环": "Arcane Ring",
+      "攻击力+10%": "Attack +10%",
+      "紧急医疗包": "Emergency Medkit",
+      "生命恢复+3/秒": "HP regen +3/sec",
+      "比蒙之心": "Behemoth Heart",
+      "最大生命+40%，生命恢复+10/秒": "Max HP +40%, HP regen +10/sec",
+      "便携铁匠铺": "Portable Smithy",
+      "全部友方单位减伤+10%": "All allied units take 10% less damage",
+      "血袋": "Blood Bag",
+      "最大生命+40": "Max HP +40",
+      "混乱之雨": "Chaos Rain",
+      "陨石坠落分两轮降落，每块威力降低": "Meteor Fall drops in two waves with reduced damage per meteor",
+      "空间扭曲外套": "Spacewarp Coat",
+      "招财猫": "Lucky Cat",
+      "优惠券": "Coupon",
+      "每次访问黑市时随机一个商品五折。": "One random offer is half price each time you visit the Black Market.",
+      "备用心脏": "Spare Heart",
+      "最大生命+100，死亡时重生一次": "Max HP +100 and revive once on death",
+      "荆棘王冠": "Thorn Crown",
+      "永恒沙漏": "Eternal Hourglass",
+      "审判之眼": "Eye of Judgment",
+      "泰坦心脏": "Titan Heart",
+      "星界罗盘": "Astral Compass",
+      "圣泉圣杯": "Holy Spring Chalice",
+      "民心所向": "People's Mandate",
+      "群体反伤": "Group thorns damage",
+      "大幅减冷却": "Greatly reduces cooldowns",
+      "暴击+15%，爆伤+50%": "Crit chance +15%, crit damage +50%",
+      "最大生命+150": "Max HP +150",
+      "魔法范围+28%": "Magic area +28%",
+      "周期群体治疗": "Periodic group healing",
+      "随从上限+3": "Follower limit +3",
+      "史莱姆": "Slime",
+      "骷髅兵": "Skeleton",
+      "骷髅射手": "Skeleton Archer",
+      "僵尸": "Zombie",
+      "鬼魂": "Ghost",
+      "野蛮人": "Barbarian",
+      "树人": "Treant",
+      "强盗": "Bandit",
+      "暗精灵": "Dark Elf",
+      "独眼巨人": "Cyclops",
+      "死亡骑士": "Death Knight",
+      "蝎狮": "Manticore",
+      "比蒙巨兽": "Behemoth",
+      "海德拉": "Hydra",
+      "耶梦加得": "Jormungandr",
+      "芬里厄": "Fenrir",
+      "克苏鲁随从": "Cthulhu Follower",
+      "奇美拉": "Chimera"
+    },
+    source: {
+      "Arcane": "Arcane",
+      "Burn": "Burn",
+      "Disease": "Disease",
+      "Earth": "Earth",
+      "Fire": "Fire",
+      "Follower": "Follower",
+      "Ice": "Ice",
+      "Lightning": "Lightning",
+      "Physical": "Physical",
+      "Poison": "Poison",
+      "Spirit": "Spirit",
+      "Wind": "Wind",
+      "Other": "Other"
+    }
+  },
+  "zh-CN": {
+    text: {
+      "Typhon Rift": "提丰裂隙",
+      "Typhon": "提丰",
+      "Charge": "冲锋",
+      "Chest": "宝箱",
+      "Gold": "金币",
+      "Sacrificed": "已献祭",
+      "Piece": "棋子",
+      "Auto-chess follower": "自走棋随从",
+      "Collect 3": "集齐 3 个",
+      "to evolve into": "可合成为",
+      "Advanced follower": "更高阶随从",
+      "50% off": "五折",
+      "Reflect": "反射",
+      "MISS": "未命中",
+      "FROZEN": "冻结",
+      "Burn": "燃烧",
+      "Disease": "疾病",
+      "DODGE": "闪避",
+      "Web": "蛛网",
+      "Summon Spider": "召唤小蜘蛛",
+      "Summon Demon": "召唤恶魔",
+      "Treant": "树人守卫",
+      "No permanent follower available": "无可献祭随从",
+      "Summoned units cannot be sacrificed.": "召唤物不能献祭。",
+      "Gain 1 hero level and upgrade one learned skill.": "英雄等级+1，并随机升级一个已学习技能。",
+      "Leave Altar": "离开祭坛",
+      "Keep every follower.": "保留所有随从。",
+      "Requires": "消耗",
+      "and": "和",
+      "and sacrifice": "并献祭",
+      "Furnace Spirit": "熔炉精灵",
+      "Balrog": "炎魔",
+      "Red Lotus Beast": "红莲星兽",
+      "Rock Spirit": "岩石精灵",
+      "Golem": "石巨人",
+      "Mountain Giant": "山岭巨人",
+      "Skeleton": "骷髅兵",
+      "Skeleton Warrior": "骷髅战士",
+      "Reaper": "死神",
+      "Militia": "民兵",
+      "Swordsman": "剑士",
+      "Knight": "骑士",
+      "Rogue Girl": "盗贼少女",
+      "Assassin Girl": "刺客少女",
+      "Ninja Girl": "忍者少女",
+      "Pixie": "小精灵",
+      "Flower Fairy": "花之妖精",
+      "Fairy Princess": "妖精公主",
+      "Ghost": "幽灵",
+      "Wraith": "怨灵",
+      "Banshee": "女妖",
+      "Little Demon": "小恶魔",
+      "Demon": "恶魔",
+      "Hell King": "地狱之王",
+      "Ghoul": "食尸鬼",
+      "Abomination": "憎恶",
+      "Abomination Giant": "巨型憎恶",
+      "Small Spider": "小蜘蛛",
+      "Big Spider": "巨蛛",
+      "Jorogumo": "络新妇",
+      "Treant Guardian": "树人守卫",
+      "Imps": "小恶魔",
+      "Chronos Amulet": "时序护符",
+      "Time Pocket Watch": "时光怀表",
+      "Time Sand": "时之砂",
+      "Mana Source": "魔力源泉",
+      "War Horn": "战争号角",
+      "War Drum": "战鼓",
+      "The Art of War": "兵法书",
+      "Arcane Ring": "奥术指环",
+      "Fire Spirit Orb": "火灵宝珠",
+      "Ice Crystal": "寒冰水晶",
+      "Chronos Clock": "时序之钟",
+      "Cooldown -10%": "冷却-10%",
+      "Cooldown -6%": "冷却-6%",
+      "Cooldown -3%": "冷却-3%",
+      "All friendly skill cooldown -3%": "全部友方技能冷却-3%",
+      "Follower attack aura +12%": "随从攻击光环+12%",
+      "Follower move speed aura +10%": "随从移动速度光环+10%",
+      "Follower limit +1": "随从上限+1",
+      "Magic damage +10%": "魔法伤害+10%",
+      "Fire magic damage +20%": "火焰魔法伤害+20%",
+      "Ice magic damage +20%": "冰霜魔法伤害+20%",
+      "Area healing +2 HP/sec": "区域治疗+2生命/秒",
+      "Dead enemies have 75% chance to explode": "死亡敌人有75%几率爆炸",
+      "Magic area +10%": "魔法范围+10%",
+      "Magic area +5%": "魔法范围+5%",
+      "Magic area +15%, duration +10%": "魔法范围+15%，持续时间+10%",
+      "Crit chance +3%": "暴击率+3%",
+      "Crit chance +10%": "暴击率+10%",
+      "Crit chance +15%": "暴击率+15%",
+      "Crit damage +100%": "暴击伤害+100%",
+      "Ranged attack dodge +50%": "远程攻击闪避+50%",
+      "Crit damage +30%": "暴击伤害+30%",
+      "Crit chance +6%, crit damage +20%": "暴击率+6%，暴击伤害+20%",
+      "50% chance to reflect ranged attacks": "50%几率反射远程攻击",
+      "Gold gain +10%": "金币获取+10%",
+      "Cooldown -15%, skill duration +10%": "冷却-15%，技能持续时间+10%",
+      "Arcane": "奥术",
+      "Burn": "燃烧",
+      "Disease": "疾病",
+      "Earth": "大地",
+      "Fire": "火焰",
+      "Follower": "随从",
+      "Ice": "冰霜",
+      "Lightning": "闪电",
+      "Physical": "物理",
+      "Poison": "毒素",
+      "Spirit": "幽灵",
+      "Wind": "风",
+      "Other": "其他"
+    }
+  }
+};
+
+const traditionalTextMap = {
+  "提丰裂隙": "提豐裂隙",
+  "提丰": "提豐",
+  "熔炉精灵": "熔爐精靈",
+  "红莲星兽": "紅蓮星獸",
+  "岩石精灵": "岩石精靈",
+  "山岭巨人": "山嶺巨人",
+  "骷髅兵": "骷髏兵",
+  "骷髅战士": "骷髏戰士",
+  "盗贼少女": "盜賊少女",
+  "刺客少女": "刺客少女",
+  "忍者少女": "忍者少女",
+  "小精灵": "小精靈",
+  "花之妖精": "花之妖精",
+  "妖精公主": "妖精公主",
+  "幽灵": "幽靈",
+  "地狱之王": "地獄之王",
+  "食尸鬼": "食屍鬼",
+  "巨型憎恶": "巨型憎惡",
+  "时序护符": "時序護符",
+  "时光怀表": "時光懷錶",
+  "时之砂": "時之砂",
+  "魔力源泉": "魔力源泉",
+  "战争号角": "戰爭號角",
+  "战鼓": "戰鼓",
+  "兵法书": "兵法書",
+  "奥术指环": "奧術指環",
+  "火灵宝珠": "火靈寶珠",
+  "寒冰水晶": "寒冰水晶",
+  "时序之钟": "時序之鐘",
+  "冷却": "冷卻",
+  "随从": "隨從",
+  "移动速度": "移動速度",
+  "全部友方技能": "全部友方技能",
+  "生命": "生命",
+  "死亡敌人": "死亡敵人",
+  "几率": "機率",
+  "爆炸": "爆炸",
+  "魔法范围": "魔法範圍",
+  "持续时间": "持續時間",
+  "暴击": "暴擊",
+  "远程攻击": "遠程攻擊",
+  "金币": "金幣",
+  "技能": "技能",
+  "疾病": "疾病",
+  "燃烧": "燃燒",
+  "大地": "大地",
+  "火焰": "火焰",
+  "冰霜": "冰霜",
+  "闪电": "閃電",
+  "奥术": "奧術",
+  "毒素": "毒素",
+  "其他": "其他"
+};
+
+function toTraditionalText(text) {
+  let out = String(text ?? "");
+  for (const [from, to] of Object.entries(traditionalTextMap)) out = out.split(from).join(to);
+  return out;
+}
+
+function localizeText(text) {
+  const raw = String(text ?? "");
+  if (!raw) return raw;
+  if (currentLang === "en") return localizedData.en.text[raw] || raw;
+  const zh = localizedData["zh-CN"].text[raw] || raw;
+  return currentLang === "zh-TW" ? toTraditionalText(zh) : zh;
+}
+
+function localizeElement(element) {
+  return t(`element_${element}`) || localizeText(element);
+}
+
+function localizeSkillName(id) {
+  return localizeText(skillBook[id]?.name || id);
+}
+
+function localizeSkillDesc(id) {
+  return localizeText(skillBook[id]?.desc || skillBook[id]?.type || t("skillFallback"));
+}
+
+function localizeClassName(id) {
+  return localizeText(classBook[id]?.name || t("unknownClass"));
+}
+
+function localizeClassInnate(id) {
+  return localizeText(classBook[id]?.innate || "-");
+}
+
+function localizeClassDesc(id) {
+  return localizeText(classBook[id]?.desc || "");
+}
+
+function localizeCreatureName(name) {
+  return localizeText(name);
+}
+
+function localizeGearName(gear) {
+  return localizeText(typeof gear === "string" ? gear : gear?.name);
+}
+
+function localizeGearDesc(gear) {
+  return localizeText(gear?.desc || "");
+}
+
+function localizeItemLine(line) {
+  let out = String(line ?? "");
+  const replacements = [
+    ...gearBook.map(gear => gear.name),
+    ...artifactBook.map(item => item.name),
+    ...Object.keys(localizedData["zh-CN"].text),
+    ...Object.keys(localizedData.en.text)
+  ].sort((a, b) => b.length - a.length);
+  for (const source of replacements) {
+    const target = localizeText(source);
+    if (target !== source) out = out.split(source).join(target);
+  }
+  return currentLang === "zh-TW" ? toTraditionalText(out) : out;
+}
+
 let state;
 
 function newState(classId = "elementMage") {
@@ -1284,7 +2417,7 @@ function spawnBossAt(name, x, y, worldBoss = false) {
       hit: 0, shoot: rand(1, 3), attackMul: 1.25, specialCd: 5.5, awaken: 4.5
     };
     state.monsters.push(m);
-    addText("Typhon awakens", x - 70, y - radius - 42, "#ff9a46");
+    addText(`${localizeCreatureName("Typhon")} ${localizeText("苏醒")}`, x - 70, y - radius - 42, "#ff9a46");
     addRing(x, y, radius * 2.8, "rgba(255,88,32,.9)", 1.0);
     return m;
   }
@@ -1422,7 +2555,7 @@ function castSkill(s) {
     }
   } else if (b.type === "aura" || b.type === "cloud") {
     const target = nearestEnemy(p, 500) || p;
-    state.zones.push(scaleSkillDuration({ x: s.id === "sandstorm" ? p.x : target.x, y: s.id === "sandstorm" ? p.y : target.y, followPlayer: s.id === "sandstorm", r: s.id === "poisonCloud" ? area * 0.58 : s.id === "lavaField" ? area * 0.42 : area, maxR: s.id === "lavaField" ? area * 1.35 : area, life: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, maxLife: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, damage: dmg * (s.id === "lavaField" ? 0.28 : 0.22), element: b.element, type: s.id === "blizzard" ? "blizzardFx" : s.id === "poisonCloud" ? "poisonCloudFx" : s.id === "sandstorm" ? "sandstormFx" : s.id === "lavaField" ? "lavaFieldFx" : b.element === "wind" ? "spiral" : "dot", color: b.element === "ice" ? "rgba(150,220,255,.22)" : b.element === "poison" ? "rgba(103,212,95,.20)" : b.element === "fire" ? "rgba(255,94,28,.22)" : "rgba(214,190,92,.20)", spin: s.id === "blizzard" ? 2.2 : s.id === "poisonCloud" ? 1.6 : s.id === "sandstorm" ? 2.8 : s.id === "lavaField" ? 0.9 : b.element === "wind" ? 5 : -1, grow: s.id === "poisonCloud" ? 1.5 : s.id === "lavaField" ? 0.85 : 0.05, poisonDamage: b.element === "poison" ? dmg * 0.16 : 0, burnVulnerable: s.id === "lavaField" ? 0.14 + lvl * 0.015 : 0, blind: s.id === "sandstorm" }));
+    state.zones.push(scaleSkillDuration({ x: s.id === "sandstorm" ? p.x : target.x, y: s.id === "sandstorm" ? p.y : target.y, followPlayer: s.id === "sandstorm", r: s.id === "poisonCloud" ? area * 0.58 : s.id === "lavaField" ? area * 0.42 : area, maxR: s.id === "lavaField" ? area * 1.35 : area, life: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, maxLife: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, damage: dmg * (s.id === "lavaField" ? 0.28 : 0.22), element: b.element, type: s.id === "blizzard" ? "blizzardFx" : s.id === "poisonCloud" ? "poisonCloudFx" : s.id === "sandstorm" ? "sandstormFx" : s.id === "lavaField" ? "lavaFieldFx" : b.element === "wind" ? "spiral" : "dot", color: b.element === "ice" ? "rgba(150,220,255,.22)" : b.element === "poison" ? "rgba(103,212,95,.20)" : b.element === "fire" ? "rgba(255,94,28,.22)" : "rgba(214,190,92,.20)", spin: s.id === "blizzard" ? 2.2 : s.id === "poisonCloud" ? 1.6 : s.id === "sandstorm" ? 2.8 : s.id === "lavaField" ? 0.9 : b.element === "wind" ? 5 : -1, grow: s.id === "poisonCloud" ? 1.5 : s.id === "lavaField" ? 0.85 : 0.05, poisonDamage: b.element === "poison" ? dmg * 0.16 : 0, burnVulnerable: s.id === "lavaField" ? 0.14 + lvl * 0.015 : 0, blind: s.id === "sandstorm", damageTick: s.id === "sandstorm" ? 0.18 : 0 }));
     if (b.element === "poison") addParticles(target.x, target.y, "rgba(128,255,105,.65)", 18, area * 0.45, 2.4);
   } else if (b.type === "nova") {
     damageCircle(p.x, p.y, area, dmg, b.element, true);
@@ -1709,7 +2842,7 @@ function castPainScream(origin, target, area, damage, level) {
     const side = Math.abs(dx * sideX + dy * sideY);
     const maxSide = (width * 0.22) + (forward / length) * width * 0.48;
     if (forward > -m.r && forward < length + m.r && side < maxSide + m.r) {
-      hitMonster(m, damage * 0.55, "arcane");
+      hitMonster(m, damage * 0.78, "arcane");
       applyFear(m, 1.35 + level * 0.24);
     }
   }
@@ -2030,7 +3163,7 @@ function reflectEnemyShot(s) {
     angle: a,
     spin: s.spin || 0
   });
-  addText("Reflect", p.x - 26, p.y - 44, "#b8d8ff");
+        addText(localizeText("反射"), p.x - 26, p.y - 44, "#b8d8ff");
   addRing(p.x, p.y, 48, "rgba(155,200,255,.85)", 0.34);
 }
 
@@ -2209,8 +3342,8 @@ function distanceDamageMultiplier(distance, radius, minMultiplier = 0.3) {
 }
 
 function damageStatName(source) {
-  if (!source) return "Other";
-  if (skillBook?.[source]?.name) return skillBook[source].name;
+  if (!source) return localizeText("Other");
+  if (skillBook?.[source]?.name) return localizeSkillName(source);
   const labels = {
     arcane: "Arcane",
     burn: "Burn",
@@ -2225,7 +3358,7 @@ function damageStatName(source) {
     spirit: "Spirit",
     wind: "Wind"
   };
-  return labels[source] || String(source);
+  return localizeText(labels[source] || String(source));
 }
 
 function recordDamage(source, amount) {
@@ -2586,7 +3719,7 @@ function addParticles(x, y, color, count, radius, life) {
 function hitMonster(m, amount, element, source) {
   if ((m.awaken || 0) > 0) return;
   if (m.tag === "ghost" && element === "physical" && Math.random() < 0.5) {
-    addText("MISS", m.x - 16, m.y - 18, "#cfe8ff");
+    addText(localizeText("未命中"), m.x - 16, m.y - 18, "#cfe8ff");
     m.hit = 0.04;
     return;
   }
@@ -2625,7 +3758,7 @@ function applyBurn(target, damage, duration = 4) {
 
 function monsterAttackMisses(m) {
   if ((m.blind || 0) <= 0 || Math.random() >= 0.5) return false;
-  addText("MISS", m.x - 16, m.y - 24, "#f2d38a");
+  addText(localizeText("未命中"), m.x - 16, m.y - 24, "#f2d38a");
   return true;
 }
 
@@ -2669,7 +3802,7 @@ function updateAbsoluteZero(dt) {
     if (!m.absoluteZeroTouched) {
       m.absoluteZeroTouched = true;
       m.frozen = Math.max(m.frozen || 0, 2.2);
-      addText("FROZEN", m.x - 25, m.y - 28, "#8fdcff");
+      addText(localizeText("冻结"), m.x - 25, m.y - 28, "#8fdcff");
     }
   }
   let aura = state.zones.find(z => z.type === "absoluteZeroFx");
@@ -2883,10 +4016,10 @@ function update(dt) {
   updateClassInnates(dt);
 
   let mx = 0, my = 0;
-  if (keys.has("KeyW") || keys.has("ArrowUp")) my -= 1;
-  if (keys.has("KeyS") || keys.has("ArrowDown")) my += 1;
-  if (keys.has("KeyA") || keys.has("ArrowLeft")) mx -= 1;
-  if (keys.has("KeyD") || keys.has("ArrowRight")) mx += 1;
+  if (isActionHeld("up")) my -= 1;
+  if (isActionHeld("down")) my += 1;
+  if (isActionHeld("left")) mx -= 1;
+  if (isActionHeld("right")) mx += 1;
   mx += touchMove.x;
   my += touchMove.y;
   const len = Math.hypot(mx, my) || 1;
@@ -2940,8 +4073,6 @@ function update(dt) {
     state.paused = false;
     clearSave();
     startPanel.classList.remove("hidden");
-    startPanel.querySelector("h1").textContent = "生存结束";
-    startPanel.querySelector("p").textContent = `坚持 ${Math.floor(state.time)} 秒 · 等级 ${p.level}`;
     renderStartMenu(summary);
   }
 }
@@ -3084,7 +4215,7 @@ function updateBurnStatus(target, dt) {
   if (target.burn.tick <= 0) {
     target.burn.tick = 0.75;
     target.hp -= target.burn.damage || 0;
-    addText(`Burn-${Math.ceil(target.burn.damage || 0)}`, target.x - 22, target.y - 32, "#ff9b42");
+    addText(`${localizeText("燃烧")}-${Math.ceil(target.burn.damage || 0)}`, target.x - 22, target.y - 32, "#ff9b42");
   }
 }
 
@@ -3095,7 +4226,7 @@ function updateDiseaseStatus(target, dt) {
   if (target.disease.tick <= 0) {
     target.disease.tick = 1.2;
     target.hp -= target.disease.damage || 0;
-    addText("Disease", target.x - 24, target.y - 36, "#b677ff");
+    addText(localizeText("疾病"), target.x - 24, target.y - 36, "#b677ff");
   }
 }
 
@@ -3123,7 +4254,7 @@ function updateWorldBossSites(dt) {
         site.spawnX = site.x + Math.cos(away) * 410;
         site.spawnY = site.y + Math.sin(away) * 410;
         site.warningPulse = 0;
-        addText("Typhon summoning: 7 seconds", site.x - 92, site.y - 104, "#ffb35f");
+        addText(`${localizeCreatureName("Typhon")} ${localizeText("召唤倒计时")}：7 ${localizeText("秒")}`, site.x - 92, site.y - 104, "#ffb35f");
       }
       if (site.summoningUntil) {
         site.warningPulse = (site.warningPulse || 0) - dt;
@@ -3139,7 +4270,7 @@ function updateWorldBossSites(dt) {
             boss.awaken = 4.5;
             boss.specialCd = 5.5;
           }
-          addText("Typhon is awakening - retreat!", site.x - 112, site.y - 112, "#ffd36b");
+          addText(`${localizeCreatureName("Typhon")} ${localizeText("正在苏醒，立刻撤离！")}`, site.x - 112, site.y - 112, "#ffd36b");
         }
       }
       continue;
@@ -3147,7 +4278,7 @@ function updateWorldBossSites(dt) {
     if (d < site.r) {
       site.spawned = true;
       spawnBossAt(site.boss, site.x, site.y, true);
-      addText(`${site.name} 被唤醒`, site.x - 62, site.y - 90, "#ffcf66");
+      addText(`${localizeText(site.name)} ${localizeText("被唤醒")}`, site.x - 62, site.y - 90, "#ffcf66");
     }
   }
 }
@@ -3205,7 +4336,7 @@ function grantSacrificeUpgrade(index) {
   const skill = pick(upgradeable);
   if (skill) skill.level += 1;
   state.items.push(`Sacrificed: ${follower.name}`);
-  addText(skill ? `${follower.name} -> Lv.${player.level}, ${skillBook[skill.id].name} Lv.${skill.level}` : `${follower.name} -> Lv.${player.level}`, x - 70, y - 42, "#ffb35f");
+  addText(skill ? `${localizeCreatureName(follower.name)} -> Lv.${player.level}, ${localizeSkillName(skill.id)} Lv.${skill.level}` : `${localizeCreatureName(follower.name)} -> Lv.${player.level}`, x - 70, y - 42, "#ffb35f");
   addRing(state.sacrificeAltar.x, state.sacrificeAltar.y, 126, "rgba(255,92,32,.92)", 0.9);
   addParticles(state.sacrificeAltar.x, state.sacrificeAltar.y, "rgba(255,137,54,.78)", 20, 88, 0.8);
   saveGame();
@@ -3222,7 +4353,7 @@ function openSacrificeAltar() {
   if (!followers.length) {
     const empty = document.createElement("button");
     empty.className = "choice";
-    empty.innerHTML = "<b>No permanent follower available</b><span>Summoned units cannot be sacrificed.</span>";
+    empty.innerHTML = `<b>${esc(localizeText("无可献祭随从"))}</b><span>${esc(localizeText("召唤物不能献祭。"))}</span>`;
     empty.addEventListener("click", () => {
       state.paused = false;
       levelPanel.classList.add("hidden");
@@ -3232,7 +4363,7 @@ function openSacrificeAltar() {
     for (const { follower, index } of followers) {
       const button = document.createElement("button");
       button.className = "choice";
-      button.innerHTML = `<b>Sacrifice ${esc(follower.name)} (Tier ${follower.tier})</b><span>Gain 1 hero level and upgrade one learned skill.</span>`;
+      button.innerHTML = `<b>${esc(localizeText("献祭"))} ${esc(localizeCreatureName(follower.name))} (T${follower.tier})</b><span>${esc(localizeText("英雄等级+1，并随机升级一个已学习技能。"))}</span>`;
       button.addEventListener("click", () => {
         grantSacrificeUpgrade(index);
         state.paused = false;
@@ -3244,7 +4375,7 @@ function openSacrificeAltar() {
   }
   const leave = document.createElement("button");
   leave.className = "choice";
-  leave.innerHTML = "<b>Leave Altar</b><span>Keep every follower.</span>";
+  leave.innerHTML = `<b>${esc(localizeText("离开祭坛"))}</b><span>${esc(localizeText("保留所有随从。"))}</span>`;
   leave.addEventListener("click", () => {
     state.paused = false;
     levelPanel.classList.add("hidden");
@@ -3285,11 +4416,11 @@ function openBlackMarket() {
   const followerPool = [...followerChoices].sort(() => Math.random() - 0.5).slice(0, 3);
   followerPool.forEach((f, index) => {
     const cost = (70 + f.tier * 25 + index * 12) * 10;
-    const next = followerEvolvesTo[f.id] ? followerById[followerEvolvesTo[f.id]].name : "更高阶";
+    const next = followerEvolvesTo[f.id] ? localizeCreatureName(followerById[followerEvolvesTo[f.id]].name) : localizeText("更高阶");
     saleEntries.push({
-      label: f.name,
+      label: localizeCreatureName(f.name),
       cost,
-      desc: `随从碎片：集齐 3 个 ${f.name} 可合成为${next}。`,
+      desc: `${localizeText("随从碎片")}：${localizeText("集齐")} 3 ${localizeText("个")} ${localizeCreatureName(f.name)} ${localizeText("可合成为")}${next}。`,
       buy: finalCost => buyFollowerOffer(f, finalCost)
     });
   });
@@ -3300,9 +4431,9 @@ function openBlackMarket() {
     marketGear.add(gear.name);
     const cost = (90 + i * 22) * 10;
     saleEntries.push({
-      label: gearTitle(gear),
+      label: `[${rarityLabel(gear.rarity)}] ${localizeGearName(gear)}`,
       cost,
-      desc: gear.desc,
+      desc: localizeGearDesc(gear),
       buy: finalCost => buyGearOffer(gear, finalCost)
     });
   }
@@ -3311,21 +4442,21 @@ function openBlackMarket() {
     const discounted = index === couponIndex;
     const cost = discounted ? Math.ceil(entry.cost * 0.5) : entry.cost;
     offers.push({
-      title: `${entry.label} - ${cost} Gold${discounted ? " (50% off)" : ""}`,
-      desc: discounted ? `${entry.desc} 优惠券已生效。` : entry.desc,
+      title: `${entry.label} - ${cost} ${t("statGold")}${discounted ? ` (${localizeText("50% off")})` : ""}`,
+      desc: discounted ? `${entry.desc} ${localizeText("优惠券已生效。")}` : entry.desc,
       run: () => entry.buy(cost)
     });
   });
   if (!marketGear.size) {
     offers.push({
-      title: "装备已售罄",
-      desc: "你已经拥有全部不可重复道具。",
+      title: localizeText("装备已售罄"),
+      desc: localizeText("你已经拥有全部不可重复道具。"),
       run: () => false
     });
   }
   offers.push({
-    title: "离开黑市",
-    desc: "关闭商人面板。",
+    title: localizeText("离开黑市"),
+    desc: localizeText("关闭商人面板。"),
     run: () => true
   });
 
@@ -3355,12 +4486,12 @@ function buyFollowerOffer(follower, cost) {
     return false;
   }
   if (permanentFollowerCount() >= followerLimit()) {
-    addText("Follower limit", state.player.x - 42, state.player.y - 46, "#ffd36b");
+    addText(localizeText("随从已满"), state.player.x - 42, state.player.y - 46, "#ffd36b");
     return false;
   }
   state.gold -= cost;
   addFollower(follower);
-  addText(`已购买 ${follower.name}`, state.player.x - 56, state.player.y - 48, "#ffd36b");
+  addText(`${localizeText("已购买")} ${localizeCreatureName(follower.name)}`, state.player.x - 56, state.player.y - 48, "#ffd36b");
   return false;
 }
 
@@ -3374,7 +4505,7 @@ function buyGearOffer(gear, cost) {
     return false;
   }
   state.gold -= cost;
-  addText(`已购买 ${gearTitle(gear)}`, state.player.x - 56, state.player.y - 48, gearRarityInfo[gear.rarity]?.color || "#ffd36b");
+  addText(`${localizeText("已购买")} [${rarityLabel(gear.rarity)}] ${localizeGearName(gear)}`, state.player.x - 56, state.player.y - 48, gearRarityInfo[gear.rarity]?.color || "#ffd36b");
   addRing(state.player.x, state.player.y, 52, "rgba(255,211,107,.85)", 0.45);
   return false;
 }
@@ -3410,7 +4541,7 @@ function updateFollowers(dt) {
       addRing(f.x, f.y, 54 + f.tier * 18, "rgba(196,226,255,.9)", 0.6);
     }
     if (f.hp <= 0) {
-      addText(`${f.name} 倒下`, f.x - 24, f.y - 28, "#d7b08a");
+      addText(`${localizeCreatureName(f.name)} ${localizeText("倒下")}`, f.x - 24, f.y - 28, "#d7b08a");
       state.followers.splice(i, 1);
       continue;
     }
@@ -3418,7 +4549,7 @@ function updateFollowers(dt) {
     if (f.tempLife != null) {
       f.tempLife -= dt;
       if (f.tempLife <= 0) {
-        addText(`${f.name} fades`, f.x - 28, f.y - 28, f.element === "fire" ? "#ff9b58" : "#b8e88d");
+        addText(`${localizeCreatureName(f.name)} ${localizeText("消散")}`, f.x - 28, f.y - 28, f.element === "fire" ? "#ff9b58" : "#b8e88d");
         state.followers.splice(i, 1);
         continue;
       }
@@ -3899,7 +5030,7 @@ function castSpiderWeb(f, radius) {
     const a = i * Math.PI * 2 / 8 + state.time * 0.2;
     addLine(f.x, f.y, f.x + Math.cos(a) * radius, f.y + Math.sin(a) * radius, "rgba(235,255,242,.45)", 2, 0.42, true);
   }
-  addText("Web", f.x - 16, f.y - radius * 0.45, "#e9fff4");
+  addText(localizeText("蛛网"), f.x - 16, f.y - radius * 0.45, "#e9fff4");
 }
 
 function summonSpiderlings(f, target) {
@@ -3930,7 +5061,7 @@ function summonSpiderlings(f, target) {
     state.followers.push(spider);
     addRing(spider.x, spider.y, 34, "rgba(190,255,132,.7)", 0.34);
   }
-  addText("Summon Spider", f.x - 48, f.y - 48, "#c8ff90");
+  addText(localizeText("召唤小蜘蛛"), f.x - 48, f.y - 48, "#c8ff90");
 }
 
 function demonClaw(f, target, damage) {
@@ -3965,7 +5096,7 @@ function summonHellDemon(f, target) {
   };
   state.followers.push(demon);
   addRing(demon.x, demon.y, 58, "rgba(255,84,32,.86)", 0.58);
-  addText("Summon Demon", demon.x - 46, demon.y - 42, "#ff9b58");
+  addText(localizeText("召唤恶魔"), demon.x - 46, demon.y - 42, "#ff9b58");
 }
 
 function fireFairyBolt(f, target, damage) {
@@ -3973,6 +5104,7 @@ function fireFairyBolt(f, target, damage) {
   const muzzleX = f.x + Math.cos(a) * 20;
   const muzzleY = f.y + Math.sin(a) * 20;
   const isPixie = f.id === "pixie";
+  const orbScale = f.id === "fairyPrincess" ? 1.25 : f.id === "flowerFairy" ? 1.12 : 1;
   state.projectiles.push({
     kind: isPixie ? "pixieOrb" : "fairyBolt",
     x: muzzleX,
@@ -3981,10 +5113,10 @@ function fireFairyBolt(f, target, damage) {
     py: muzzleY,
     vx: Math.cos(a) * 430,
     vy: Math.sin(a) * 430,
-    damage: damage * (isPixie ? 0.95 : 1.05),
-    r: isPixie ? 12 : 7 + f.tier,
+    damage: damage * (isPixie ? 0.95 : 1.08),
+    r: isPixie ? 14 : (10 + f.tier * 2) * orbScale,
     element: "poison",
-    color: isPixie ? "rgba(66,255,118,.98)" : "rgba(150,255,110,.9)",
+    color: isPixie ? "rgba(66,255,118,.98)" : "rgba(76,255,118,.96)",
     life: 1.25,
     pierce: false,
     hit: new Set(),
@@ -4040,7 +5172,7 @@ function summonTreantGuardian(f, target) {
   };
   state.followers.push(guardian);
   addRing(guardian.x, guardian.y, 64, "rgba(137,220,92,.85)", 0.65);
-  addText("Treant", guardian.x - 24, guardian.y - 42, "#b8e88d");
+  addText(localizeText("树人守卫"), guardian.x - 24, guardian.y - 42, "#b8e88d");
 }
 
 function fireFollowerFireball(f, target, damage) {
@@ -4330,15 +5462,22 @@ function updateProjectiles(dt) {
         }
       }
     }
+    if (pr.kind === "fairyBolt" || pr.kind === "pixieOrb") {
+      pr.orbClock = (pr.orbClock || 0) - dt;
+      if (pr.orbClock <= 0) {
+        pr.orbClock = 0.04;
+        addLine(pr.px, pr.py, pr.x, pr.y, "rgba(78,255,128,.36)", rand(6, 10), 0.14, true);
+      }
+    }
     pr.life -= dt;
     for (const m of state.monsters) {
       if (!pr.hit.has(m) && Math.hypot(pr.x - m.x, pr.y - m.y) < pr.r + m.r) {
         hitMonster(m, pr.damage, pr.element);
         pr.hit.add(m);
         if (pr.kind === "fairyBolt" || pr.kind === "pixieOrb") applyPoison(m, Math.max(2, pr.damage * 0.12), 4.5);
-        if (pr.kind === "pixieOrb") {
-          addRing(pr.x, pr.y, 32, "rgba(66,255,118,.78)", 0.24);
-          addParticles(pr.x, pr.y, "rgba(118,255,154,.68)", 7, 24, 0.3);
+        if (pr.kind === "fairyBolt" || pr.kind === "pixieOrb") {
+          addRing(pr.x, pr.y, pr.kind === "pixieOrb" ? 32 : 38, "rgba(66,255,118,.78)", 0.24);
+          addParticles(pr.x, pr.y, "rgba(118,255,154,.68)", pr.kind === "pixieOrb" ? 7 : 10, 24, 0.3);
         }
         if (pr.kind === "spiritBolt") {
           m.slow = Math.max(m.slow || 0, pr.slow || 0.2);
@@ -4393,7 +5532,7 @@ function updateEnemyShots(dt) {
     }
     if (Math.hypot(s.x - p.x, s.y - p.y) < s.r + p.r) {
       if (!p.ward && (p.rangedDodgeChance || 0) > 0 && Math.random() < p.rangedDodgeChance) {
-        addText("DODGE", p.x - 18, p.y - 42, "#a7f3d0");
+        addText(localizeText("闪避"), p.x - 18, p.y - 42, "#a7f3d0");
         state.enemyShots.splice(i, 1);
         continue;
       }
@@ -4481,6 +5620,21 @@ function updateZones(dt) {
         damageCircle(z.x, z.y, z.r, (z.damage || z.impactDamage * 0.32 || 0) * 0.85, z.element, true, { falloff: true, minMultiplier: 0.28 });
       }
     }
+    if (z.type === "sandstormFx" && z.damage > 0) {
+      z.damageTick = (z.damageTick || 0) - dt;
+      if (z.damageTick <= 0) {
+        const interval = 0.18;
+        z.damageTick = interval;
+        const rr = z.r * z.r;
+        const tickDamage = z.damage * interval * 12;
+        for (const m of state.monsters) {
+          const reach = z.r + m.r;
+          const dx = m.x - z.x;
+          const dy = m.y - z.y;
+          if (dx * dx + dy * dy <= Math.max(rr, reach * reach)) hitMonster(m, tickDamage, z.element);
+        }
+      }
+    }
     if (z.poisonDamage || z.blind || z.burnVulnerable || z.burnDamage || z.slow || z.diseaseDamage) {
       z.statusTick = (z.statusTick || 0) - dt;
       if (z.statusTick <= 0) {
@@ -4504,6 +5658,8 @@ function updateZones(dt) {
           const diff = Math.abs(Math.atan2(Math.sin(a - z.a), Math.cos(a - z.a)));
           if (diff < (z.arc || 0.55) && Math.hypot(m.x - z.x, m.y - z.y) < z.r) hitMonster(m, z.damage * dt * 60, z.element);
         }
+      } else if (z.type === "sandstormFx") {
+        // Sandstorm uses its own fixed damage tick above to avoid frame-rate dependent slowdowns.
       } else {
         damageCircle(z.x, z.y, z.r, z.damage * dt * 12, z.element, z.element === "ice");
       }
@@ -4793,11 +5949,11 @@ function updateChests(dt) {
     if (d < p.r + c.r + 10) {
       const g = pickGearByRarity();
       if (g && applyUniqueGear(g)) {
-        addText(`宝箱：${gearTitle(g)}`, c.x - 36, c.y - 20, gearRarityInfo[g.rarity]?.color || "#ffd36b");
+        addText(`${localizeText("宝箱")}：[${rarityLabel(g.rarity)}] ${localizeGearName(g)}`, c.x - 36, c.y - 20, gearRarityInfo[g.rarity]?.color || "#ffd36b");
       } else {
         const bonusGold = 80 + Math.floor(state.time / 60) * 12;
         addGold(bonusGold, c.x, c.y);
-        state.items.push(`Chest: ${bonusGold} Gold`);
+        state.items.push(`${localizeText("宝箱")}: ${bonusGold} ${t("statGold")}`);
       }
       addRing(c.x, c.y, 42, "rgba(255,211,107,.9)", 0.45);
       addParticles(c.x, c.y, "rgba(255,226,132,.9)", 16, 32, 0.55);
@@ -4864,13 +6020,14 @@ function openLevelChoices() {
       const iceAgeFusion = id === "iceAge" && !state.skills.iceAge;
       const breathFusion = id === "breathOfFire" && !state.skills.breathOfFire;
       const dimensionalFusion = id === "dimensionalSlash" && !state.skills.dimensionalSlash;
-      const title = fusion ? "合成：火龙卷" : doomFusion ? "合成：末日审判" : forkFusion ? "合成：叉状闪电" : plagueFusion ? "合成：恶性瘟疫" : absoluteFusion ? "合成：绝对零度" : iceAgeFusion ? "合成：冰河期" : breathFusion ? "合成：火之呼吸" : dimensionalFusion ? "合成：次元斩" : current ? skillBook[id].name + " Lv." + Math.min(7, current + 1) : "学习 " + skillBook[id].name;
-      const desc = fusion ? "消耗 7 级喷火和 7 级龙卷风。" : doomFusion ? "消耗 7 级熔岩地带、陨石坠落、地震，并献祭 1 个红莲星兽。" : forkFusion ? "消耗 7 级喷火和 7 级连锁闪电。" : plagueFusion ? "消耗 7 级毒气云和 7 级黑死病。" : absoluteFusion ? "消耗 7 级暴风雪和 7 级霜冻新星。" : iceAgeFusion ? "消耗 7 级箭雨和 7 级霜冻新星。" : breathFusion ? "消耗 7 级痛苦尖叫和 7 级喷火。" : dimensionalFusion ? "消耗 7 级地震和 7 级劈砍。" : skillBook[id].desc;
+      const isFusionChoice = fusion || doomFusion || forkFusion || plagueFusion || absoluteFusion || iceAgeFusion || breathFusion || dimensionalFusion;
+      const title = isFusionChoice ? `${localizeText("合成")}：${localizeSkillName(id)}` : current ? `${localizeSkillName(id)} Lv.${Math.min(7, current + 1)}` : `${localizeText("学习")} ${localizeSkillName(id)}`;
+      const desc = fusion ? `${localizeText("消耗")} 7 ${localizeText("级")} ${localizeSkillName("fireBreath")} ${localizeText("和")} 7 ${localizeText("级")} ${localizeSkillName("tornado")}。` : doomFusion ? `${localizeText("消耗")} 7 ${localizeText("级")} ${localizeSkillName("lavaField")}、${localizeSkillName("meteor")}、${localizeSkillName("earthquake")}，${localizeText("并献祭")} 1 ${localizeText("个")} ${localizeCreatureName("Red Lotus Beast")}。` : forkFusion ? `${localizeText("消耗")} 7 ${localizeText("级")} ${localizeSkillName("fireBreath")} ${localizeText("和")} 7 ${localizeText("级")} ${localizeSkillName("chainLightning")}。` : plagueFusion ? `${localizeText("消耗")} 7 ${localizeText("级")} ${localizeSkillName("poisonCloud")} ${localizeText("和")} 7 ${localizeText("级")} ${localizeSkillName("blackPlague")}。` : absoluteFusion ? `${localizeText("消耗")} 7 ${localizeText("级")} ${localizeSkillName("blizzard")} ${localizeText("和")} 7 ${localizeText("级")} ${localizeSkillName("frostNova")}。` : iceAgeFusion ? `${localizeText("消耗")} 7 ${localizeText("级")} ${localizeSkillName("arrowRain")} ${localizeText("和")} 7 ${localizeText("级")} ${localizeSkillName("frostNova")}。` : breathFusion ? `${localizeText("消耗")} 7 ${localizeText("级")} ${localizeSkillName("painScream")} ${localizeText("和")} 7 ${localizeText("级")} ${localizeSkillName("fireBreath")}。` : dimensionalFusion ? `${localizeText("消耗")} 7 ${localizeText("级")} ${localizeSkillName("earthquake")} ${localizeText("和")} 7 ${localizeText("级")} ${localizeSkillName("cleave")}。` : localizeSkillDesc(id);
       choices.push({ title, desc, run: () => learnSkill(id) });
     } else {
       const f = pick(followerChoices);
-      const next = followerEvolvesTo[f.id] ? followerById[followerEvolvesTo[f.id]].name : "Advanced follower";
-      choices.push({ title: "Piece: " + f.name, desc: "Auto-chess follower. Collect 3 " + f.name + " to evolve into " + next + ".", run: () => addFollower(f) });
+      const next = followerEvolvesTo[f.id] ? localizeCreatureName(followerById[followerEvolvesTo[f.id]].name) : localizeText("Advanced follower");
+      choices.push({ title: `${localizeText("棋子")}：${localizeCreatureName(f.name)}`, desc: `${localizeText("自走棋随从")}。${localizeText("集齐")} 3 ${localizeText("个")} ${localizeCreatureName(f.name)} ${localizeText("可合成为")}${next}。`, run: () => addFollower(f) });
     }
   }
   choicesEl.innerHTML = "";
@@ -5105,7 +6262,7 @@ function spawnFollower(src, x = state.player.x + rand(-28, 28), y = state.player
   const grownMax = Math.floor(maxHp * timeGrowth());
   const f = { ...src, x, y, hp: grownMax, maxHp: grownMax, baseMaxHp: maxHp, durabilityBoosted: true, hitGrace: 0, t: rand(0, 1), autoChess: true };
   state.followers.push(f);
-  if (!f.summoned) state.items.push(`棋子:${f.name}`);
+  if (!f.summoned) state.items.push(`${localizeText("棋子")}:${localizeCreatureName(f.name)}`);
   return f;
 }
 
@@ -5139,9 +6296,9 @@ function resolveFollowerMerge(startId) {
     const y = matches.slice(0, 3).reduce((sum, entry) => sum + entry.f.y, 0) / 3;
     for (const entry of matches.slice(0, 3).sort((a, b) => b.index - a.index)) state.followers.splice(entry.index, 1);
     spawnFollower(next, x, y, true);
-    addText(`${next.name} 合成!`, x - 34, y - 32, next.element === "fire" ? "#ffb36b" : "#d4b084");
+    addText(`${localizeCreatureName(next.name)} ${localizeText("合成")}!`, x - 34, y - 32, next.element === "fire" ? "#ffb36b" : "#d4b084");
     addRing(x, y, next.tier === 3 ? 92 : 64, next.element === "fire" ? "rgba(255,150,70,.9)" : "rgba(214,168,104,.9)", 0.65);
-    state.items.push(`合成:${next.name}`);
+    state.items.push(`${localizeText("合成")}:${localizeCreatureName(next.name)}`);
     id = next.id;
   }
 }
@@ -5153,17 +6310,17 @@ function awardArtifact(forcedName = null) {
   if (!a) {
     const bonusGold = 420 + Math.floor(state.time / 60) * 35;
     addGold(bonusGold, state.player.x, state.player.y);
-    addText(`神器重复：+${bonusGold} 金币`, 72, 105, "#ffd36b");
+    addText(`${localizeText("神器重复")}：+${bonusGold} ${t("statGold")}`, 72, 105, "#ffd36b");
     return;
   }
   a.apply(state.player);
   state.artifacts.push(a.name);
-  addText(`神器：${a.name}`, 72, 105, "#ffd36b");
+  addText(`${t("artifactKind")}：${localizeGearName(a)}`, 72, 105, "#ffd36b");
 }
 
 function checkFusions() {
   const has = id => state.skills[id]?.level >= 3;
-  const add = id => { if (!state.skills[id]) { state.skills[id] = skillState(id); addText(`合成：${skillBook[id].name}`, 72, 165, "#ffd36b"); } };
+  const add = id => { if (!state.skills[id]) { state.skills[id] = skillState(id); addText(`${localizeText("合成")}：${localizeSkillName(id)}`, 72, 165, "#ffd36b"); } };
   if (has("tornado") && has("thunderCloud")) add("lightningStorm");
   if (has("meteor") && has("frostNova")) add("iceRing");
 }
@@ -5238,7 +6395,7 @@ function drawDamageStatsPanel() {
   ctx.strokeRect(x, y, panelW, panelH);
   ctx.fillStyle = "#f8f1d6";
   ctx.font = "700 14px system-ui";
-  ctx.fillText("伤害统计", x + 12, y + 22);
+  ctx.fillText(t("settlementDamage"), x + 12, y + 22);
   ctx.fillStyle = "#ffd36b";
   ctx.font = "700 12px system-ui";
   ctx.textAlign = "right";
@@ -5390,7 +6547,7 @@ function drawWorldBossSites() {
     ctx.fillStyle = "#f7e7ff";
     ctx.font = "14px Microsoft YaHei";
     const countdown = summoning ? Math.max(0, Math.ceil(site.summoningUntil - state.time)) : 0;
-    ctx.fillText(site.spawned ? `${site.boss} 已苏醒` : summoning ? `Typhon arrives in ${countdown}s` : site.name, site.x - 62, site.y - site.r * 0.64);
+    ctx.fillText(site.spawned ? `${localizeCreatureName(site.boss)} ${localizeText("已苏醒")}` : summoning ? `${localizeCreatureName("Typhon")} ${localizeText("降临倒计时")} ${t("secondsShort", { seconds: countdown })}` : localizeText(site.name), site.x - 62, site.y - site.r * 0.64);
     ctx.restore();
   }
 }
@@ -5422,7 +6579,7 @@ function drawBlackMarket() {
   if (near) {
     ctx.fillStyle = "#fff5c9";
     ctx.font = "13px Microsoft YaHei";
-    ctx.fillText("E / approach: buy followers and gear", market.x, market.y - 52);
+    ctx.fillText(`${localizeText("靠近并按 E 购买随从和装备")}`, market.x, market.y - 52);
   }
   ctx.textAlign = "start";
   ctx.restore();
@@ -5464,10 +6621,10 @@ function drawSacrificeAltar() {
   ctx.fillStyle = altar.wasNear ? "#ffe1a0" : "#ffc078";
   ctx.font = altar.wasNear ? "18px Microsoft YaHei" : "14px Microsoft YaHei";
   ctx.textAlign = "center";
-  ctx.fillText("Sacrifice Altar", altar.x, altar.y - 112);
+  ctx.fillText(localizeText("献祭祭坛"), altar.x, altar.y - 112);
   if (altar.wasNear) {
     ctx.font = "13px Microsoft YaHei";
-    ctx.fillText("Press E to sacrifice a follower", altar.x, altar.y - 92);
+    ctx.fillText(localizeText("按 E 献祭一名随从"), altar.x, altar.y - 92);
   }
   ctx.restore();
 }
@@ -5652,7 +6809,6 @@ function ensureWorldMapCanvas() {
   drawWorldMapTextureRegions(g);
   drawWorldMapRelief(g);
   drawWorldMapRiver(g);
-  drawWorldMapRoads(g);
   drawWorldMapGlaze(g);
   drawWorldMapAtmosphere(g);
   worldMapCanvas = canvas;
@@ -7160,7 +8316,7 @@ function drawMonster(m) {
   if (m.kind !== "normal") {
     ctx.fillStyle = "#fff";
     ctx.font = "12px Microsoft YaHei";
-    ctx.fillText(m.name, m.x - m.r, m.y - m.r - 14);
+    ctx.fillText(localizeCreatureName(m.name), m.x - m.r, m.y - m.r - 14);
   }
 }
 
@@ -7758,12 +8914,12 @@ function drawProjectile(pr) {
     ctx.restore();
     return;
   }
-  if (pr.kind === "pixieOrb") {
+  if (pr.kind === "fairyBolt" || pr.kind === "pixieOrb") {
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-    ctx.strokeStyle = "rgba(66,255,118,.38)";
-    ctx.globalAlpha = 0.7;
-    ctx.lineWidth = 7;
+    ctx.strokeStyle = "rgba(82,255,128,.48)";
+    ctx.globalAlpha = 0.82;
+    ctx.lineWidth = 10;
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(pr.px, pr.py);
@@ -7771,22 +8927,22 @@ function drawProjectile(pr) {
     ctx.stroke();
     ctx.globalAlpha = 1;
     ctx.translate(pr.x, pr.y);
-    const pulse = 1 + Math.sin(state.time * 14 + (pr.x + pr.y) * 0.02) * 0.12;
-    const aura = ctx.createRadialGradient(0, 0, 1, 0, 0, pr.r * 2.4);
+    const pulse = 1 + Math.sin(state.time * 11 + (pr.x + pr.y) * 0.02) * 0.12;
+    const aura = ctx.createRadialGradient(0, 0, 1, 0, 0, pr.r * 2.85);
     aura.addColorStop(0, "rgba(236,255,241,1)");
     aura.addColorStop(0.32, "rgba(78,255,132,.94)");
     aura.addColorStop(0.7, "rgba(20,210,98,.58)");
     aura.addColorStop(1, "rgba(8,132,72,0)");
     ctx.fillStyle = aura;
     ctx.beginPath();
-    ctx.arc(0, 0, pr.r * 2.35 * pulse, 0, Math.PI * 2);
+    ctx.arc(0, 0, pr.r * 2.7 * pulse, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalCompositeOperation = "source-over";
     ctx.shadowColor = "rgba(42,255,122,.96)";
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = 20;
     drawCircle(0, 0, pr.r * pulse, "rgba(72,244,122,.98)");
     ctx.strokeStyle = "rgba(164,255,188,.92)";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(0, 0, pr.r * 1.35 * pulse, 0, Math.PI * 2);
     ctx.stroke();
@@ -8005,7 +9161,7 @@ function drawTopHud() {
   ctx.fillRect(22, 20, 410, 62);
   ctx.fillStyle = "#e7f7ef";
   ctx.font = "18px Microsoft YaHei";
-  ctx.fillText(t("terrainLine", { name: state.terrain.name, note: state.terrain.note }), 38, 46);
+  ctx.fillText(t("terrainLine", { name: localizeText(state.terrain.name), note: localizeText(state.terrain.note) }), 38, 46);
   ctx.fillStyle = "#ff6666";
   ctx.fillRect(38, 58, 180 * p.hp / p.maxHp, 8);
   ctx.fillStyle = "#61d5ff";
@@ -8019,27 +9175,27 @@ function syncHud() {
   const p = state.player;
   applyStaticLanguage();
   statsEl.innerHTML = `
-    <dt>${t("statClass")}</dt><dd>${state.className || t("unknownClass")}</dd>
+    <dt>${t("statClass")}</dt><dd>${localizeClassName(state.classId)}</dd>
     <dt>${t("statHp")}</dt><dd>${Math.ceil(p.hp)} / ${p.maxHp}</dd>
     <dt>${t("statLevel")}</dt><dd>${p.level}</dd>
     <dt>${t("statTime")}</dt><dd>${Math.floor(state.time)}s</dd>
     <dt>${t("statGold")}</dt><dd>${Math.floor(state.gold || 0)}</dd>
     <dt>${t("statGrowth")}</dt><dd>+${Math.round((timeGrowth() - 1) * 100)}%</dd>
     <dt>${t("statFollowers")}</dt><dd>${permanentFollowerCount()} / ${followerLimit()}</dd>
-    <dt>${t("statInnate")}</dt><dd>${classBook[state.classId]?.innate || "-"}</dd>
-    <dt>${t("statAura")}</dt><dd>+${Math.round(((p.followerAttackAura || 0) + (p.classFollowerAttackAura || 0)) * 100)}% ATK</dd>
+    <dt>${t("statInnate")}</dt><dd>${localizeClassInnate(state.classId)}</dd>
+    <dt>${t("statAura")}</dt><dd>+${Math.round(((p.followerAttackAura || 0) + (p.classFollowerAttackAura || 0)) * 100)}% ${t("creatureAttack")}</dd>
     <dt>${t("statMonsters")}</dt><dd>${state.monsters.length}</dd>
   `;
-  skillsEl.innerHTML = Object.values(state.skills).filter(s => skillBook[s.id]).map(s => `<li><span>${skillBook[s.id].name}</span><b>Lv.${s.level}</b></li>`).join("");
+  skillsEl.innerHTML = Object.values(state.skills).filter(s => skillBook[s.id]).map(s => `<li><span>${localizeSkillName(s.id)}</span><b>Lv.${s.level}</b></li>`).join("");
   const followerSummary = Object.values(state.followers.reduce((acc, f) => {
-    acc[f.id] ||= { name: f.name, tier: f.tier, count: 0, hp: 0, maxHp: 0 };
+    acc[f.id] ||= { name: localizeCreatureName(f.name), tier: f.tier, count: 0, hp: 0, maxHp: 0 };
     acc[f.id].count++;
     acc[f.id].hp += Math.max(0, f.hp || 0);
     acc[f.id].maxHp += f.maxHp || 0;
     return acc;
   }, {}));
   followersEl.innerHTML = followerSummary.length ? followerSummary.map(f => `<li><span>${f.name} x${f.count}</span><b>T${f.tier} ${Math.ceil(f.hp)}/${Math.ceil(f.maxHp)}</b></li>`).join("") : `<li><span>${t("none")}</span><b>-</b></li>`;
-  renderPlainItemList([...state.items.slice(-8), ...state.artifacts.map(a => t("artifactLabel", { name: a }))].slice(-10));
+  renderPlainItemList([...state.items.slice(-8).map(localizeItemLine), ...state.artifacts.map(a => t("artifactLabel", { name: localizeGearName(a) }))].slice(-10));
 }
 function renderPlainItemList(items) {
   itemsEl.innerHTML = "";
@@ -8118,34 +9274,35 @@ function renderGuideContent() {
   if (activeCodexTab === "items") {
     const gearCards = gearBook.map(gear => {
       const rarity = gearRarityInfo[gear.rarity] || gearRarityInfo.common;
-      return `<div class="guide-card rarity-${esc(gear.rarity)}"><b>${esc(gear.name)}</b><span style="color:${rarity.color}">${esc(rarityLabel(gear.rarity))}</span><small>${esc(gear.desc)}</small></div>`;
+      return `<div class="guide-card rarity-${esc(gear.rarity)}"><b>${esc(localizeGearName(gear))}</b><span style="color:${rarity.color}">${esc(rarityLabel(gear.rarity))}</span><small>${esc(localizeGearDesc(gear))}</small></div>`;
     }).join("");
-    const artifactCards = artifactBook.map(item => `<div class="guide-card rarity-legendary"><b>${esc(item.name)}</b><span style="color:${gearRarityInfo.legendary.color}">神器</span><small>${esc(item.desc)}</small></div>`).join("");
+    const artifactCards = artifactBook.map(item => `<div class="guide-card rarity-legendary"><b>${esc(localizeGearName(item))}</b><span style="color:${gearRarityInfo.legendary.color}">${esc(t("artifactKind"))}</span><small>${esc(localizeGearDesc(item))}</small></div>`).join("");
     content = `<section class="guide-section"><h3>${esc(t("codexItems"))} · ${gearBook.length + artifactBook.length}</h3><div class="guide-grid codex-grid">${gearCards}${artifactCards}</div></section>`;
   } else if (activeCodexTab === "creatures") {
-    const normalCards = monsterBook.map(m => guideCard(m[0], `普通 · 生命 ${m[2]} · 速度 ${m[3]} · 攻击 ${m[4]}`)).join("");
-    const eliteCards = eliteBook.map(m => guideCard(m[0], `精英 · 生命 ${m[2]} · 速度 ${m[3]} · 攻击 ${m[4]}`)).join("");
-    const bossCards = bossBook.map(m => guideCard(m[0], `Boss · 生命 ${m[2]} · 速度 ${m[3]} · 奖励 ${m[4]}`)).join("")
-      + guideCard("奇美拉", "世界 Boss · 喷火 · 毒气云 · 冲锋")
-      + guideCard("提丰", "高阶世界 Boss · 地震 · 喷火 · 陨石坠落 · 劈砍");
-    const followerCards = followersBook.map(f => guideCard(f.name, `随从 / 敌军 · 阶级 ${f.tier} · ${f.element} · 攻击 ${f.damage} · 范围 ${f.range}`)).join("");
+    const creatureStats = (kind, m, rewardLabel = t("creatureAttack")) => `${kind} · ${t("creatureLife")} ${m[2]} · ${t("creatureSpeed")} ${m[3]} · ${rewardLabel} ${m[4]}`;
+    const normalCards = monsterBook.map(m => guideCard(localizeCreatureName(m[0]), creatureStats(t("creatureNormal"), m))).join("");
+    const eliteCards = eliteBook.map(m => guideCard(localizeCreatureName(m[0]), creatureStats(t("creatureElite"), m))).join("");
+    const bossCards = bossBook.map(m => guideCard(localizeCreatureName(m[0]), creatureStats(t("creatureBoss"), m, t("creatureReward")))).join("")
+      + guideCard(localizeCreatureName("奇美拉"), `${t("creatureWorldBoss")} · ${localizeSkillName("fireBreath")} · ${localizeSkillName("poisonCloud")} · ${localizeText("冲锋")}`)
+      + guideCard(localizeCreatureName("提丰"), `${t("creatureWorldBoss")} · ${localizeSkillName("earthquake")} · ${localizeSkillName("fireBreath")} · ${localizeSkillName("meteor")} · ${localizeSkillName("cleave")}`);
+    const followerCards = followersBook.map(f => guideCard(localizeCreatureName(f.name), `${t("creatureFollower")} · ${t("creatureTier")} ${f.tier} · ${t("creatureElement")} ${localizeElement(f.element)} · ${t("creatureAttack")} ${f.damage} · ${t("creatureRange")} ${f.range}`)).join("");
     content = `
-      <section class="guide-section"><h3>普通怪物</h3><div class="guide-grid codex-grid">${normalCards}</div></section>
-      <section class="guide-section"><h3>精英与 Boss</h3><div class="guide-grid codex-grid">${eliteCards}${bossCards}</div></section>
-      <section class="guide-section"><h3>随从与召唤敌军</h3><div class="guide-grid codex-grid">${followerCards}</div></section>`;
+      <section class="guide-section"><h3>${esc(t("sectionNormalMonsters"))}</h3><div class="guide-grid codex-grid">${normalCards}</div></section>
+      <section class="guide-section"><h3>${esc(t("sectionEliteBosses"))}</h3><div class="guide-grid codex-grid">${eliteCards}${bossCards}</div></section>
+      <section class="guide-section"><h3>${esc(t("sectionFollowersSummons"))}</h3><div class="guide-grid codex-grid">${followerCards}</div></section>`;
   } else if (activeCodexTab === "fusions") {
-    const fusionCards = fusionRecipes.map(([name, req, effect]) => `<div class="guide-card fusion-card"><b>${esc(name)}</b><span>${esc(req)}</span><small>${esc(effect)}</small></div>`).join("");
+    const fusionCards = fusionRecipes.map(([name, req, effect]) => `<div class="guide-card fusion-card"><b>${esc(localizeText(name))}</b><span>${esc(localizeItemLine(req))}</span><small>${esc(localizeText(effect))}</small></div>`).join("");
     content = `<section class="guide-section"><h3>${esc(t("codexFusions"))} · ${fusionRecipes.length}</h3><div class="guide-grid codex-grid">${fusionCards}</div></section>`;
   } else {
-  const classCards = Object.values(classBook).map(cls => guideCard(cls.name, `${cls.innate}: ${cls.desc}`)).join("");
-  const fusionCards = fusionRecipes.map(([name, req, effect]) => guideCard(name, `${req}. ${effect}`)).join("");
+  const classCards = Object.keys(classBook).map(id => guideCard(localizeClassName(id), `${localizeClassInnate(id)}: ${localizeClassDesc(id)}`)).join("");
+  const fusionCards = fusionRecipes.map(([name, req, effect]) => guideCard(localizeText(name), `${localizeItemLine(req)}. ${localizeText(effect)}`)).join("");
   const rarityCards = Object.entries(gearRarityInfo)
     .map(([id, info]) => guideCard(rarityLabel(id), t("dropWeight", { weight: info.weight })))
     .join("");
   const starterSkills = Object.entries(skillBook)
     .filter(([, s]) => !s.type?.includes("fusion"))
     .slice(0, 18)
-    .map(([id, s]) => guideCard(s.name || id, s.desc || s.type || t("skillFallback")))
+    .map(([id]) => guideCard(localizeSkillName(id), localizeSkillDesc(id)))
     .join("");
     content = `
     <section class="guide-section">
@@ -8177,6 +9334,7 @@ function openGuide() {
   renderGuideContent();
   guideWasPaused = !!state?.paused;
   if (state?.running) state.paused = true;
+  settingsPanel?.classList.add("hidden");
   guidePanel.classList.remove("hidden");
 }
 
@@ -8187,7 +9345,7 @@ function closeGuidePanel() {
 }
 
 function loop(now) {
-  const dt = Math.min(0.033, (now - state.last) / 1000);
+  const dt = Math.min(0.08, (now - state.last) / 1000);
   const rawFrameMs = Math.max(0, now - (state.frameStamp || now));
   state.frameStamp = now;
   state.frameEma = state.frameEma ? state.frameEma * 0.94 + rawFrameMs * 0.06 : rawFrameMs;
@@ -8196,6 +9354,7 @@ function loop(now) {
     if (state.frameEma > 28) state.perfLevel = 2;
     else if (state.frameEma > 21) state.perfLevel = Math.max(state.perfLevel || 0, 1);
     else if (state.frameEma < 18) state.perfLevel = Math.max(0, (state.perfLevel || 0) - 1);
+    state.perfLevel = Math.max(state.perfLevel || 0, qualityFloor());
   }
   state.last = now;
   update(dt);
@@ -8206,13 +9365,70 @@ function loop(now) {
 
 function makeRunSummary() {
   if (!state?.player) return null;
+  const skills = Object.values(state.skills || {})
+    .filter(s => skillBook[s.id])
+    .map(s => `${localizeSkillName(s.id)} Lv.${s.level}`)
+    .slice(0, 12);
+  const followers = Object.values((state.followers || []).reduce((acc, f) => {
+    if (f.summoned) return acc;
+    acc[f.id] ||= { name: localizeCreatureName(f.name), tier: f.tier, count: 0 };
+    acc[f.id].count += 1;
+    return acc;
+  }, {})).map(f => `${f.name} T${f.tier} x${f.count}`);
+  const artifacts = (state.artifacts || []).map(localizeGearName);
+  const items = (state.items || []).slice(-10).map(localizeItemLine);
+  const topDamage = Object.entries(state.damageStats || {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, amount]) => `${localizeText(name)} ${formatDamageAmount(amount)}`);
+  const seconds = Math.floor(state.time || 0);
+  const level = state.player.level || 1;
+  const kills = state.kills || 0;
+  const gold = Math.floor(state.gold || 0);
   return {
-    seconds: Math.floor(state.time || 0),
-    level: state.player.level || 1,
-    kills: state.kills || 0,
-    gold: state.gold || 0,
-    className: state.className || t("unknownClass")
+    seconds,
+    level,
+    kills,
+    gold,
+    classId: state.classId,
+    className: localizeClassName(state.classId),
+    score: Math.round(seconds * 10 + level * 120 + kills * 4 + gold + artifacts.length * 300),
+    skills,
+    followers,
+    artifacts,
+    items,
+    topDamage
   };
+}
+
+function settlementList(items) {
+  const values = items?.length ? items : [t("settlementNone")];
+  return values.map(item => `<span>${esc(item)}</span>`).join("");
+}
+
+function renderSettlement(summary) {
+  if (!classPanel) return;
+  if (!summary) {
+    classPanel.classList.add("hidden");
+    return;
+  }
+  classPanel.innerHTML = `
+    <div class="settlement">
+      <div class="settlement-title">${esc(t("settlementTitle"))}</div>
+      <div class="settlement-grid">
+        <div><b>${esc(t("settlementSurvived"))}</b><strong>${esc(t("secondsShort", { seconds: summary.seconds }))}</strong></div>
+        <div><b>${esc(t("settlementLevel"))}</b><strong>Lv.${summary.level}</strong></div>
+        <div><b>${esc(t("settlementKills"))}</b><strong>${summary.kills}</strong></div>
+        <div><b>${esc(t("settlementGold"))}</b><strong>${summary.gold}</strong></div>
+        <div><b>${esc(t("settlementScore"))}</b><strong>${summary.score}</strong></div>
+      </div>
+      <div class="settlement-section"><b>${esc(t("settlementDamage"))}</b><div>${settlementList(summary.topDamage)}</div></div>
+      <div class="settlement-section"><b>${esc(t("settlementSkills"))}</b><div>${settlementList(summary.skills)}</div></div>
+      <div class="settlement-section"><b>${esc(t("settlementFollowers"))}</b><div>${settlementList(summary.followers)}</div></div>
+      <div class="settlement-section"><b>${esc(t("settlementItems"))}</b><div>${settlementList(summary.items)}</div></div>
+      <div class="settlement-section"><b>${esc(t("settlementArtifacts"))}</b><div>${settlementList(summary.artifacts)}</div></div>
+    </div>`;
+  classPanel.classList.remove("hidden");
 }
 
 function renderStartMenu(summary = null) {
@@ -8225,14 +9441,14 @@ function renderStartMenu(summary = null) {
     subtitle.textContent = t("runSummary", summary);
   } else if (save) {
     subtitle.textContent = t("saveFound", {
-      className: save.className || t("unknownClass"),
+      className: localizeText(save.className || t("unknownClass")),
       seconds: Math.floor(save.time || 0),
       level: save.player?.level || 1
     });
   } else {
     subtitle.textContent = t("startSubtitle");
   }
-  if (classPanel) classPanel.classList.add("hidden");
+  renderSettlement(summary);
   if (!startActions) return;
   startActions.innerHTML = "";
   if (save && !summary) {
@@ -8254,6 +9470,13 @@ function renderStartMenu(summary = null) {
   guideBtn.textContent = t("guideButton");
   guideBtn.addEventListener("click", openGuide);
   startActions.appendChild(guideBtn);
+
+  const settingsBtn = document.createElement("button");
+  settingsBtn.type = "button";
+  settingsBtn.className = "secondary";
+  settingsBtn.textContent = t("settingsButton");
+  settingsBtn.addEventListener("click", openSettings);
+  startActions.appendChild(settingsBtn);
 }
 
 function showClassSelect() {
@@ -8267,7 +9490,7 @@ function showClassSelect() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "class-choice";
-    btn.innerHTML = `<img src="./assets/classes/${cls.icon}" alt=""><b>${cls.name}</b><span>${cls.desc}</span>`;
+    btn.innerHTML = `<img src="./assets/classes/${cls.icon}" alt=""><b>${esc(localizeClassName(id))}</b><span>${esc(localizeClassDesc(id))}</span>`;
     btn.addEventListener("click", () => startWithClass(id));
     classPanel.appendChild(btn);
   }
@@ -8283,6 +9506,7 @@ function showClassSelect() {
 function startWithClass(classId) {
   clearSave();
   state = newState(classId);
+  applySettings();
   state.running = true;
   startPanel.classList.add("hidden");
   levelPanel.classList.add("hidden");
@@ -8298,6 +9522,7 @@ function continueGame() {
     return;
   }
   state = restoreState(save);
+  applySettings();
   startPanel.classList.add("hidden");
   levelPanel.classList.add("hidden");
   if (classPanel) classPanel.classList.add("hidden");
@@ -8305,23 +9530,33 @@ function continueGame() {
 }
 
 window.addEventListener("keydown", e => {
+  if (rebindingAction) {
+    e.preventDefault();
+    setKeyBinding(rebindingAction, e.code);
+    return;
+  }
   keys.add(e.code);
-  if (e.code === "KeyG") {
+  if (isKeyAction(e.code, "settings")) {
+    if (settingsPanel && !settingsPanel.classList.contains("hidden")) closeSettingsPanel();
+    else openSettings();
+  }
+  if (isKeyAction(e.code, "guide")) {
     if (guidePanel && !guidePanel.classList.contains("hidden")) closeGuidePanel();
     else openGuide();
   }
-  if (e.code === "KeyE") {
+  if (isKeyAction(e.code, "interact")) {
     if (canOpenSacrificeAltar()) openSacrificeAltar();
     else if (canOpenBlackMarket()) {
       state.blackMarket.wasNear = true;
       openBlackMarket();
     }
   }
-  if (e.code === "Space" && state?.running) state.paused = !state.paused;
-  if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
+  if (isKeyAction(e.code, "pause") && state?.running) state.paused = !state.paused;
+  if ([keyFor("pause"), keyFor("up"), keyFor("down"), keyFor("left"), keyFor("right"), "Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
 });
 window.addEventListener("keyup", e => keys.delete(e.code));
 closeGuide?.addEventListener("click", closeGuidePanel);
+closeSettings?.addEventListener("click", closeSettingsPanel);
 if (moveStick) {
   const setStick = e => {
     const rect = moveStick.getBoundingClientRect();
@@ -8362,9 +9597,13 @@ pauseTouch?.addEventListener("click", () => {
   if (state?.running) state.paused = !state.paused;
 });
 languageSelect?.addEventListener("change", e => setLanguage(e.target.value));
+document.addEventListener("fullscreenchange", () => {
+  if (settingsPanel && !settingsPanel.classList.contains("hidden")) renderSettingsContent();
+});
 startBtn?.addEventListener("click", () => startWithClass("elementMage"));
 
 state = newState();
+applySettings();
 applyStaticLanguage();
 renderStartMenu();
 draw();
