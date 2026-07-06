@@ -2807,7 +2807,7 @@ function castPlayerCleave(origin, target, area, damage, level) {
   }
   const cx = origin.x + Math.cos(angle) * area * 0.44;
   const cy = origin.y + Math.sin(angle) * area * 0.44;
-  state.zones.push({ x: cx, y: cy, r: area, life: 0.28, maxLife: 0.28, damage: 0, element: "physical", type: "slashFx", color: "rgba(255,214,96,.36)", angle, grow: 0.9 });
+  addLine(origin.x, origin.y, cx + Math.cos(angle) * area * 0.42, cy + Math.sin(angle) * area * 0.42, "rgba(255,226,132,.58)", 7, 0.14, true);
 }
 
 function castBloodRectangle(origin, target, area, damage, level) {
@@ -6837,7 +6837,6 @@ function ensureWorldMapCanvas() {
   g.drawImage(base, 0, 0, WORLD_MAP_SIZE, WORLD_MAP_SIZE);
   drawWorldMapTextureRegions(g);
   drawWorldMapRelief(g);
-  drawWorldMapRiver(g);
   drawWorldMapGlaze(g);
   drawWorldMapAtmosphere(g);
   worldMapCanvas = canvas;
@@ -6867,95 +6866,6 @@ function drawWrappedWorldMap(camX, camY) {
     sy = 0;
   }
   ctx.restore();
-}
-
-function mapPoint(u, v) {
-  return { x: u * WORLD_MAP_SIZE, y: v * WORLD_MAP_SIZE };
-}
-
-function drawCurvedMapPath(g, points, widths, colors, alpha = 1) {
-  for (let pass = 0; pass < widths.length; pass++) {
-    g.save();
-    g.globalAlpha = alpha;
-    g.lineCap = "round";
-    g.lineJoin = "round";
-    g.strokeStyle = colors[pass];
-    g.lineWidth = widths[pass];
-    g.beginPath();
-    g.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length - 1; i++) {
-      const mid = { x: (points[i].x + points[i + 1].x) * 0.5, y: (points[i].y + points[i + 1].y) * 0.5 };
-      g.quadraticCurveTo(points[i].x, points[i].y, mid.x, mid.y);
-    }
-    const last = points[points.length - 1];
-    g.lineTo(last.x, last.y);
-    g.stroke();
-    g.restore();
-  }
-}
-
-function drawWorldMapRoads(g) {
-  const roads = [
-    [mapPoint(0.1, 0.31), mapPoint(0.26, 0.4), mapPoint(0.45, 0.51), mapPoint(0.62, 0.57), mapPoint(0.82, 0.65), mapPoint(0.96, 0.71)],
-    [mapPoint(0.62, 0.04), mapPoint(0.58, 0.22), mapPoint(0.5, 0.42), mapPoint(0.42, 0.62), mapPoint(0.38, 0.84), mapPoint(0.45, 0.98)],
-    [mapPoint(0.13, 0.74), mapPoint(0.28, 0.71), mapPoint(0.43, 0.66), mapPoint(0.62, 0.45), mapPoint(0.78, 0.29), mapPoint(0.93, 0.18)]
-  ];
-  for (const road of roads) {
-    drawCurvedMapPath(g, road, [64, 45, 22, 4], ["rgba(34,24,17,.34)", "rgba(97,76,50,.42)", "rgba(165,135,88,.34)", "rgba(234,211,161,.16)"], 1);
-  }
-  g.save();
-  g.globalAlpha = 0.3;
-  g.fillStyle = "rgba(90,67,42,.5)";
-  for (let i = 0; i < 230; i++) {
-    const x = hashUnit(hash2(i, 9), 2) * WORLD_MAP_SIZE;
-    const y = hashUnit(hash2(i, 13), 3) * WORLD_MAP_SIZE;
-    const blend = biomeBlendAt(x, y);
-    if (blend.second && Math.abs(blend.dominant.weight - blend.second.weight) < 0.12) {
-      g.beginPath();
-      g.ellipse(x, y, 4 + hashUnit(hash2(i, 4), 8) * 9, 2 + hashUnit(hash2(i, 5), 9) * 5, hashUnit(hash2(i, 6), 10) * Math.PI, 0, Math.PI * 2);
-      g.fill();
-    }
-  }
-  g.restore();
-}
-
-function drawWorldMapRiver(g) {
-  const river = [mapPoint(0.58, 0.04), mapPoint(0.5, 0.22), mapPoint(0.42, 0.38), mapPoint(0.31, 0.55), mapPoint(0.23, 0.73), mapPoint(0.18, 0.96)];
-  drawCurvedMapPath(g, river, [72, 45, 13], ["rgba(13,31,35,.32)", "rgba(39,73,78,.46)", "rgba(139,176,169,.25)"], 0.95);
-  g.save();
-  g.globalAlpha = 0.55;
-  g.strokeStyle = "rgba(196,221,213,.35)";
-  g.lineWidth = 3;
-  for (let i = 0; i < river.length - 1; i++) {
-    const a = river[i];
-    const b = river[i + 1];
-    for (let j = 0; j < 5; j++) {
-      const t = (j + 0.5) / 5;
-      const x = a.x + (b.x - a.x) * t;
-      const y = a.y + (b.y - a.y) * t;
-      g.beginPath();
-      g.moveTo(x - 18, y + Math.sin(j) * 6);
-      g.lineTo(x + 18, y + Math.cos(j) * 6);
-      g.stroke();
-    }
-  }
-  g.restore();
-  drawMapBridge(g, mapPoint(0.41, 0.4), -0.55);
-  drawMapBridge(g, mapPoint(0.27, 0.65), -0.25);
-}
-
-function drawMapBridge(g, p, angle) {
-  g.save();
-  g.translate(p.x, p.y);
-  g.rotate(angle);
-  g.fillStyle = "rgba(92,60,34,.9)";
-  g.strokeStyle = "rgba(42,27,18,.65)";
-  g.lineWidth = 4;
-  for (let i = -3; i <= 3; i++) {
-    g.fillRect(-42, i * 9 - 3, 84, 6);
-    g.strokeRect(-42, i * 9 - 3, 84, 6);
-  }
-  g.restore();
 }
 
 function drawWorldMapDetails(g) {
@@ -7174,58 +7084,6 @@ function drawWorldMapAtmosphere(g) {
   g.fillRect(0, 0, WORLD_MAP_SIZE, WORLD_MAP_SIZE);
 }
 
-function drawConnectedRoadNetwork(camX, camY) {
-  const spacing = 1080;
-  const margin = 320;
-  const drawRoadPath = points => {
-    if (points.length < 2) return;
-    ctx.save();
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.globalAlpha = 0.34;
-    ctx.strokeStyle = "rgba(42,31,22,.45)";
-    ctx.lineWidth = 52;
-    ctx.beginPath();
-    points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
-    ctx.stroke();
-    ctx.globalAlpha = 0.46;
-    ctx.strokeStyle = "rgba(139,108,72,.72)";
-    ctx.lineWidth = 34;
-    ctx.beginPath();
-    points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
-    ctx.stroke();
-    ctx.globalAlpha = 0.22;
-    ctx.strokeStyle = "rgba(225,190,132,.55)";
-    ctx.lineWidth = 9;
-    ctx.beginPath();
-    points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
-    ctx.stroke();
-    ctx.restore();
-  };
-  const startRow = Math.floor((camY - margin) / spacing) - 1;
-  const endRow = Math.floor((camY + H + margin) / spacing) + 1;
-  for (let row = startRow; row <= endRow; row++) {
-    const baseY = row * spacing + Math.sin(row * 1.71) * 210;
-    const points = [];
-    for (let wx = camX - margin; wx <= camX + W + margin; wx += 150) {
-      const wobble = Math.sin(wx * 0.0017 + row * 2.1) * 95 + Math.sin(wx * 0.0041 + row) * 28;
-      points.push({ x: wx - camX, y: baseY + wobble - camY });
-    }
-    drawRoadPath(points);
-  }
-  const startCol = Math.floor((camX - margin) / spacing) - 1;
-  const endCol = Math.floor((camX + W + margin) / spacing) + 1;
-  for (let col = startCol; col <= endCol; col++) {
-    const baseX = col * spacing + Math.cos(col * 1.37) * 220;
-    const points = [];
-    for (let wy = camY - margin; wy <= camY + H + margin; wy += 150) {
-      const wobble = Math.sin(wy * 0.0015 + col * 1.9) * 90 + Math.cos(wy * 0.0038 + col) * 26;
-      points.push({ x: baseX + wobble - camX, y: wy - camY });
-    }
-    drawRoadPath(points);
-  }
-}
-
 function drawWorldStructures(camX, camY) {
   const spacing = 1080;
   const margin = 460;
@@ -7234,13 +7092,13 @@ function drawWorldStructures(camX, camY) {
   const startRow = Math.floor((camY - margin) / spacing) - 1;
   const endRow = Math.floor((camY + H + margin) / spacing) + 1;
   for (let row = startRow; row <= endRow; row++) {
-    const roadY = row * spacing + Math.sin(row * 1.71) * 210;
+    const anchorY = row * spacing + Math.sin(row * 1.71) * 210;
     for (let col = startCol; col <= endCol; col++) {
       const seed = Math.abs(hash2(col + 911, row - 353));
       if (hashUnit(seed, 901) < 0.38) continue;
-      const roadX = col * spacing + Math.cos(col * 1.37) * 220;
-      const crossX = roadX + Math.sin(roadY * 0.0015 + col * 1.9) * 90 + Math.cos(roadY * 0.0038 + col) * 26;
-      const crossY = roadY + Math.sin(crossX * 0.0017 + row * 2.1) * 95 + Math.sin(crossX * 0.0041 + row) * 28;
+      const anchorX = col * spacing + Math.cos(col * 1.37) * 220;
+      const crossX = anchorX + Math.sin(anchorY * 0.0015 + col * 1.9) * 90 + Math.cos(anchorY * 0.0038 + col) * 26;
+      const crossY = anchorY + Math.sin(crossX * 0.0017 + row * 2.1) * 95 + Math.sin(crossX * 0.0041 + row) * 28;
       const angle = hashUnit(seed, 902) * Math.PI * 2;
       const dist = 94 + hashUnit(seed, 903) * 170;
       const wx = crossX + Math.cos(angle) * dist;
@@ -8240,30 +8098,17 @@ function drawMarshalCast(p, image, size) {
   ctx.globalCompositeOperation = "lighter";
   ctx.globalAlpha = 0.22 + slash * 0.62;
   const reach = 82 + slash * 58;
-  const width = 44 + slash * 36;
-  const grd = ctx.createRadialGradient(reach * 0.45, 0, 3, reach * 0.45, 0, reach);
-  grd.addColorStop(0, "rgba(255,248,185,.9)");
-  grd.addColorStop(0.48, "rgba(255,178,40,.58)");
-  grd.addColorStop(1, "rgba(255,104,16,0)");
-  ctx.fillStyle = grd;
+  const streak = ctx.createLinearGradient(12, 0, reach, 0);
+  streak.addColorStop(0, "rgba(255,246,184,.86)");
+  streak.addColorStop(0.42, "rgba(255,194,72,.62)");
+  streak.addColorStop(1, "rgba(255,132,28,0)");
+  ctx.strokeStyle = streak;
+  ctx.lineWidth = 8 + slash * 8;
+  ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.ellipse(reach * 0.52, 0, reach * 0.58, width, 0, -0.92, 0.92);
-  ctx.fill();
-
-  ctx.strokeStyle = "rgba(255,238,150,.96)";
-  ctx.lineWidth = 4 + slash * 4;
-  ctx.beginPath();
-  ctx.arc(36 + slash * 24, 0, 56 + slash * 35, -0.9, 0.9);
+  ctx.moveTo(10, 0);
+  ctx.lineTo(reach, 0);
   ctx.stroke();
-
-  ctx.strokeStyle = "rgba(255,132,28,.72)";
-  ctx.lineWidth = 2.2;
-  for (let i = -1; i <= 1; i++) {
-    ctx.beginPath();
-    ctx.moveTo(8, i * 7);
-    ctx.lineTo(104 + slash * 42, i * 18);
-    ctx.stroke();
-  }
   ctx.restore();
 }
 
