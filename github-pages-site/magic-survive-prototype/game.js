@@ -834,6 +834,24 @@ const extraI18n = {
   }
 };
 for (const [lang, entries] of Object.entries(extraI18n)) Object.assign(i18n[lang], entries);
+const menuI18n = {
+  en: { menuStart: "Start Game", menuCodex: "Codex", menuExit: "Exit", menuExitConfirm: "Exit the game?", menuExitNotice: "The game has been closed. You can close this page." },
+  "zh-CN": { menuStart: "开始游戏", menuCodex: "图鉴", menuExit: "退出", menuExitConfirm: "确认退出游戏？", menuExitNotice: "游戏已结束，你可以关闭此页面。" },
+  "zh-TW": { menuStart: "開始遊戲", menuCodex: "圖鑑", menuExit: "退出", menuExitConfirm: "確定退出遊戲？", menuExitNotice: "遊戲已結束，你可以關閉此頁面。" },
+  ja: { menuStart: "ゲーム開始", menuCodex: "図鑑", menuExit: "終了", menuExitConfirm: "ゲームを終了しますか？", menuExitNotice: "ゲームを終了しました。このページを閉じてください。" },
+  ko: { menuStart: "게임 시작", menuCodex: "도감", menuExit: "종료", menuExitConfirm: "게임을 종료할까요?", menuExitNotice: "게임을 종료했습니다. 이 페이지를 닫아 주세요." },
+  es: { menuStart: "Iniciar juego", menuCodex: "Codice", menuExit: "Salir", menuExitConfirm: "Salir del juego?", menuExitNotice: "El juego ha terminado. Puedes cerrar esta pagina." }
+};
+for (const [lang, entries] of Object.entries(menuI18n)) Object.assign(i18n[lang], entries);
+const classSelectI18n = {
+  en: { classConfirm: "Begin Adventure", classPreview: "Selected Class" },
+  "zh-CN": { classConfirm: "开始冒险", classPreview: "已选职业" },
+  "zh-TW": { classConfirm: "開始冒險", classPreview: "已選職業" },
+  ja: { classConfirm: "冒険を始める", classPreview: "選択中のクラス" },
+  ko: { classConfirm: "모험 시작", classPreview: "선택한 직업" },
+  es: { classConfirm: "Comenzar aventura", classPreview: "Clase seleccionada" }
+};
+for (const [lang, entries] of Object.entries(classSelectI18n)) Object.assign(i18n[lang], entries);
 const DEFAULT_SETTINGS = {
   volume: 80,
   quality: "medium",
@@ -1199,6 +1217,21 @@ for (const file of new Set([...Object.values(classAssetById), ...Object.values(c
   const img = trackAssetImage(new Image());
   img.src = `./assets/classes/${file}`;
   classImages[file] = img;
+}
+// Character portraits stay on the class-select screen; combat uses compact pixel-art sprites.
+const classBattleSpriteById = {
+  elementMage: "ElementMagePixel.png",
+  necromancer: "NecromancerPixel.png",
+  roundTableKnight: "RoundTableKnightPixel.png",
+  elf: "ElfPixel.png",
+  vampirePrincess: "VampirePrincessPixel.png",
+  hellLord: "HellLordPixel.png"
+};
+const classBattleSprites = {};
+for (const file of new Set(Object.values(classBattleSpriteById))) {
+  const img = trackAssetImage(new Image());
+  img.src = `./assets/player-pixels/${file}`;
+  classBattleSprites[file] = img;
 }
 
 const terrains = [
@@ -7695,8 +7728,8 @@ function drawUnifiedUnitSprite(img, x, y, size, face = 0, options = {}) {
   ctx.save();
   ctx.globalCompositeOperation = "source-over";
   ctx.globalAlpha = options.alpha ?? 1;
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
+  ctx.imageSmoothingEnabled = !options.pixelated;
+  if (!options.pixelated) ctx.imageSmoothingQuality = "high";
   if (options.filter) ctx.filter = options.filter;
   ctx.translate(x, y);
   ctx.scale(flip, 1);
@@ -8115,10 +8148,10 @@ function drawMarshalCast(p, image, size) {
 function drawPlayer() {
   const p = state.player;
   drawCircle(p.x, p.y, p.r + (p.ward ? 9 : 0), p.ward ? "rgba(125,190,255,.38)" : "rgba(255,255,255,.08)");
+  const spriteFile = classBattleSpriteById[state.classId];
   const classFile = classBook[state.classId]?.icon || classAssetById[state.classId];
-  const castFile = p.castAnim > 0 ? classCastAssetById[state.classId] : null;
-  const castImg = castFile && classImages[castFile];
-  const classImg = castImg?.complete && castImg.naturalWidth ? castImg : classFile && classImages[classFile];
+  const battleSprite = spriteFile && classBattleSprites[spriteFile];
+  const classImg = battleSprite?.complete && battleSprite.naturalWidth ? battleSprite : classFile && classImages[classFile];
   if (classImg?.complete && classImg.naturalWidth && typeof ctx.drawImage === "function") {
     const size = 104;
     drawUnitGroundShadow(p.x, p.y, size, 0.32);
@@ -8135,7 +8168,7 @@ function drawPlayer() {
     } else if (state.classId === "roundTableKnight" && p.castAnim > 0) {
       drawMarshalCast(p, classImg, size);
     } else {
-      drawUnifiedUnitSprite(classImg, p.x, p.y, size, p.face || 0, { shadow: false, filter: p.hitFlash > 0 ? "sepia(1) saturate(8) hue-rotate(315deg) brightness(1.2)" : "" });
+      drawUnifiedUnitSprite(classImg, p.x, p.y, size, p.face || 0, { shadow: false, pixelated: true, filter: p.hitFlash > 0 ? "sepia(1) saturate(8) hue-rotate(315deg) brightness(1.2)" : "" });
     }
     ctx.restore();
   } else {
@@ -9308,8 +9341,23 @@ function renderSettlement(summary) {
   classPanel.classList.remove("hidden");
 }
 
+function exitGame() {
+  if (!confirm(t("menuExitConfirm"))) return;
+  if (state) {
+    state.running = false;
+    state.paused = false;
+  }
+  startPanel?.classList.add("exit-requested");
+  const subtitle = startPanel?.querySelector("p");
+  if (subtitle) subtitle.textContent = t("menuExitNotice");
+  try { window.close(); } catch {}
+}
+
 function renderStartMenu(summary = null) {
   applyStaticLanguage();
+  startPanel?.classList.remove("exit-requested");
+  startPanel?.classList.remove("class-selecting");
+  if (!summary) classPanel?.classList.add("hidden");
   const save = loadSavedGame();
   const title = startPanel.querySelector("h1");
   const subtitle = startPanel.querySelector("p");
@@ -9328,32 +9376,20 @@ function renderStartMenu(summary = null) {
   renderSettlement(summary);
   if (!startActions) return;
   startActions.innerHTML = "";
-  if (save && !summary) {
-    const continueBtn = document.createElement("button");
-    continueBtn.type = "button";
-    continueBtn.textContent = t("continue");
-    continueBtn.addEventListener("click", continueGame);
-    startActions.appendChild(continueBtn);
-  }
-  const newBtn = document.createElement("button");
-  newBtn.type = "button";
-  newBtn.textContent = save && !summary ? t("newRun") : t("startNewRun");
-  newBtn.addEventListener("click", showClassSelect);
-  startActions.appendChild(newBtn);
-
-  const guideBtn = document.createElement("button");
-  guideBtn.type = "button";
-  guideBtn.className = "secondary";
-  guideBtn.textContent = t("guideButton");
-  guideBtn.addEventListener("click", openGuide);
-  startActions.appendChild(guideBtn);
-
-  const settingsBtn = document.createElement("button");
-  settingsBtn.type = "button";
-  settingsBtn.className = "secondary";
-  settingsBtn.textContent = t("settingsButton");
-  settingsBtn.addEventListener("click", openSettings);
-  startActions.appendChild(settingsBtn);
+  const addMenuButton = (label, className, handler, disabled = false) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `menu-button ${className}`;
+    button.textContent = label;
+    button.disabled = disabled;
+    if (!disabled) button.addEventListener("click", handler);
+    startActions.appendChild(button);
+  };
+  addMenuButton(t("menuStart"), "menu-start", showClassSelect);
+  addMenuButton(t("continue"), "menu-continue", continueGame, !save || !!summary);
+  addMenuButton(t("menuCodex"), "menu-codex", openGuide);
+  addMenuButton(t("settingsButton"), "menu-settings", openSettings);
+  addMenuButton(t("menuExit"), "menu-exit", exitGame);
 }
 
 function showClassSelect() {
@@ -9362,21 +9398,58 @@ function showClassSelect() {
     return;
   }
   startActions.innerHTML = "";
-  classPanel.innerHTML = `<div class="class-title">${esc(t("chooseClass"))}</div>`;
+  startPanel?.classList.add("class-selecting");
+  classPanel.innerHTML = `
+    <div class="class-title">${esc(t("chooseClass"))}</div>
+    <div class="class-select-layout">
+      <div class="class-choice-list"></div>
+      <section class="class-preview" aria-live="polite"></section>
+    </div>
+    <div class="class-selection-actions">
+      <button type="button" class="class-confirm"></button>
+      <button type="button" class="secondary class-back"></button>
+    </div>`;
+  const choiceList = classPanel.querySelector(".class-choice-list");
+  const preview = classPanel.querySelector(".class-preview");
+  const confirmBtn = classPanel.querySelector(".class-confirm");
+  const backBtn = classPanel.querySelector(".class-back");
+  const cards = new Map();
+  let selectedId = "elementMage";
+
+  const selectClass = id => {
+    selectedId = id;
+    const cls = classBook[id];
+    for (const [cardId, card] of cards) {
+      const active = cardId === id;
+      card.classList.toggle("selected", active);
+      card.setAttribute("aria-pressed", String(active));
+    }
+    preview.innerHTML = `
+      <div class="class-preview-label">${esc(t("classPreview"))}</div>
+      <img src="./assets/classes/${cls.icon}" alt="${esc(localizeClassName(id))}">
+      <div class="class-preview-info">
+        <h2>${esc(localizeClassName(id))}</h2>
+        <b>${esc(localizeClassInnate(id))}</b>
+        <p>${esc(localizeClassDesc(id))}</p>
+      </div>`;
+  };
+
   for (const [id, cls] of Object.entries(classBook)) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "class-choice";
-    btn.innerHTML = `<img src="./assets/classes/${cls.icon}" alt=""><b>${esc(localizeClassName(id))}</b><span>${esc(localizeClassDesc(id))}</span>`;
-    btn.addEventListener("click", () => startWithClass(id));
-    classPanel.appendChild(btn);
+    btn.setAttribute("aria-pressed", "false");
+    btn.innerHTML = `<img src="./assets/classes/${cls.icon}" alt=""><span><b>${esc(localizeClassName(id))}</b><small>${esc(localizeClassInnate(id))}</small></span>`;
+    btn.addEventListener("click", () => selectClass(id));
+    btn.addEventListener("focus", () => selectClass(id));
+    cards.set(id, btn);
+    choiceList.appendChild(btn);
   }
-  const backBtn = document.createElement("button");
-  backBtn.type = "button";
-  backBtn.className = "secondary";
+  confirmBtn.textContent = t("classConfirm");
+  confirmBtn.addEventListener("click", () => startWithClass(selectedId));
   backBtn.textContent = t("back");
   backBtn.addEventListener("click", () => renderStartMenu());
-  classPanel.appendChild(backBtn);
+  selectClass(selectedId);
   classPanel.classList.remove("hidden");
   startPanel.querySelector("p").textContent = t("overwriteSave");
 }
