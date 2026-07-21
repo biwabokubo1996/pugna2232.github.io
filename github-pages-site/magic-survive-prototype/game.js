@@ -868,6 +868,93 @@ const DEFAULT_SETTINGS = {
 };
 let settings = loadSettings();
 let rebindingAction = null;
+const audioState = { context: null, master: null, nextMusicAt: 0, musicStep: 0, lastSfxAt: {} };
+
+function ensureAudio() {
+  if (audioState.context) return audioState.context;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  const context = new AudioContextClass();
+  const master = context.createGain();
+  master.connect(context.destination);
+  audioState.context = context;
+  audioState.master = master;
+  updateAudioVolume();
+  return context;
+}
+
+function updateAudioVolume() {
+  const context = audioState.context;
+  if (!context || !audioState.master) return;
+  const volume = Math.max(0, Math.min(1, Number(settings?.volume ?? 0) / 100));
+  audioState.master.gain.setTargetAtTime(volume * 0.28, context.currentTime, 0.035);
+}
+
+function unlockAudio() {
+  const context = ensureAudio();
+  if (context?.state === "suspended") context.resume().catch(() => {});
+  return context;
+}
+
+function playTone(frequency, duration, type = "sine", volume = 0.05, when = null, slideTo = null) {
+  const context = audioState.context;
+  if (!context || context.state !== "running" || !audioState.master) return;
+  const start = when ?? context.currentTime;
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(Math.max(24, frequency), start);
+  if (slideTo) oscillator.frequency.exponentialRampToValueAtTime(Math.max(24, slideTo), start + duration);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume), start + Math.min(0.025, duration * 0.22));
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  oscillator.connect(gain);
+  gain.connect(audioState.master);
+  oscillator.start(start);
+  oscillator.stop(start + duration + 0.03);
+}
+
+function playSfx(kind, element = "arcane") {
+  const context = audioState.context;
+  if (!context || context.state !== "running") return;
+  const now = context.currentTime;
+  const cooldown = kind === "pickup" ? 0.07 : kind === "cast" ? 0.1 : 0.16;
+  if (now - (audioState.lastSfxAt[kind] || -Infinity) < cooldown) return;
+  audioState.lastSfxAt[kind] = now;
+  if (kind === "menu") playTone(440, 0.09, "triangle", 0.045, now, 660);
+  else if (kind === "pickup") playTone(740, 0.075, "sine", 0.032, now, 1040);
+  else if (kind === "level") {
+    playTone(523.25, 0.16, "triangle", 0.055, now, 659.25);
+    playTone(783.99, 0.24, "sine", 0.04, now + 0.08, 1046.5);
+  } else if (kind === "chest") {
+    playTone(330, 0.13, "triangle", 0.052, now, 495);
+    playTone(660, 0.28, "sine", 0.042, now + 0.05, 990);
+  } else if (kind === "hurt") playTone(150, 0.14, "sawtooth", 0.045, now, 92);
+  else if (kind === "defeat") {
+    playTone(220, 0.32, "sawtooth", 0.052, now, 72);
+    playTone(146.83, 0.5, "triangle", 0.038, now + 0.12, 55);
+  } else if (kind === "cast") {
+    const frequencies = { fire: 220, wind: 460, ice: 620, earth: 150, lightning: 760, poison: 310, physical: 180, arcane: 520 };
+    const frequency = frequencies[element] || frequencies.arcane;
+    playTone(frequency, 0.09, element === "earth" ? "square" : "triangle", 0.035, now, frequency * 1.32);
+  }
+}
+
+function updateMusic() {
+  const context = audioState.context;
+  if (!context || context.state !== "running" || !state?.running || state.paused) return;
+  const now = context.currentTime;
+  if (!audioState.nextMusicAt || audioState.nextMusicAt < now - 0.5) audioState.nextMusicAt = now + 0.04;
+  const melody = [0, 3, 7, 10, 7, 3, 5, 10, 12, 10, 7, 3, 5, 7, 3, 0];
+  const root = 220;
+  while (audioState.nextMusicAt < now + 0.18) {
+    const step = audioState.musicStep++;
+    const note = root * Math.pow(2, melody[step % melody.length] / 12);
+    playTone(note, 0.33, "triangle", 0.024, audioState.nextMusicAt, note * 1.008);
+    if (step % 4 === 0) playTone(root / (step % 16 === 0 ? 2 : 1), 0.5, "sine", 0.035, audioState.nextMusicAt);
+    audioState.nextMusicAt += 0.36;
+  }
+}
 
 function loadLanguage() {
   try {
@@ -923,7 +1010,8 @@ function normalizeSettings(raw = {}) {
     ...raw,
     keys: { ...DEFAULT_SETTINGS.keys, ...(raw.keys || {}) }
   };
-  merged.volume = Math.max(0, Math.min(100, Number(merged.volume) || DEFAULT_SETTINGS.volume));
+  const volume = Number(merged.volume);
+  merged.volume = Number.isFinite(volume) ? Math.max(0, Math.min(100, volume)) : DEFAULT_SETTINGS.volume;
   if (!["low", "medium", "high"].includes(merged.quality)) merged.quality = DEFAULT_SETTINGS.quality;
   for (const [action, code] of Object.entries(DEFAULT_SETTINGS.keys)) {
     if (typeof merged.keys[action] !== "string" || !merged.keys[action]) merged.keys[action] = code;
@@ -950,6 +1038,7 @@ function qualityFloor() {
 
 function applySettings() {
   document.body.dataset.quality = settings.quality;
+  updateAudioVolume();
   if (state) state.perfLevel = Math.max(state.perfLevel || 0, qualityFloor());
 }
 
@@ -2554,6 +2643,7 @@ function castSkill(s) {
       p.face = p.castAngle;
     }
   }
+  playSfx("cast", b.element);
 
   if (b.type === "bolt") {
     const target = nearestEnemy(p);
@@ -4028,6 +4118,7 @@ function updateSpiritOrbit(dt) {
 
 function update(dt) {
   if (!state.running || state.paused) return;
+  updateMusic();
   updateSkillWarnings(dt);
   const p = state.player;
   const hpBeforeUpdate = p.hp;
@@ -4123,9 +4214,13 @@ function update(dt) {
   updateTexts(dt);
   trimRuntimeCollections();
   checkFusions();
-  if (p.hp < hpBeforeUpdate - 0.01) p.hitFlash = 0.14;
+  if (p.hp < hpBeforeUpdate - 0.01) {
+    p.hitFlash = 0.14;
+    playSfx("hurt");
+  }
   if (p.healPulse && Math.floor((state.time - dt) / 9) < Math.floor(state.time / 9)) p.hp = Math.min(p.maxHp, p.hp + 30);
   if (p.hp <= 0 && !tryPlayerRevive()) {
+    playSfx("defeat");
     const summary = makeRunSummary();
     state.running = false;
     state.paused = false;
@@ -5988,6 +6083,7 @@ function updateGems(dt) {
     }
     if (d < p.r + g.r + 4) {
       gainXp(g.xp);
+      playSfx("pickup");
       state.gems.splice(i, 1);
     }
   }
@@ -6010,6 +6106,7 @@ function updateChests(dt) {
       }
       addRing(c.x, c.y, 42, "rgba(255,211,107,.9)", 0.45);
       addParticles(c.x, c.y, "rgba(255,226,132,.9)", 16, 32, 0.55);
+      playSfx("chest");
       state.chests.splice(i, 1);
     }
   }
@@ -6050,6 +6147,7 @@ function gainXp(v) {
     p.hp = Math.min(p.maxHp, p.hp + hpGain);
     p.damage *= 1.045;
     p.next = Math.floor(p.next * 1.22 + 12);
+    playSfx("level");
     openLevelChoices();
   }
 }
@@ -9397,6 +9495,8 @@ function showClassSelect() {
     startWithClass("elementMage");
     return;
   }
+  unlockAudio();
+  playSfx("menu");
   startActions.innerHTML = "";
   startPanel?.classList.add("class-selecting");
   classPanel.innerHTML = `
@@ -9454,6 +9554,8 @@ function showClassSelect() {
   startPanel.querySelector("p").textContent = t("overwriteSave");
 }
 async function startWithClass(classId) {
+  unlockAudio();
+  playSfx("menu");
   await ensureAssetsWarm();
   clearSave();
   state = newState(classId);
@@ -9472,6 +9574,8 @@ async function continueGame() {
     renderStartMenu();
     return;
   }
+  unlockAudio();
+  playSfx("menu");
   await ensureAssetsWarm();
   state = restoreState(save);
   applySettings();
