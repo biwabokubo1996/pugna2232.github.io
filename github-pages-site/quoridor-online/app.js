@@ -8,7 +8,6 @@ const hostRoom = document.querySelector("#hostRoom");
 const joinRoom = document.querySelector("#joinRoom");
 const bgmToggle = document.querySelector("#bgmToggle");
 const bgmVolume = document.querySelector("#bgmVolume");
-const bgmTrack = document.querySelector("#bgmTrack");
 
 let mode = "move";
 let gameMode = "ai";
@@ -17,7 +16,12 @@ let peer = null;
 let conn = null;
 let localSeat = 0;
 let isHost = false;
-let bgmReady = false;
+let computerTimer = null;
+let computerTurnToken = 0;
+let audioContext = null;
+let bgmGain = null;
+let bgmTimer = null;
+let bgmStep = 0;
 
 function freshState() {
   return {
@@ -42,38 +46,59 @@ function showError(message) {
 }
 
 function setupBgm() {
-  if (!bgmTrack || !bgmToggle || !bgmVolume) return;
+  if (!bgmToggle || !bgmVolume) return;
   const savedVolume = localStorage.getItem("quoridor-bgm-volume");
-  const volume = savedVolume === null ? 0.45 : Number(savedVolume);
-  bgmTrack.volume = Number.isFinite(volume) ? volume : 0.45;
-  bgmVolume.value = String(bgmTrack.volume);
-  bgmTrack.addEventListener("canplaythrough", () => {
-    bgmReady = true;
-  });
-  bgmTrack.addEventListener("error", () => {
-    bgmReady = false;
-    bgmToggle.textContent = "BGM";
-  });
+  const volume = savedVolume === null ? 0.32 : Number(savedVolume);
+  bgmVolume.value = String(Number.isFinite(volume) ? volume : 0.32);
 }
 
-function toggleBgm() {
-  if (!bgmTrack) return;
-  if (!bgmTrack.paused) {
-    bgmTrack.pause();
+function playBgmNote(frequency, start, duration, volume = 1) {
+  const oscillator = audioContext.createOscillator();
+  const envelope = audioContext.createGain();
+  oscillator.type = "triangle";
+  oscillator.frequency.setValueAtTime(frequency, start);
+  envelope.gain.setValueAtTime(0.0001, start);
+  envelope.gain.exponentialRampToValueAtTime(0.12 * volume, start + 0.035);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  oscillator.connect(envelope).connect(bgmGain);
+  oscillator.start(start);
+  oscillator.stop(start + duration + 0.03);
+}
+
+function scheduleBgmBar() {
+  const melody = [261.63, 329.63, 392, 493.88, 440, 392, 329.63, 293.66];
+  const bass = [130.81, 146.83, 164.81, 146.83];
+  const now = audioContext.currentTime + 0.04;
+  for (let i = 0; i < 8; i += 1) {
+    playBgmNote(melody[(bgmStep + i) % melody.length], now + i * 0.32, 0.27, 0.72);
+    if (i % 2 === 0) playBgmNote(bass[(bgmStep / 2 + i / 2) % bass.length], now + i * 0.32, 0.55, 0.48);
+  }
+  bgmStep = (bgmStep + 8) % melody.length;
+}
+
+async function toggleBgm() {
+  const AudioEngine = window.AudioContext || window.webkitAudioContext;
+  if (!AudioEngine) return showError("当前浏览器不支持背景音乐。");
+  if (bgmTimer) {
+    clearInterval(bgmTimer);
+    bgmTimer = null;
+    if (bgmGain) bgmGain.gain.setTargetAtTime(0.0001, audioContext.currentTime, 0.08);
     bgmToggle.textContent = "BGM";
+    bgmToggle.setAttribute("aria-pressed", "false");
     return;
   }
-  bgmTrack.play()
-    .then(() => {
-      bgmReady = true;
-      bgmToggle.textContent = "暂停";
-    })
-    .catch(() => {
-      const hint = bgmReady
-        ? "浏览器阻止播放，请再点一次 BGM。"
-        : "没有找到音乐文件：请上传 assets/bgm.mp3。";
-      showError(hint);
-    });
+  if (!audioContext) {
+    audioContext = new AudioEngine();
+    bgmGain = audioContext.createGain();
+    bgmGain.connect(audioContext.destination);
+  }
+  await audioContext.resume();
+  bgmGain.gain.cancelScheduledValues(audioContext.currentTime);
+  bgmGain.gain.setTargetAtTime(Number(bgmVolume.value) * 0.5, audioContext.currentTime, 0.08);
+  scheduleBgmBar();
+  bgmTimer = setInterval(scheduleBgmBar, 2560);
+  bgmToggle.textContent = "暂停";
+  bgmToggle.setAttribute("aria-pressed", "true");
 }
 
 function isBlocked(ax, ay, bx, by, source = state) {
@@ -119,6 +144,51 @@ function legalMoves(playerIndex, source = state) {
   return moves;
 }
 
+function isStrictlyLegalMove(playerIndex, x, y, source = state) {
+  if (!Number.isInteger(x) || !Number.isInteger(y)) return false;
+  const me = source.players[playerIndex];
+  const other = source.players[1 - playerIndex];
+  const dx = x - me.x;
+  const dy = y - me.y;
+  const distance = Math.abs(dx) + Math.abs(dy);
+
+  if (distance === 1) {
+    return (x !== other.x || y !== other.y) && !isBlocked(me.x, me.y, x, y, source);
+  }
+
+  // A two-cell jump is only legal when the opponent occupies the middle square
+  // and neither half of the jump crosses a wall.
+  if ((Math.abs(dx) === 2 && dy === 0) || (Math.abs(dy) === 2 && dx === 0)) {
+    const mx = me.x + Math.sign(dx);
+    const my = me.y + Math.sign(dy);
+    return other.x === mx && other.y === my
+      && !isBlocked(me.x, me.y, mx, my, source)
+      && !isBlocked(mx, my, x, y, source);
+  }
+
+  // A diagonal sidestep is allowed only around an adjacent opponent whose
+  // square directly behind it is blocked by a wall or the board edge.
+  if (Math.abs(dx) === 1 && Math.abs(dy) === 1) {
+    const horizontalOpponent = other.y === me.y && Math.abs(other.x - me.x) === 1;
+    const verticalOpponent = other.x === me.x && Math.abs(other.y - me.y) === 1;
+    if (horizontalOpponent) {
+      const forwardX = other.x + Math.sign(other.x - me.x);
+      return x === other.x && y === other.y + dy
+        && !isBlocked(me.x, me.y, other.x, other.y, source)
+        && isBlocked(other.x, other.y, forwardX, other.y, source)
+        && !isBlocked(other.x, other.y, x, y, source);
+    }
+    if (verticalOpponent) {
+      const forwardY = other.y + Math.sign(other.y - me.y);
+      return y === other.y && x === other.x + dx
+        && !isBlocked(me.x, me.y, other.x, other.y, source)
+        && isBlocked(other.x, other.y, other.x, forwardY, source)
+        && !isBlocked(other.x, other.y, x, y, source);
+    }
+  }
+  return false;
+}
+
 function hasPath(playerIndex, source = state) {
   const start = source.players[playerIndex];
   const goalY = playerIndex === 0 ? 8 : 0;
@@ -160,7 +230,7 @@ function cloneState(source) {
 function applyMove(playerIndex, x, y, source = state) {
   if (source.winner !== null) return "游戏已结束，请重开。";
   if (playerIndex !== source.turn) return "还没轮到这个玩家。";
-  if (!legalMoves(playerIndex, source).has(`${x},${y}`)) return "这里不能走。";
+  if (!isStrictlyLegalMove(playerIndex, x, y, source)) return "这里不能走。";
   const player = source.players[playerIndex];
   player.x = x;
   player.y = y;
@@ -306,15 +376,26 @@ function chooseComputerAction() {
 
 function queueComputer() {
   if (gameMode !== "ai" || state.turn !== 1 || state.winner !== null) return;
+  cancelComputerTurn();
+  const token = ++computerTurnToken;
   setStatus("电脑思考中...");
-  setTimeout(() => {
+  computerTimer = setTimeout(() => {
+    computerTimer = null;
+    if (token !== computerTurnToken || gameMode !== "ai" || state.turn !== 1 || state.winner !== null) return;
     const action = chooseComputerAction();
     if (!action) return;
     commitAction(action);
   }, 520);
 }
 
+function cancelComputerTurn() {
+  computerTurnToken += 1;
+  if (computerTimer) clearTimeout(computerTimer);
+  computerTimer = null;
+}
+
 function resetState(sync = true) {
+  cancelComputerTurn();
   state = freshState();
   if (gameMode === "local") state.players[1].name = "玩家 2";
   if (gameMode === "online") {
@@ -328,6 +409,7 @@ function resetState(sync = true) {
 }
 
 function setGameMode(nextMode) {
+  cancelComputerTurn();
   gameMode = nextMode;
   localSeat = 0;
   isHost = false;
@@ -511,9 +593,12 @@ resetGame.addEventListener("click", () => resetState(true));
 hostRoom.addEventListener("click", createRoom);
 joinRoom.addEventListener("click", joinRoomByCode);
 if (bgmToggle) bgmToggle.addEventListener("click", toggleBgm);
-if (bgmVolume && bgmTrack) {
+if (bgmVolume) {
   bgmVolume.addEventListener("input", () => {
-    bgmTrack.volume = Number(bgmVolume.value);
+    if (bgmGain && audioContext) {
+      const nextGain = bgmTimer ? Number(bgmVolume.value) * 0.5 : 0.0001;
+      bgmGain.gain.setTargetAtTime(nextGain, audioContext.currentTime, 0.05);
+    }
     localStorage.setItem("quoridor-bgm-volume", bgmVolume.value);
   });
 }

@@ -1468,7 +1468,7 @@ const skillBook = {
   lavaField: { name: "熔岩地带", element: "fire", cd: 5.0, damage: 18, area: 155, type: "cloud", desc: "燃烧的熔岩地面" },
   blizzard: { name: "暴风雪", element: "ice", cd: 4.6, damage: 15, area: 170, type: "aura", desc: "冰系伤害并减速" },
   frostNova: { name: "霜冻新星", element: "ice", cd: 4.8, damage: 35, area: 160, type: "nova", desc: "冻结附近敌人" },
-  thunderCloud: { name: "雷云", element: "lightning", cd: 2.1, damage: 34, area: 260, type: "strike", desc: "攻击范围内 N 个敌人，N 等于技能等级" },
+  thunderCloud: { name: "雷击", element: "lightning", cd: 2.1, damage: 34, area: 260, type: "strike", desc: "随机打击范围内 2 x 技能等级个敌人" },
   earthquake: { name: "地震", element: "earth", cd: 5.4, damage: 48, area: 220, type: "quake", desc: "施法者周围地震波" },
   fireball: { name: "火球术", element: "fire", cd: 2.4, damage: 32, area: 0, type: "fireball", desc: "沿直线穿透敌人，数量随等级增加" },
   arrowRain: { name: "箭雨", element: "physical", cd: 4.9, damage: 38, area: 155, type: "arrowRain", desc: "在区域内召唤箭雨" },
@@ -1864,6 +1864,8 @@ const localizedData = {
       "冻结附近敌人": "Freezes nearby enemies",
       "雷云": "Thunder Cloud",
       "攻击范围内 N 个敌人，N 等于技能等级": "Strikes enemies in range; target count equals skill level",
+      "雷击": "Lightning Strike",
+      "随机打击范围内 2 x 技能等级个敌人": "Randomly strikes 2 x skill level enemies in range",
       "地震": "Earthquake",
       "施法者周围地震波": "Shockwaves around the caster",
       "火球术": "Fireball",
@@ -2703,7 +2705,7 @@ function castSkill(s) {
     }
   } else if (b.type === "aura" || b.type === "cloud") {
     const target = nearestEnemy(p, 500) || p;
-    state.zones.push(scaleSkillDuration({ x: s.id === "sandstorm" ? p.x : target.x, y: s.id === "sandstorm" ? p.y : target.y, followPlayer: s.id === "sandstorm", r: s.id === "poisonCloud" ? area * 0.58 : s.id === "lavaField" ? area * 0.42 : area, maxR: s.id === "lavaField" ? area * 1.35 : area, life: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, maxLife: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, damage: dmg * (s.id === "lavaField" ? 0.28 : 0.22), element: b.element, type: s.id === "blizzard" ? "blizzardFx" : s.id === "poisonCloud" ? "poisonCloudFx" : s.id === "sandstorm" ? "sandstormFx" : s.id === "lavaField" ? "lavaFieldFx" : b.element === "wind" ? "spiral" : "dot", color: b.element === "ice" ? "rgba(150,220,255,.22)" : b.element === "poison" ? "rgba(103,212,95,.20)" : b.element === "fire" ? "rgba(255,94,28,.22)" : "rgba(214,190,92,.20)", spin: s.id === "blizzard" ? 2.2 : s.id === "poisonCloud" ? 1.6 : s.id === "sandstorm" ? 2.8 : s.id === "lavaField" ? 0.9 : b.element === "wind" ? 5 : -1, grow: s.id === "poisonCloud" ? 1.5 : s.id === "lavaField" ? 0.85 : 0.05, poisonDamage: b.element === "poison" ? dmg * 0.16 : 0, burnVulnerable: s.id === "lavaField" ? 0.14 + lvl * 0.015 : 0, blind: s.id === "sandstorm", damageTick: s.id === "sandstorm" ? 0.18 : 0 }));
+    state.zones.push(scaleSkillDuration({ x: s.id === "sandstorm" ? p.x : target.x, y: s.id === "sandstorm" ? p.y : target.y, followPlayer: s.id === "sandstorm", r: s.id === "poisonCloud" ? area * 0.58 : s.id === "lavaField" ? area * 0.42 : area, maxR: s.id === "lavaField" ? area * 1.35 : area, life: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, maxLife: s.id === "poisonCloud" ? 4.2 : s.id === "lavaField" ? 5.6 : 3.2, damage: dmg * (s.id === "lavaField" ? 0.28 : 0.22), element: b.element, type: s.id === "blizzard" ? "blizzardFx" : s.id === "poisonCloud" ? "poisonCloudFx" : s.id === "sandstorm" ? "sandstormFx" : s.id === "lavaField" ? "lavaFieldFx" : b.element === "wind" ? "spiral" : "dot", color: b.element === "ice" ? "rgba(150,220,255,.22)" : b.element === "poison" ? "rgba(103,212,95,.20)" : b.element === "fire" ? "rgba(255,94,28,.22)" : "rgba(214,190,92,.20)", spin: s.id === "blizzard" ? 2.2 : s.id === "poisonCloud" ? 1.6 : s.id === "sandstorm" ? 2.8 : s.id === "lavaField" ? 0 : b.element === "wind" ? 5 : -1, grow: s.id === "poisonCloud" ? 1.5 : s.id === "lavaField" ? 0.85 : 0.05, poisonDamage: b.element === "poison" ? dmg * 0.16 : 0, burnVulnerable: s.id === "lavaField" ? 0.14 + lvl * 0.015 : 0, blind: s.id === "sandstorm", damageTick: s.id === "sandstorm" ? 0.18 : 0 }));
     if (b.element === "poison") addParticles(target.x, target.y, "rgba(128,255,105,.65)", 18, area * 0.45, 2.4);
   } else if (b.type === "nova") {
     damageCircle(p.x, p.y, area, dmg, b.element, true);
@@ -2712,17 +2714,17 @@ function castSkill(s) {
   } else if (b.type === "strike" || b.type === "chain") {
     if (b.type === "chain") castChainLightning(p, lvl, area, dmg, b.element);
     else {
-      const hits = s.id === "thunderCloud" ? lvl : 2 + Math.floor(lvl / 2);
+      const isThunderStrike = s.id === "thunderCloud";
+      const hits = isThunderStrike ? lvl * 2 : 2 + Math.floor(lvl / 2);
       const used = new Set();
+      const candidates = isThunderStrike ? state.monsters.filter(monster => monster.hp > 0 && (monster.awaken || 0) <= 0 && Math.hypot(monster.x - p.x, monster.y - p.y) <= area + monster.r) : null;
       for (let i = 0; i < hits; i++) {
-        const target = nearestEnemyExcluding(p, area, used);
-        if (target) hitMonster(target, dmg, b.element);
-        if (target) {
-          used.add(target);
-          addLightning(target.x + rand(-35, 35), target.y - rand(80, 130), target.x, target.y);
-          if (s.id === "thunderCloud") state.zones.push({ x: target.x, y: target.y - 38, r: 72, life: 0.32, maxLife: 0.32, damage: 0, element: b.element, type: "thunderCloudFx", color: "rgba(82,155,255,.28)", grow: 1.1 });
-          state.zones.push({ x: target.x, y: target.y, r: 28, life: 0.18, maxLife: 0.18, damage: 0, element: b.element, type: "visual", color: "rgba(255,245,136,.45)", grow: 1.8 });
-        }
+        const target = isThunderStrike ? candidates.splice(Math.floor(Math.random() * candidates.length), 1)[0] : nearestEnemyExcluding(p, area, used);
+        if (!target) break;
+        used.add(target);
+        hitMonster(target, dmg, b.element);
+        addLightning(target.x + rand(-35, 35), target.y - rand(80, 130), target.x, target.y);
+        state.zones.push({ x: target.x, y: target.y, r: 28, life: 0.18, maxLife: 0.18, damage: 0, element: b.element, type: "visual", color: "rgba(255,245,136,.45)", grow: 1.8 });
       }
     }
   } else if (b.type === "quake") {
@@ -8682,7 +8684,7 @@ function drawZone(z) {
     ctx.restore();
   } else if (z.type === "poisonCloudFx" || z.type === "enemyPoison" || z.type === "sandstormFx" || z.type === "blackPlagueFx" || z.type === "virulentPlagueFx" || z.type === "lavaFieldFx") {
     const img = z.type === "virulentPlagueFx" ? effectImages.virulentPlague : z.type === "blackPlagueFx" ? effectImages.blackPlague : z.type === "sandstormFx" ? effectImages.sandstorm : z.type === "lavaFieldFx" ? effectImages.lavaField : effectImages.poisonCloud;
-    drawGroundDecal(img, z, alpha, { alpha: z.type === "enemyPoison" ? 0.5 : z.type === "sandstormFx" ? 0.48 : z.type === "blackPlagueFx" ? 0.56 : z.type === "virulentPlagueFx" ? 0.62 : z.type === "lavaFieldFx" ? 0.62 : 0.5, w: z.type === "virulentPlagueFx" ? 2.55 : 2.28, h: z.type === "virulentPlagueFx" ? 2.55 : 2.28, spinScale: z.type === "sandstormFx" ? 0.45 : z.type === "blackPlagueFx" || z.type === "virulentPlagueFx" ? 0.5 : 0.35, grow: z.type === "poisonCloudFx" ? 0.18 : z.type === "virulentPlagueFx" ? 0.12 : z.type === "lavaFieldFx" ? 0.05 : 0.1 });
+    drawGroundDecal(img, z, alpha, { alpha: z.type === "enemyPoison" ? 0.5 : z.type === "sandstormFx" ? 0.48 : z.type === "blackPlagueFx" ? 0.56 : z.type === "virulentPlagueFx" ? 0.62 : z.type === "lavaFieldFx" ? 0.62 : 0.5, w: z.type === "virulentPlagueFx" ? 2.55 : 2.28, h: z.type === "virulentPlagueFx" ? 2.55 : 2.28, spinScale: z.type === "lavaFieldFx" ? 0 : z.type === "sandstormFx" ? 0.45 : z.type === "blackPlagueFx" || z.type === "virulentPlagueFx" ? 0.5 : 0.35, grow: z.type === "poisonCloudFx" ? 0.18 : z.type === "virulentPlagueFx" ? 0.12 : z.type === "lavaFieldFx" ? 0.05 : 0.1 });
   } else if (z.type === "slashFx") {
     const img = effectImages.slash;
     ctx.save();

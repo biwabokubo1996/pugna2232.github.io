@@ -1,9 +1,4 @@
-Put your licensed music file here and rename it to:
+The game now includes a lightweight synthesized BGM made with the browser's
+Web Audio API. No external MP3 file is required.
 
-bgm.mp3
-
-The game page loads:
-
-./assets/bgm.mp3
-
-For example, if you want to use a Touhou Project track, upload your own legally usable MP3 file as bgm.mp3.
+Use the BGM button and volume slider in the top-right corner of the game.
