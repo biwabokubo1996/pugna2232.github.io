@@ -8,6 +8,7 @@ const hostRoom = document.querySelector("#hostRoom");
 const joinRoom = document.querySelector("#joinRoom");
 const bgmToggle = document.querySelector("#bgmToggle");
 const bgmVolume = document.querySelector("#bgmVolume");
+const installApp = document.querySelector("#installApp");
 
 let mode = "move";
 let gameMode = "ai";
@@ -22,6 +23,7 @@ let audioContext = null;
 let bgmGain = null;
 let bgmTimer = null;
 let bgmStep = 0;
+let installPrompt = null;
 
 function freshState() {
   return {
@@ -605,6 +607,33 @@ if (bgmVolume) {
 roomCode.addEventListener("input", () => {
   roomCode.value = roomCode.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 });
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  if (installApp) installApp.classList.remove("hidden");
+});
+
+if (installApp) {
+  installApp.addEventListener("click", async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    installApp.classList.add("hidden");
+  });
+}
+
+window.addEventListener("appinstalled", () => {
+  installPrompt = null;
+  if (installApp) installApp.classList.add("hidden");
+});
+
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+  });
+}
 
 addEventListener("resize", render);
 setupBgm();

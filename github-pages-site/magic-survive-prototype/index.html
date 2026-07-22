@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#101618">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="元素生存">
   <title>Elemental Survival</title>
-  <link rel="stylesheet" href="./styles.css?v=20260720-class-preview">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./assets/classes/GrandWitch.png">
+  <link rel="stylesheet" href="./styles.css?v=20260721-mobile-pwa">
 </head>
 <body>
   <main class="shell">
@@ -77,6 +84,11 @@
       </div>
     </aside>
   </main>
-<script src="./game.js?v=20260721-lightning-lava-pixie"></script>
+<script src="./game.js?v=20260722-ice-dragon-level100"></script>
+<script>
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+  }
+</script>
 </body>
 </html>

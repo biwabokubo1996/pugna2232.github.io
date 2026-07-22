@@ -38,6 +38,7 @@ const LANG_KEY = "elemental-survival-language";
 const SETTINGS_KEY = "elemental-survival-settings-v1";
 const BASE_FOLLOWER_LIMIT = 7;
 const SUMMONED_UNIT_LIFETIME = 60;
+const PLAYER_LEVEL_CAP = 100;
 const WORLD_BOSS_SITES = {
   chimera: { id: "chimera", name: "奇美拉巢穴", boss: "奇美拉", x: 1850, y: -980, r: 130 }
 };
@@ -1296,7 +1297,8 @@ const classAssetById = {
   roundTableKnight: "RoundTableKnight.png",
   elf: "Elf.png",
   vampirePrincess: "VampirePrincess.png",
-  hellLord: "HellLord.png"
+  hellLord: "HellLord.png",
+  iceDragonDaughter: "IceDragonDaughter.png"
 };
 const classCastAssetById = {
   elementMage: "GrandWitchCast.png"
@@ -1314,7 +1316,8 @@ const classBattleSpriteById = {
   roundTableKnight: "RoundTableKnightPixel.png",
   elf: "ElfPixel.png",
   vampirePrincess: "VampirePrincessPixel.png",
-  hellLord: "HellLordPixel.png"
+  hellLord: "HellLordPixel.png",
+  iceDragonDaughter: "IceDragonDaughterPixel.png"
 };
 const classBattleSprites = {};
 for (const file of new Set(Object.values(classBattleSpriteById))) {
@@ -1462,7 +1465,7 @@ function isFusionSkill(id) {
 }
 
 const skillBook = {
-  fireBreath: { name: "喷火", element: "fire", cd: 0.62, damage: 16, area: 165, type: "cone", desc: "锥形火焰伤害并附加烧伤" },
+  fireBreath: { name: "喷火", element: "fire", cd: 0.62, damage: 16, area: 165, type: "cone", desc: "持续喷出锥形火焰并附加烧伤" },
   tornado: { name: "龙卷风", element: "wind", cd: 2.6, damage: 18, area: 95, type: "orb", desc: "移动的旋转风暴" },
   meteor: { name: "陨石坠落", element: "fire", cd: 5.2, damage: 70, area: 120, type: "meteor", desc: "大范围冲击伤害" },
   lavaField: { name: "熔岩地带", element: "fire", cd: 5.0, damage: 18, area: 155, type: "cloud", desc: "燃烧的熔岩地面" },
@@ -1479,7 +1482,7 @@ const skillBook = {
   virulentPlague: { name: "恶性瘟疫", element: "poison", cd: 5.2, damage: 62, area: 175, type: "virulentPlague", desc: "分裂为六团扩散瘟疫，造成持续伤害和减速" },
   sandstorm: { name: "沙尘暴", element: "wind", cd: 4.4, damage: 20, area: 185, type: "aura", desc: "跟随玩家并致盲敌人" },
   cleave: { name: "劈砍", element: "physical", cd: 2.1, damage: 45, area: 155, type: "cleave", desc: "向前方横扫近战斩击" },
-  bloodSpear: { name: "鲜血之矛", element: "physical", cd: 2.1, damage: 64, area: 220, type: "bloodRect", desc: "在施法者前方造成矩形鲜血伤害" },
+  bloodSpear: { name: "鲜血之矛", element: "physical", cd: 2.1, damage: 64, area: 220, type: "bloodRect", desc: "从脚下扩散 45 度扇形鲜血之矛" },
   painScream: { name: "痛苦尖叫", element: "arcane", cd: 5.1, damage: 34, area: 210, type: "fearCone", desc: "恐惧敌人并迫使他们逃离" },
   ward: { name: "防御结界", element: "arcane", cd: 12, damage: 0, area: 0, type: "ward", desc: "短时间格挡远程伤害" },
   flameTornado: { name: "火龙卷", element: "fire", cd: 2.0, damage: 42, area: 165, type: "orb", desc: "大范围牵引火龙卷并附加烧伤" },
@@ -1743,6 +1746,19 @@ const classBook = {
       player.maxHp += 30;
       player.hp += 30;
     }
+  },
+  iceDragonDaughter: {
+    name: "冰龙之女",
+    icon: "IceDragonDaughter.png",
+    innate: "极寒领域",
+    desc: "先天：暴风雪范围内的敌人随等级降低移速、攻速和弹道速度。初始技能：暴风雪。",
+    skills: ["blizzard"],
+    apply(player) {
+      player.ice *= 1.24;
+      player.area *= 1.08;
+      player.maxHp += 24;
+      player.hp += 24;
+    }
   }
 };
 
@@ -1850,7 +1866,11 @@ const localizedData = {
       "地狱领主": "Hell Lord",
       "地狱之息": "Hell Breath",
       "先天：附近敌人每秒受到 2 x 等级的火焰伤害。初始技能：熔岩地带。": "Innate: nearby enemies take 2 x level fire damage per second. Starting skill: Lava Field.",
+      "冰龙之女": "Ice Dragon Daughter",
+      "极寒领域": "Extreme Cold Domain",
+      "先天：暴风雪范围内的敌人随等级降低移速、攻速和弹道速度。初始技能：暴风雪。": "Innate: enemies inside the blizzard range lose movement, attack, and projectile speed based on hero level. Starting skill: Blizzard.",
       "喷火": "Fire Breath",
+      "持续喷出锥形火焰并附加烧伤": "Sustained cone fire that applies burn",
       "锥形火焰伤害并附加烧伤": "Cone fire damage that applies burn",
       "龙卷风": "Tornado",
       "移动的旋转风暴": "A moving spinning storm",
@@ -1887,6 +1907,7 @@ const localizedData = {
       "劈砍": "Cleave",
       "向前方横扫近战斩击": "Sweeping melee slash in front",
       "鲜血之矛": "Blood Spear",
+      "从脚下扩散 45 度扇形鲜血之矛": "A 45-degree fan of blood spears rapidly spreads from the caster's feet",
       "在施法者前方造成矩形鲜血伤害": "Deals rectangular blood damage in front of the caster",
       "痛苦尖叫": "Pain Scream",
       "恐惧敌人并迫使他们逃离": "Fears enemies and forces them away",
@@ -2671,7 +2692,7 @@ function castSkill(s) {
     castFireBreathBarrage(p, target, area, dmg, lvl);
   } else if (b.type === "bloodSpear") {
     const target = nearestEnemy(p) || { x: p.x + 1, y: p.y };
-    fireBloodSpear(p.x, p.y, target.x, target.y, dmg, lvl);
+    castBloodRectangle(p, target, area, dmg, lvl);
   } else if (b.type === "forkLightning") {
     const target = nearestEnemy(p, area) || { x: p.x + 1, y: p.y };
     castForkLightning(p, target, lvl, area, dmg);
@@ -2691,7 +2712,8 @@ function castSkill(s) {
   } else if (b.type === "cone") {
     const target = nearestEnemy(p) || { x: p.x + 1, y: p.y };
     const ang = Math.atan2(target.y - p.y, target.x - p.x);
-    state.zones.push(scaleSkillDuration({ x: p.x, y: p.y, a: ang, arc: s.id === "fireBreath" ? 0.72 : 0.55, r: area, life: 0.34, maxLife: 0.34, damage: dmg * 0.15, element: b.element, type: s.id === "fireBreath" ? "fireBreathFx" : "cone", color: "rgba(255,111,49,.28)", grow: 1.2, burnDamage: s.id === "fireBreath" ? dmg * 0.08 : 0, burnVulnerable: s.id === "fireBreath" ? 0.12 + lvl * 0.012 : 0 }));
+    const isFireBreath = s.id === "fireBreath";
+    state.zones.push(scaleSkillDuration({ x: p.x, y: p.y, a: ang, arc: isFireBreath ? 0.72 : 0.55, r: area, life: isFireBreath ? 1.15 : 0.34, maxLife: isFireBreath ? 1.15 : 0.34, damage: isFireBreath ? dmg * 0.045 : dmg * 0.15, element: b.element, type: isFireBreath ? "fireBreathFx" : "cone", color: "rgba(255,111,49,.28)", grow: isFireBreath ? 0.34 : 1.2, burnDamage: isFireBreath ? dmg * 0.05 : 0, burnVulnerable: isFireBreath ? 0.12 + lvl * 0.012 : 0 }));
     addParticles(p.x + Math.cos(ang) * 45, p.y + Math.sin(ang) * 45, "rgba(255,180,84,.9)", 12, 55, 0.35);
   } else if (b.type === "meteor") {
     const target = nearestEnemy(p) || { x: rand(120, W - 120), y: rand(90, H - 90) };
@@ -2937,39 +2959,27 @@ function castPlayerCleave(origin, target, area, damage, level) {
 
 function castBloodRectangle(origin, target, area, damage, level) {
   const angle = Math.atan2(target.y - origin.y, target.x - origin.x);
-  const forwardX = Math.cos(angle);
-  const forwardY = Math.sin(angle);
-  const sideX = -forwardY;
-  const sideY = forwardX;
-  const length = area * (1.28 + level * 0.06);
-  const width = 96 + level * 16;
-  for (const m of state.monsters) {
-    const dx = m.x - origin.x;
-    const dy = m.y - origin.y;
-    const forward = dx * forwardX + dy * forwardY;
-    const side = Math.abs(dx * sideX + dy * sideY);
-    if (forward > -m.r && forward < length + m.r && side < width * 0.5 + m.r) {
-      hitMonster(m, damage, "physical");
-    }
-  }
-  const cx = origin.x + forwardX * length * 0.5;
-  const cy = origin.y + forwardY * length * 0.5;
+  const footY = origin.y + (origin.r || 28) * 0.55;
+  const range = area * (1.02 + level * 0.055);
+  const arc = Math.PI / 4;
+  const duration = 0.34;
   state.zones.push(scaleSkillDuration({
-    x: cx,
-    y: cy,
-    r: width,
-    length,
-    width,
-    life: 0.34,
-    maxLife: 0.34,
-    damage: 0,
+    x: origin.x,
+    y: footY,
+    r: 16,
+    maxR: range,
+    life: duration,
+    maxLife: duration,
+    damage,
     element: "physical",
-    type: "bloodRectFx",
-    color: "rgba(200,22,64,.28)",
+    type: "bloodFanFx",
+    color: "rgba(220,20,64,.34)",
     angle,
-    grow: 0.65
+    arc,
+    grow: (range - 16) / (duration * 45),
+    hit: new Set()
   }));
-  addLine(origin.x + forwardX * 22, origin.y + forwardY * 22, origin.x + forwardX * length, origin.y + forwardY * length, "rgba(255,55,92,.72)", 10, 0.18, true);
+  addParticles(origin.x, footY, "rgba(255,54,92,.78)", 12 + level * 2, 32, 0.38);
 }
 
 function applyFear(target, seconds) {
@@ -3262,7 +3272,8 @@ function fireEnemyShot(m, p) {
     damage: Math.max(1, 10 * ENEMY_DAMAGE_MULT * timeGrowth() * diseaseAttackMult(m) - effectiveDefense()) * (1 - effectiveGroupReduce()),
     color: m.name === "暗精灵" ? "rgba(196,150,255,.95)" : "rgba(255,218,126,.95)",
     life: 3.2,
-    angle: a
+    angle: a,
+    source: m
   });
   addLine(m.x, m.y, m.x + Math.cos(a) * 38, m.y + Math.sin(a) * 38, "rgba(255,230,150,.65)", 3, 0.18, false);
 }
@@ -3284,7 +3295,8 @@ function fireEnemyBoulder(m, target) {
     color: "rgba(164,126,82,.95)",
     life: 3.4,
     angle: a,
-    spin: rand(0, Math.PI * 2)
+    spin: rand(0, Math.PI * 2),
+    source: m
   });
   addLine(m.x, m.y - 10, startX, startY, "rgba(92,66,42,.62)", 8, 0.16, false);
 }
@@ -3971,6 +3983,23 @@ function updateAbsoluteZero(dt) {
   }
 }
 
+function damageEllipse(x, y, rx, ry, angle, damage, element, opts = {}) {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  for (const m of state.monsters) {
+    const dx = m.x - x;
+    const dy = m.y - y;
+    const localX = dx * cos + dy * sin;
+    const localY = -dx * sin + dy * cos;
+    const reachX = rx + m.r;
+    const reachY = ry + m.r;
+    const normalized = Math.hypot(localX / reachX, localY / reachY);
+    if (normalized > 1) continue;
+    const falloff = opts.falloff ? Math.max(opts.minMultiplier || 0.3, 1 - normalized * 0.68) : 1;
+    hitMonster(m, damage * falloff, element, opts.source || element);
+  }
+}
+
 function maybeTriggerDeathExplosion(m) {
   const chance = state.player.deathExplosionChance || 0;
   if (chance <= 0 || Math.random() >= chance) return;
@@ -4312,12 +4341,27 @@ function typhonCleave(m, target) {
   }
 }
 
+function iceDragonFrostCurve(level) {
+  const normalized = clamp(level, 1, PLAYER_LEVEL_CAP) - 1;
+  return Math.sin(normalized * Math.PI / (PLAYER_LEVEL_CAP * 2));
+}
+
+function iceDragonFrostProfile(level) {
+  const curve = iceDragonFrostCurve(level);
+  return {
+    moveMul: 1 - 0.85 * curve,
+    attackRate: 1 - 0.78 * curve,
+    projectileMul: 1 - 0.72 * curve
+  };
+}
+
 function updateClassInnates(dt) {
   const p = state.player;
   const n = classLevel();
   p.classDamageAura = 0;
   p.classGroupReduce = 0;
   p.classFollowerAttackAura = 0;
+  for (const m of state.monsters) m.iceDragonFrost = null;
   if (state.classId === "roundTableKnight") {
     p.classDamageAura = n * 0.01;
     p.classFollowerAttackAura = n * 0.01;
@@ -4343,6 +4387,26 @@ function updateClassInnates(dt) {
     if (state.classAuraPulse <= 0) {
       state.classAuraPulse = 0.6;
       addRing(p.x, p.y, radius, "rgba(255,72,32,.36)", 0.42);
+    }
+  }
+  if (state.classId === "iceDragonDaughter") {
+    const radius = 184 + n * 2.15;
+    const frost = iceDragonFrostProfile(n);
+    for (const m of state.monsters) {
+      if (Math.hypot(m.x - p.x, m.y - p.y) < radius + m.r) m.iceDragonFrost = frost;
+    }
+    let aura = state.zones.find(z => z.type === "iceDragonAuraFx");
+    if (!aura) {
+      aura = { x: p.x, y: p.y, r: radius, life: 0.42, maxLife: 0.42, damage: 0, element: "ice", type: "iceDragonAuraFx", followPlayer: true, color: "rgba(124,218,255,.20)" };
+      state.zones.push(aura);
+    } else {
+      aura.r = radius;
+      aura.life = aura.maxLife;
+    }
+    state.iceDragonAuraPulse = (state.iceDragonAuraPulse || 0) - dt;
+    if (state.iceDragonAuraPulse <= 0) {
+      state.iceDragonAuraPulse = 0.45;
+      addParticles(p.x, p.y, "rgba(172,236,255,.58)", 8, radius * 0.48, 0.55);
     }
   }
 }
@@ -4481,17 +4545,21 @@ function grantSacrificeUpgrade(index) {
   const y = follower.y;
   state.followers.splice(index, 1);
   const player = state.player;
-  player.level += 1;
-  const hpGain = 10 + Math.floor(player.level * 1.5);
-  player.maxHp += hpGain;
-  player.hp = Math.min(player.maxHp, player.hp + hpGain);
-  player.damage *= 1.045;
-  player.next = Math.floor(player.next * 1.22 + 12);
+  const gainedLevel = player.level < PLAYER_LEVEL_CAP;
+  if (gainedLevel) {
+    player.level += 1;
+    const hpGain = 10 + Math.floor(player.level * 1.5);
+    player.maxHp += hpGain;
+    player.hp = Math.min(player.maxHp, player.hp + hpGain);
+    player.damage *= 1.045;
+    player.next = Math.floor(player.next * 1.22 + 12);
+  }
   const upgradeable = Object.values(state.skills).filter(skill => skillBook[skill.id] && skill.level < 7);
   const skill = pick(upgradeable);
   if (skill) skill.level += 1;
   state.items.push(`Sacrificed: ${follower.name}`);
-  addText(skill ? `${localizeCreatureName(follower.name)} -> Lv.${player.level}, ${localizeSkillName(skill.id)} Lv.${skill.level}` : `${localizeCreatureName(follower.name)} -> Lv.${player.level}`, x - 70, y - 42, "#ffb35f");
+  const levelLabel = gainedLevel ? `Lv.${player.level}` : `Lv.${PLAYER_LEVEL_CAP} MAX`;
+  addText(skill ? `${localizeCreatureName(follower.name)} -> ${levelLabel}, ${localizeSkillName(skill.id)} Lv.${skill.level}` : `${localizeCreatureName(follower.name)} -> ${levelLabel}`, x - 70, y - 42, "#ffb35f");
   addRing(state.sacrificeAltar.x, state.sacrificeAltar.y, 126, "rgba(255,92,32,.92)", 0.9);
   addParticles(state.sacrificeAltar.x, state.sacrificeAltar.y, "rgba(255,137,54,.78)", 20, 88, 0.8);
   saveGame();
@@ -5275,9 +5343,11 @@ function fireFairyBolt(f, target, damage) {
     life: 1.25,
     pierce: false,
     hit: new Set(),
-    angle: a
+    angle: a,
+    trail: !isPixie
   });
-  addLine(f.x, f.y, target.x, target.y, "rgba(160,255,120,.36)", 3, 0.12, true);
+  if (isPixie) addParticles(muzzleX, muzzleY, "rgba(104,255,144,.72)", 5, 18, 0.24);
+  else addLine(f.x, f.y, target.x, target.y, "rgba(160,255,120,.36)", 3, 0.12, true);
 }
 
 function castFairyPoisonCloud(f, target) {
@@ -5496,17 +5566,19 @@ function spawnMeteorProjectile(tx, ty, area, damage, kind = "playerMeteor", dela
     angle: Math.atan2(ty - startY, tx - startX),
     spin: rand(0, Math.PI * 2)
   });
-  if (delay <= 0.05) addRing(tx, ty, Math.max(48, area * 0.55), "rgba(255,82,34,.38)", 0.45);
 }
 
 function meteorImpact(x, y, area, damage) {
-  damageCircle(x, y, area, damage, "fire", false, { source: "meteor" });
-  state.zones.push({ x, y, r: area, life: 0.62, maxLife: 0.62, damage: 0, element: "fire", type: "meteorExplosionFx", color: "rgba(255,72,32,.34)", grow: 1.75, spin: rand(0, Math.PI * 2) });
-  addRing(x, y, area * 1.04, "rgba(255,180,62,.75)", 0.45);
-  addParticles(x, y, "rgba(255,118,42,.86)", 26, area * 0.52, 0.55);
+  const angle = rand(-0.42, 0.42);
+  const rx = Math.max(44, area * 0.68);
+  const ry = Math.max(28, area * 0.42);
+  damageEllipse(x, y, rx, ry, angle, damage, "fire", { source: "meteor" });
+  state.zones.push({ x, y, r: rx, rx, ry, life: 0.56, maxLife: 0.56, damage: 0, element: "fire", type: "meteorExplosionFx", color: "rgba(255,72,32,.34)", grow: 1.2, angle });
+  addParticles(x, y, "rgba(255,118,42,.86)", 20, rx * 0.46, 0.5);
   for (let k = 0; k < 8; k++) {
     const a = rand(0, Math.PI * 2);
-    addLine(x, y, x + Math.cos(a) * rand(area * 0.42, area), y + Math.sin(a) * rand(area * 0.42, area), "rgba(255,205,76,.62)", rand(4, 9), 0.28, true);
+    const length = rand(rx * 0.42, rx);
+    addLine(x, y, x + Math.cos(a) * length, y + Math.sin(a) * length * (ry / rx), "rgba(255,205,76,.62)", rand(4, 9), 0.24, true);
   }
 }
 
@@ -5663,8 +5735,9 @@ function updateEnemyShots(dt) {
     const s = state.enemyShots[i];
     s.px = s.x;
     s.py = s.y;
-    s.x += s.vx * dt;
-    s.y += s.vy * dt;
+    const projectileMul = s.source?.iceDragonFrost?.projectileMul || 1;
+    s.x += s.vx * projectileMul * dt;
+    s.y += s.vy * projectileMul * dt;
     s.angle = Math.atan2(s.vy, s.vx);
     if (s.kind === "rock") s.spin = (s.spin || 0) + dt * 8;
     s.life -= dt;
@@ -5755,6 +5828,21 @@ function updateZones(dt) {
     }
     z.r += (z.grow || 0) * dt * 45;
     if (z.maxR) z.r = Math.min(z.r, z.maxR);
+    if (z.type === "bloodFanFx" && z.damage > 0) {
+      const fanAngle = z.angle || 0;
+      const fanArc = z.arc || Math.PI / 4;
+      for (const m of state.monsters) {
+        if (z.hit.has(m)) continue;
+        const distance = Math.hypot(m.x - z.x, m.y - z.y);
+        if (distance > z.r + m.r) continue;
+        const monsterAngle = Math.atan2(m.y - z.y, m.x - z.x);
+        const difference = Math.abs(Math.atan2(Math.sin(monsterAngle - fanAngle), Math.cos(monsterAngle - fanAngle)));
+        if (difference <= fanArc * 0.5) {
+          z.hit.add(m);
+          hitMonster(m, z.damage, z.element, "bloodSpear");
+        }
+      }
+    }
     if (z.type === "enemyPoison") {
       z.tick = (z.tick || 0) - dt;
       if (z.tick <= 0) {
@@ -5810,6 +5898,8 @@ function updateZones(dt) {
         }
       } else if (z.type === "sandstormFx") {
         // Sandstorm uses its own fixed damage tick above to avoid frame-rate dependent slowdowns.
+      } else if (z.type === "bloodFanFx") {
+        // Blood Spear hits each enemy once as its fan-shaped wave reaches them.
       } else {
         damageCircle(z.x, z.y, z.r, z.damage * dt * 12, z.element, z.element === "ice");
       }
@@ -5894,15 +5984,17 @@ function updateMonsters(dt) {
     const targetRadius = followerTarget ? 15 : p.r;
     const a = Math.atan2(target.y - m.y, target.x - m.x);
     m.face = a;
-    const slow = m.slow ? 0.55 : 1;
+    const frost = m.iceDragonFrost;
+    const slow = (m.slow ? 0.55 : 1) * (frost?.moveMul || 1);
+    const attackRate = frost?.attackRate || 1;
     m.slow = Math.max(0, (m.slow || 0) - dt);
     m.frozen = Math.max(0, (m.frozen || 0) - dt);
     m.blind = Math.max(0, (m.blind || 0) - dt);
     m.fear = Math.max(0, (m.fear || 0) - dt);
     m.disarm = Math.max(0, (m.disarm || 0) - dt);
     m.hit = Math.max(0, m.hit - dt);
-    m.attackCd = Math.max(0, (m.attackCd || 0) - dt);
-    m.specialCd = Math.max(0, (m.specialCd || rand(1.3, 2.2)) - dt);
+    m.attackCd = Math.max(0, (m.attackCd || 0) - dt * attackRate);
+    m.specialCd = Math.max(0, (m.specialCd || rand(1.3, 2.2)) - dt * attackRate);
     if (m.name === "死亡骑士") {
       const rangeToTarget = Math.hypot(target.x - m.x, target.y - m.y);
       if (!m.charge && m.specialCd <= 0 && rangeToTarget > 135 && rangeToTarget < 620) startDeathKnightCharge(m, target);
@@ -6039,7 +6131,7 @@ function updateMonsters(dt) {
       if (!followerTarget && p.thorns) m.hp -= p.thorns * 2;
     }
     if (m.tag === "ranged" && (m.disarm || 0) <= 0) {
-      m.shoot -= dt;
+      m.shoot -= dt * attackRate;
       const shotTarget = far > 980 ? nearestFollower(m, 280) || p : p;
       const rangeToTarget = Math.hypot(shotTarget.x - m.x, shotTarget.y - m.y);
       if (m.shoot <= 0 && rangeToTarget < 620) {
@@ -6140,8 +6232,13 @@ function updateTexts(dt) {
 
 function gainXp(v) {
   const p = state.player;
+  if (p.level >= PLAYER_LEVEL_CAP) {
+    p.level = PLAYER_LEVEL_CAP;
+    p.xp = p.next;
+    return;
+  }
   p.xp += v;
-  while (p.xp >= p.next) {
+  while (p.level < PLAYER_LEVEL_CAP && p.xp >= p.next) {
     p.xp -= p.next;
     p.level++;
     const hpGain = 10 + Math.floor(p.level * 1.5);
@@ -6152,6 +6249,7 @@ function gainXp(v) {
     playSfx("level");
     openLevelChoices();
   }
+  if (p.level >= PLAYER_LEVEL_CAP) p.xp = p.next;
 }
 
 function openLevelChoices() {
@@ -8650,6 +8748,20 @@ function drawZone(z) {
       ctx.fillRect(-z.r * 0.75, -z.r, z.r * 1.5, z.r * 1.8);
     }
     ctx.restore();
+  } else if (z.type === "iceDragonAuraFx") {
+    drawGroundDecal(effectImages.blizzard, z, Math.min(0.72, alpha + 0.24), { alpha: 0.34, w: 2.12, h: 2.12, spinScale: 0.12, scale: 0.96, grow: 0.05 });
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = alpha * 0.58;
+    ctx.strokeStyle = "rgba(164,235,255,.8)";
+    ctx.lineWidth = 2.4;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(0, 0, z.r * (0.48 + i * 0.2) + Math.sin(state.time * 2.2 + i) * 6, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
   } else if (z.type === "thunderCloudFx") {
     const img = effectImages.thunderCloud;
     ctx.save();
@@ -8679,6 +8791,36 @@ function drawZone(z) {
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(Math.cos(a) * z.r, Math.sin(a) * z.r);
+      ctx.stroke();
+    }
+    ctx.restore();
+  } else if (z.type === "bloodFanFx") {
+    const arc = z.arc || Math.PI / 4;
+    const progress = clamp(z.r / (z.maxR || z.r || 1), 0, 1);
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    ctx.rotate(z.angle || 0);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.fillStyle = "rgba(218,22,68,.35)";
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, z.r, -arc * 0.5, arc * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,100,126,.94)";
+    ctx.lineWidth = 5 + (1 - progress) * 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, z.r, -arc * 0.5, arc * 0.5);
+    ctx.stroke();
+    ctx.globalAlpha = alpha * 0.55;
+    ctx.strokeStyle = "rgba(112,6,38,.86)";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) {
+      const lane = -arc * 0.35 + i * arc * 0.35;
+      ctx.beginPath();
+      ctx.moveTo(4, 0);
+      ctx.lineTo(Math.cos(lane) * z.r, Math.sin(lane) * z.r);
       ctx.stroke();
     }
     ctx.restore();
@@ -8729,7 +8871,7 @@ function drawZone(z) {
     drawCircle(z.x, z.y, z.r * 0.6, "rgba(122,72,255,.18)");
   } else if (z.type === "meteorExplosionFx") {
     const img = effectImages.meteorExplosion;
-    drawGroundDecal(img, z, alpha, { alpha: 0.72, w: 2.35, h: 2.35, spinScale: 0.15, scale: 1.1, grow: z.grow || 1.6 });
+    drawGroundDecal(img, z, alpha, { alpha: 0.72, w: 2.0, h: 1.22, spinScale: 1, scale: 1.0, grow: z.grow || 1.2 });
   } else if (z.type === "earthquakeFx") {
     drawGroundDecal(effectImages.earthquake, z, alpha, { alpha: 0.7, w: 2.45, h: 2.45, spinScale: 0.25, scale: 1.02, grow: z.grow || 1.2 });
   } else if (z.type === "frostNovaFx") {
@@ -8927,14 +9069,16 @@ function drawProjectile(pr) {
   if (pr.kind === "fairyBolt" || pr.kind === "pixieOrb") {
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-    ctx.strokeStyle = "rgba(82,255,128,.48)";
-    ctx.globalAlpha = 0.82;
-    ctx.lineWidth = 10;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(pr.px, pr.py);
-    ctx.lineTo(pr.x, pr.y);
-    ctx.stroke();
+    if (pr.trail !== false) {
+      ctx.strokeStyle = "rgba(82,255,128,.48)";
+      ctx.globalAlpha = 0.82;
+      ctx.lineWidth = 10;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(pr.px, pr.py);
+      ctx.lineTo(pr.x, pr.y);
+      ctx.stroke();
+    }
     ctx.globalAlpha = 1;
     ctx.translate(pr.x, pr.y);
     const pulse = 1 + Math.sin(state.time * 11 + (pr.x + pr.y) * 0.02) * 0.12;

@@ -1,0 +1,19 @@
+{
+  "name": "\u5143\u7d20\u751f\u5b58",
+  "short_name": "\u5143\u7d20\u751f\u5b58",
+  "description": "\u5f00\u653e\u4e16\u754c\u65e0\u9650\u751f\u5b58\u6e38\u620f",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#101618",
+  "theme_color": "#101618",
+  "icons": [
+    {
+      "src": "./assets/classes/GrandWitch.png",
+      "sizes": "500x500",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

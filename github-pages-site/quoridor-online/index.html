@@ -4,10 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#eef3f1" />
+    <meta name="description" content="支持人机、同屏双人和在线联机的步步为营棋盘游戏。" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="步步为营" />
     <title>步步为营</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css" />
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   </head>
@@ -19,6 +24,7 @@
           <p id="status" aria-live="polite">玩家 1 的回合</p>
         </div>
         <div class="topActions">
+          <button id="installApp" class="installApp hidden" type="button">安装</button>
           <button id="bgmToggle" type="button" aria-pressed="false">BGM</button>
           <label class="volumeControl">
             音量
@@ -58,7 +64,7 @@
             </div>
           </div>
 
-          <div class="controls">
+          <div class="controls" aria-label="行动方式">
             <button class="mode active" data-mode="move" type="button">移动</button>
             <button class="mode" data-mode="h" type="button">横墙</button>
             <button class="mode" data-mode="v" type="button">竖墙</button>

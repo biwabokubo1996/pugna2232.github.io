@@ -840,26 +840,37 @@ button:hover {
 }
 
 @media (max-width: 980px) {
+  html,
   body {
+    min-height: 100%;
+    background: #0c1011;
+    overscroll-behavior: none;
+  }
+
+  body {
+    min-height: 100dvh;
     overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .shell {
+    min-height: 100dvh;
     grid-template-columns: 1fr;
   }
 
   .stage {
-    min-height: 100vh;
-    padding: 0;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 
   canvas {
-    width: 100vw;
-    max-height: none;
-    height: 100vh;
+    width: min(100%, calc(100dvh * 1.7777778));
+    height: auto;
+    max-height: 100%;
+    aspect-ratio: 16 / 9;
     border: 0;
     box-shadow: none;
-    object-fit: contain;
   }
 
   .hud {
@@ -868,6 +879,16 @@ button:hover {
 
   .touch-controls {
     display: block;
+  }
+
+  .move-stick {
+    left: calc(22px + env(safe-area-inset-left));
+    bottom: calc(22px + env(safe-area-inset-bottom));
+  }
+
+  .pause-touch {
+    right: calc(22px + env(safe-area-inset-right));
+    bottom: calc(24px + env(safe-area-inset-bottom));
   }
 
   .codex-tabs {
@@ -892,7 +913,7 @@ button:hover {
 
   .start-panel.class-selecting {
     width: min(100% - 28px, 700px);
-    max-height: calc(100% - 28px);
+    max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     overflow: auto;
   }
 
