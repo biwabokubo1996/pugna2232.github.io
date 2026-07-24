@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f0e7">
+  <meta name="description" content="双人同屏地雷五子棋：每回合选择落子或埋雷，踩雷后炸掉十字范围内的全部棋子。">
+  <title>雷阵五子棋｜一子定局，一雷翻盘</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <main class="game-shell">
+    <header class="topbar">
+      <a class="brand" href="../" aria-label="返回游戏首页">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <span><strong>雷阵五子棋</strong><small>一子定局，一雷翻盘</small></span>
+      </a>
+      <nav class="top-actions" aria-label="游戏操作">
+        <button class="text-button" id="rulesButton">玩法</button>
+        <button class="text-button" id="resetButton">重新开局</button>
+      </nav>
+    </header>
+
+    <section class="game-layout">
+      <aside class="player-card black-card active" id="blackCard">
+        <div class="player-heading">
+          <span class="stone black-stone" aria-hidden="true"></span>
+          <span><strong>黑方</strong><small>先手</small></span>
+        </div>
+        <div class="mine-count"><span aria-hidden="true">✹</span><strong id="blackMines">10</strong><small>枚地雷</small></div>
+      </aside>
+
+      <section class="board-column" aria-label="雷阵五子棋对局">
+        <div class="turn-panel">
+          <div><span class="eyebrow" id="turnLabel">第 1 回合</span><strong id="statusText">黑方回合</strong></div>
+          <div class="mode-switch" role="group" aria-label="本回合行动">
+            <button class="selected" id="stoneMode">
+              <span class="mini-stone black-stone" id="modeStone" aria-hidden="true"></span>落子
+            </button>
+            <button id="mineMode"><span aria-hidden="true">✹</span>埋雷</button>
+          </div>
+        </div>
+
+        <div class="board-wrap">
+          <div class="coordinates top-coordinates" id="topCoordinates" aria-hidden="true"></div>
+          <div class="coordinates side-coordinates" id="sideCoordinates" aria-hidden="true"></div>
+          <div class="board" id="board" role="grid" aria-label="15乘15棋盘"></div>
+          <div class="board-note"><span class="mine-marker small" aria-hidden="true">✹</span>只显示当前玩家埋下的地雷</div>
+        </div>
+
+        <div class="message-bar" aria-live="polite">
+          <span class="info-icon" id="messageIcon" aria-hidden="true">i</span>
+          <p id="message">黑方先手。选择落子或埋雷，然后点击棋盘。</p>
+        </div>
+      </section>
+
+      <aside class="player-card white-card" id="whiteCard">
+        <div class="player-heading">
+          <span class="stone white-stone" aria-hidden="true"></span>
+          <span><strong>白方</strong><small>后手</small></span>
+        </div>
+        <div class="mine-count"><span aria-hidden="true">✹</span><strong id="whiteMines">10</strong><small>枚地雷</small></div>
+      </aside>
+    </section>
+  </main>
+
+  <div class="overlay hidden" id="handoffOverlay">
+    <section class="modal handoff-card" role="dialog" aria-modal="true" aria-labelledby="handoffTitle">
+      <span class="stone large" id="handoffStone" aria-hidden="true"></span>
+      <span class="eyebrow">轮到下一位</span>
+      <h2 id="handoffTitle"></h2>
+      <p id="handoffCopy"></p>
+      <button class="primary-button" id="handoffButton"></button>
+    </section>
+  </div>
+
+  <div class="overlay hidden" id="resultOverlay">
+    <section class="modal result-card" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+      <span class="eyebrow">对局结束</span>
+      <h2 id="resultTitle"></h2>
+      <p id="resultCopy"></p>
+      <button class="primary-button" id="playAgainButton">再来一局</button>
+    </section>
+  </div>
+
+  <div class="overlay hidden" id="rulesOverlay">
+    <article class="modal rules-card" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+      <button class="close-button" id="closeRulesButton" aria-label="关闭玩法">×</button>
+      <span class="eyebrow">玩法说明</span>
+      <h2 id="rulesTitle">在五子棋里，埋下一点意外</h2>
+      <ol>
+        <li><strong>二选一</strong><span>每回合只能落一枚棋子，或在空位埋一枚地雷。</span></li>
+        <li><strong>各十枚</strong><span>双方各有 10 枚地雷，同一位置可以同时埋有双方的雷。</span></li>
+        <li><strong>敌踩才炸</strong><span>自己的棋子不会引爆自己的雷；对手落在雷位才会触发。</span></li>
+        <li><strong>十字爆破</strong><span>中心、上、下、左、右共 5 格的全部棋子都会被清除，不分敌我。</span></li>
+        <li><strong>五子为胜</strong><span>爆炸结算后，率先横、竖或斜向连成五子的玩家获胜。</span></li>
+      </ol>
+    </article>
+  </div>
+</body>
+</html>
