@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f4f0e7">
-  <meta name="description" content="双人同屏地雷五子棋：每回合选择落子或埋雷，踩雷后炸掉十字范围内的全部棋子。">
-  <title>雷阵五子棋｜一子定局，一雷翻盘</title>
+  <meta name="description" content="支持单机、本地双人与房间码联机的地雷五子棋。">
+  <title>雷阵五子棋｜单机与联机对战</title>
   <link rel="stylesheet" href="./styles.css">
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
@@ -17,16 +18,23 @@
         <span><strong>雷阵五子棋</strong><small>一子定局，一雷翻盘</small></span>
       </a>
       <nav class="top-actions" aria-label="游戏操作">
+        <button class="text-button" id="modeButton">模式</button>
         <button class="text-button" id="rulesButton">玩法</button>
         <button class="text-button" id="resetButton">重新开局</button>
       </nav>
     </header>
 
+    <div class="session-strip">
+      <span class="session-mode" id="sessionMode">本地双人</span>
+      <span class="connection-dot" id="connectionDot" aria-hidden="true"></span>
+      <span id="connectionText">同屏对战</span>
+    </div>
+
     <section class="game-layout">
       <aside class="player-card black-card active" id="blackCard">
         <div class="player-heading">
           <span class="stone black-stone" aria-hidden="true"></span>
-          <span><strong>黑方</strong><small>先手</small></span>
+          <span><strong id="blackName">黑方</strong><small>先手</small></span>
         </div>
         <div class="mine-count"><span aria-hidden="true">✹</span><strong id="blackMines">10</strong><small>枚地雷</small></div>
       </aside>
@@ -46,24 +54,69 @@
           <div class="coordinates top-coordinates" id="topCoordinates" aria-hidden="true"></div>
           <div class="coordinates side-coordinates" id="sideCoordinates" aria-hidden="true"></div>
           <div class="board" id="board" role="grid" aria-label="15乘15棋盘"></div>
-          <div class="board-note"><span class="mine-marker small" aria-hidden="true">✹</span>只显示当前玩家埋下的地雷</div>
+          <div class="board-note"><span class="mine-marker small" aria-hidden="true">✹</span><span id="mineNote">只显示当前玩家埋下的地雷</span></div>
         </div>
 
         <div class="message-bar" aria-live="polite">
           <span class="info-icon" id="messageIcon" aria-hidden="true">i</span>
-          <p id="message">黑方先手。选择落子或埋雷，然后点击棋盘。</p>
+          <p id="message">请选择游戏模式。</p>
         </div>
       </section>
 
       <aside class="player-card white-card" id="whiteCard">
         <div class="player-heading">
           <span class="stone white-stone" aria-hidden="true"></span>
-          <span><strong>白方</strong><small>后手</small></span>
+          <span><strong id="whiteName">白方</strong><small>后手</small></span>
         </div>
         <div class="mine-count"><span aria-hidden="true">✹</span><strong id="whiteMines">10</strong><small>枚地雷</small></div>
       </aside>
     </section>
   </main>
+
+  <div class="overlay" id="setupOverlay">
+    <section class="modal setup-card" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+      <span class="eyebrow">选择玩法</span>
+      <h1 id="setupTitle">今天想和谁下一局？</h1>
+      <p class="setup-lead">三种模式使用相同规则：每回合在“落子”与“埋雷”之间二选一。</p>
+      <div class="mode-cards">
+        <button class="mode-card" id="soloButton">
+          <span class="mode-icon" aria-hidden="true">◆</span>
+          <strong>单机模式</strong>
+          <small>执黑先手，与电脑斗智</small>
+        </button>
+        <button class="mode-card" id="localButton">
+          <span class="mode-icon" aria-hidden="true">◐</span>
+          <strong>本地双人</strong>
+          <small>轮流交接设备，隐藏雷位</small>
+        </button>
+        <button class="mode-card" id="onlineButton">
+          <span class="mode-icon" aria-hidden="true">⌁</span>
+          <strong>联网对战</strong>
+          <small>创建房间码，邀请朋友加入</small>
+        </button>
+      </div>
+
+      <div class="online-panel hidden" id="onlinePanel">
+        <div class="online-actions">
+          <button class="primary-button" id="createRoomButton">创建房间</button>
+          <span>或</span>
+          <label>
+            <span class="sr-only">输入六位房间码</span>
+            <input id="roomInput" maxlength="6" autocomplete="off" placeholder="输入房间码">
+          </label>
+          <button class="secondary-button" id="joinRoomButton">加入房间</button>
+        </div>
+        <div class="room-result hidden" id="roomResult">
+          <span>你的房间码</span>
+          <strong id="roomCode">------</strong>
+          <button class="copy-button" id="copyRoomButton">复制</button>
+        </div>
+        <p class="network-status" id="networkStatus">连接成功后随机分配黑白双方。</p>
+      </div>
+
+      <button class="rules-link" id="setupRulesButton">先看玩法介绍 →</button>
+    </section>
+  </div>
 
   <div class="overlay hidden" id="handoffOverlay">
     <section class="modal handoff-card" role="dialog" aria-modal="true" aria-labelledby="handoffTitle">
@@ -81,14 +134,16 @@
       <h2 id="resultTitle"></h2>
       <p id="resultCopy"></p>
       <button class="primary-button" id="playAgainButton">再来一局</button>
+      <button class="rules-link" id="resultModeButton">返回模式选择</button>
     </section>
   </div>
 
   <div class="overlay hidden" id="rulesOverlay">
     <article class="modal rules-card" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
       <button class="close-button" id="closeRulesButton" aria-label="关闭玩法">×</button>
-      <span class="eyebrow">玩法说明</span>
+      <span class="eyebrow">玩法介绍</span>
       <h2 id="rulesTitle">在五子棋里，埋下一点意外</h2>
+      <p class="rules-intro">目标仍是率先连成五子，但隐藏的地雷会让每个关键落点都充满风险。</p>
       <ol>
         <li><strong>二选一</strong><span>每回合只能落一枚棋子，或在空位埋一枚地雷。</span></li>
         <li><strong>各十枚</strong><span>双方各有 10 枚地雷，同一位置可以同时埋有双方的雷。</span></li>
@@ -96,6 +151,10 @@
         <li><strong>十字爆破</strong><span>中心、上、下、左、右共 5 格的全部棋子都会被清除，不分敌我。</span></li>
         <li><strong>五子为胜</strong><span>爆炸结算后，率先横、竖或斜向连成五子的玩家获胜。</span></li>
       </ol>
+      <div class="mode-explain">
+        <p><strong>单机：</strong>你执黑，电脑执白；电脑也会埋雷。</p>
+        <p><strong>联网：</strong>连接成功后随机分配黑白，通过房间码直连。</p>
+      </div>
     </article>
   </div>
 </body>
