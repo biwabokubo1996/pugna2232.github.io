@@ -192,17 +192,20 @@
     if (mines[opponent][index]) {
       const row = Math.floor(index / SIZE);
       const col = index % SIZE;
-      const affected = [
-        index,
-        row > 0 ? index - SIZE : -1,
-        row < SIZE - 1 ? index + SIZE : -1,
-        col > 0 ? index - 1 : -1,
-        col < SIZE - 1 ? index + 1 : -1
-      ].filter((cell) => cell >= 0);
+      const affected = [];
+      for (let dy = -1; dy <= 1; dy += 1) {
+        for (let dx = -1; dx <= 1; dx += 1) {
+          const x = col + dx;
+          const y = row + dy;
+          if (x >= 0 && x < SIZE && y >= 0 && y < SIZE) {
+            affected.push(y * SIZE + x);
+          }
+        }
+      }
       affected.forEach((cell) => { board[cell] = 0; });
       mines[opponent][index] = false;
       const actorName = gameType === "ai" && actor === 1 ? "电脑" : NAMES[actor];
-      finishTurn(`轰！${actorName}踩中地雷，十字范围内的棋子全部被炸掉。`, true, affected);
+      finishTurn(`轰！${actorName}踩中地雷，九宫格范围内的棋子全部被炸掉。`, true, affected);
       return;
     }
 
