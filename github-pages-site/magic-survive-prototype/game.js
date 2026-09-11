@@ -29,6 +29,16 @@ const itemsTitle = document.querySelector("#itemsTitle");
 const moveStick = document.querySelector("#moveStick");
 const moveKnob = moveStick?.querySelector("span");
 const pauseTouch = document.querySelector("#pauseTouch");
+const pausePanel = document.querySelector("#pausePanel");
+const pauseTitle = document.querySelector("#pauseTitle");
+const pauseDescription = document.querySelector("#pauseDescription");
+const resumeGame = document.querySelector("#resumeGame");
+const pauseSettings = document.querySelector("#pauseSettings");
+const restartGame = document.querySelector("#restartGame");
+const returnToTitle = document.querySelector("#returnToTitle");
+const onboardingHint = document.querySelector("#onboardingHint");
+const onboardingTitle = document.querySelector("#onboardingTitle");
+const onboardingText = document.querySelector("#onboardingText");
 
 const W = canvas.width;
 const H = canvas.height;
@@ -36,6 +46,7 @@ const TILE = 520;
 const SAVE_KEY = "elemental-survival-save-v1";
 const LANG_KEY = "elemental-survival-language";
 const SETTINGS_KEY = "elemental-survival-settings-v1";
+const ONBOARDING_KEY = "elemental-survival-onboarding-v1";
 const BASE_FOLLOWER_LIMIT = 7;
 const SUMMONED_UNIT_LIFETIME = 60;
 const PLAYER_LEVEL_CAP = 100;
@@ -47,6 +58,9 @@ const keys = new Set();
 const touchMove = { x: 0, y: 0, active: false, pointerId: null };
 let guideWasPaused = false;
 let settingsWasPaused = false;
+let settingsReturnToPause = false;
+let lifecycleResumePending = false;
+let onboardingTimer = 0;
 let activeCodexTab = "guide";
 const i18n = {
   en: {
@@ -844,6 +858,15 @@ const menuI18n = {
   es: { menuStart: "Iniciar juego", menuCodex: "Codice", menuExit: "Salir", menuExitConfirm: "Salir del juego?", menuExitNotice: "El juego ha terminado. Puedes cerrar esta pagina." }
 };
 for (const [lang, entries] of Object.entries(menuI18n)) Object.assign(i18n[lang], entries);
+const pauseI18n = {
+  en: { pauseSaved: "Your progress has been saved.", pauseResume: "Resume", pauseRestart: "Restart", pauseTitleReturn: "Return to Title", onboardingTitle: "Move to survive", onboardingTouch: "Use the left joystick. You are protected for the first 8 seconds.", onboardingKeyboard: "Use WASD or arrow keys. You are protected for the first 8 seconds." },
+  "zh-CN": { pauseSaved: "进度已保存。", pauseResume: "继续游戏", pauseRestart: "重新开始", pauseTitleReturn: "返回标题", onboardingTitle: "移动才能生存", onboardingTouch: "拖动左侧摇杆移动，开局前 8 秒免受伤害。", onboardingKeyboard: "使用 WASD 或方向键移动，开局前 8 秒免受伤害。" },
+  "zh-TW": { pauseSaved: "進度已儲存。", pauseResume: "繼續遊戲", pauseRestart: "重新開始", pauseTitleReturn: "返回標題", onboardingTitle: "移動才能生存", onboardingTouch: "拖動左側搖桿移動，開局前 8 秒免受傷害。", onboardingKeyboard: "使用 WASD 或方向鍵移動，開局前 8 秒免受傷害。" },
+  ja: { pauseSaved: "進行状況を保存しました。", pauseResume: "再開", pauseRestart: "最初から", pauseTitleReturn: "タイトルへ", onboardingTitle: "移動して生き残ろう", onboardingTouch: "左のスティックで移動。最初の8秒間は無敵です。", onboardingKeyboard: "WASDまたは矢印キーで移動。最初の8秒間は無敵です。" },
+  ko: { pauseSaved: "진행 상황을 저장했습니다.", pauseResume: "계속", pauseRestart: "다시 시작", pauseTitleReturn: "타이틀로", onboardingTitle: "움직이며 생존하세요", onboardingTouch: "왼쪽 조이스틱으로 이동하세요. 처음 8초 동안 무적입니다.", onboardingKeyboard: "WASD 또는 방향키로 이동하세요. 처음 8초 동안 무적입니다." },
+  es: { pauseSaved: "Progreso guardado.", pauseResume: "Continuar", pauseRestart: "Reiniciar", pauseTitleReturn: "Volver al título", onboardingTitle: "Muévete para sobrevivir", onboardingTouch: "Usa el joystick izquierdo. Tienes protección durante 8 segundos.", onboardingKeyboard: "Usa WASD o las flechas. Tienes protección durante 8 segundos." }
+};
+for (const [lang, entries] of Object.entries(pauseI18n)) Object.assign(i18n[lang], entries);
 const classSelectI18n = {
   en: { classConfirm: "Begin Adventure", classPreview: "Selected Class" },
   "zh-CN": { classConfirm: "开始冒险", classPreview: "已选职业" },
@@ -992,6 +1015,14 @@ function applyStaticLanguage() {
   if (followersTitle) followersTitle.textContent = t("followers");
   if (itemsTitle) itemsTitle.textContent = t("items");
   if (pauseTouch) pauseTouch.textContent = "II";
+  if (pauseTitle) pauseTitle.textContent = t("paused");
+  if (pauseDescription) pauseDescription.textContent = t("pauseSaved");
+  if (resumeGame) resumeGame.textContent = t("pauseResume");
+  if (pauseSettings) pauseSettings.textContent = t("settingsButton");
+  if (restartGame) restartGame.textContent = t("pauseRestart");
+  if (returnToTitle) returnToTitle.textContent = t("pauseTitleReturn");
+  if (onboardingTitle) onboardingTitle.textContent = t("onboardingTitle");
+  if (onboardingText) onboardingText.textContent = matchMedia("(pointer: coarse)").matches ? t("onboardingTouch") : t("onboardingKeyboard");
 }
 
 function setLanguage(lang) {
@@ -1184,12 +1215,50 @@ function languageName(lang) {
   return { en: "English", "zh-CN": "简体中文", "zh-TW": "繁體中文", ja: "日本語", ko: "한국어", es: "Español" }[lang] || lang;
 }
 
-function openSettings() {
+function openPauseMenu({ save = true } = {}) {
+  if (!state?.running || !pausePanel || !levelPanel?.classList.contains("hidden")) return;
+  if (save) saveGame();
+  state.paused = true;
+  guidePanel?.classList.add("hidden");
+  settingsPanel?.classList.add("hidden");
+  applyStaticLanguage();
+  pausePanel.classList.remove("hidden");
+}
+
+function closePauseMenu() {
+  pausePanel?.classList.add("hidden");
+  if (state?.running) {
+    state.paused = false;
+    state.last = performance.now();
+  }
+}
+
+function returnCurrentRunToTitle() {
+  if (!state?.running) return;
+  saveGame();
+  state.running = false;
+  state.paused = false;
+  pausePanel?.classList.add("hidden");
+  onboardingHint?.classList.add("hidden");
+  startPanel?.classList.remove("hidden");
+  renderStartMenu();
+}
+
+async function restartCurrentRun() {
+  const classId = state?.classId || "elementMage";
+  pausePanel?.classList.add("hidden");
+  await startWithClass(classId);
+}
+
+function openSettings(fromPause = false) {
   if (!settingsPanel) return;
+  fromPause = fromPause === true;
   renderSettingsContent();
   settingsWasPaused = !!state?.paused;
+  settingsReturnToPause = fromPause || (pausePanel && !pausePanel.classList.contains("hidden"));
   if (state?.running) state.paused = true;
   guidePanel?.classList.add("hidden");
+  pausePanel?.classList.add("hidden");
   settingsPanel.classList.remove("hidden");
 }
 
@@ -1197,7 +1266,13 @@ function closeSettingsPanel() {
   if (!settingsPanel) return;
   rebindingAction = null;
   settingsPanel.classList.add("hidden");
-  if (state?.running && !settingsWasPaused) state.paused = false;
+  if (state?.running && settingsReturnToPause) {
+    settingsReturnToPause = false;
+    openPauseMenu({ save: false });
+  } else if (state?.running && !settingsWasPaused) {
+    state.paused = false;
+    state.last = performance.now();
+  }
 }
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = list => list[Math.floor(Math.random() * list.length)];
@@ -1228,68 +1303,76 @@ const monsterAssetByName = {
   "Big Spider": "BigSpider.png",
   "Jorogumo": "Jorogumo.png"
 };
-const monsterImages = {};
-const assetLoadPromises = [];
-let assetsWarmPromise = null;
+const assetMetrics = { created: 0, requested: 0, loaded: 0, failed: 0 };
+window.ElementalSurvivalAssetMetrics = assetMetrics;
 
-function trackAssetImage(img) {
-  img.loading = "eager";
+function requestAssetImage(img) {
+  if (!img?._assetSrc) return Promise.resolve(img);
+  if (img._assetPromise) return img._assetPromise;
+  assetMetrics.requested += 1;
+  img.loading = "lazy";
   img.decoding = "async";
-  const loaded = img.complete && img.naturalWidth
-    ? Promise.resolve()
-    : new Promise(resolve => {
-      img.addEventListener("load", resolve, { once: true });
-      img.addEventListener("error", resolve, { once: true });
-    });
-  assetLoadPromises.push(loaded.then(() => img.decode ? img.decode().catch(() => {}) : null));
+  img._assetPromise = new Promise(resolve => {
+    let settled = false;
+    const finish = status => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      if (status === "load") assetMetrics.loaded += 1;
+      if (status === "error") assetMetrics.failed += 1;
+      resolve();
+    };
+    const timeout = window.setTimeout(() => finish("timeout"), 3500);
+    img.addEventListener("load", () => finish("load"), { once: true });
+    img.addEventListener("error", () => finish("error"), { once: true });
+  }).then(() => {
+    if (img.decode) img.decode().catch(() => {});
+    return img;
+  });
+  img.src = img._assetSrc;
+  return img._assetPromise;
+}
+
+function createAssetImage(src) {
+  const img = new Image();
+  img._assetSrc = src;
+  assetMetrics.created += 1;
   return img;
 }
 
-function ensureAssetsWarm() {
-  if (!assetsWarmPromise) {
-    assetsWarmPromise = Promise.allSettled(assetLoadPromises).then(() => {
-      ensureWorldMapCanvas();
-    });
-  }
-  return assetsWarmPromise;
+function createLazyImageMap() {
+  return new Proxy({}, {
+    get(target, property, receiver) {
+      const value = Reflect.get(target, property, receiver);
+      if (value?._assetSrc) requestAssetImage(value);
+      return value;
+    }
+  });
 }
 
+const monsterImages = createLazyImageMap();
+
 for (const file of new Set(Object.values(monsterAssetByName))) {
-  const img = trackAssetImage(new Image());
-  img.src = `./assets/monsters/${file}`;
-  monsterImages[file] = img;
+  monsterImages[file] = createAssetImage(`./assets/monsters/${file}`);
 }
-const arrowImage = trackAssetImage(new Image());
-arrowImage.src = "./assets/monsters/Arrow.png";
-const stoneImage = trackAssetImage(new Image());
-stoneImage.src = "./assets/monsters/StoneProjectile.png";
-const effectImages = {};
+const arrowImage = createAssetImage("./assets/monsters/Arrow.png");
+const stoneImage = createAssetImage("./assets/monsters/StoneProjectile.png");
+const effectImages = createLazyImageMap();
 for (const [id, file] of Object.entries({ fireBreath: "FireBreath.png", breathOfFire: "BreathOfFire.png", blizzard: "Blizzard.png", absoluteZero: "AbsoluteZero.png", poisonCloud: "PoisonCloud.png", sandstorm: "Sandstorm.png", spiritTaming: "SpiritOrbit.png", blackPlague: "BlackPlague.png", virulentPlague: "VirulentPlague.png", chainLightning: "ChainLightning.png", thunderCloud: "ThunderCloud.png", forkLightning: "ForkLightning.png", fireball: "Fireball.png", slash: "Slash.png", dimensionalSlash: "DimensionalSlash.png", tornado: "Tornado.png", flameTornado: "FlameTornado.png", doom: "Doomsday.png", meteor: "Meteor.png", meteorExplosion: "MeteorExplosion.png", earthquake: "Earthquake.png", frostNova: "FrostNova.png", iceAge: "IceAge.png", lavaField: "LavaField.png", arrowRain: "ArrowRain.png", surge: "Surge.png", bloodSpear: "BloodSpear.png", painScream: "PainScream.png" })) {
-  const img = trackAssetImage(new Image());
-  img.src = `./assets/effects/${file}`;
-  effectImages[id] = img;
+  effectImages[id] = createAssetImage(`./assets/effects/${file.replace(/\.png$/i, ".webp")}`);
 }
-const terrainImages = {};
+const terrainImages = createLazyImageMap();
 for (const [id, file] of Object.entries({ forest: "ForestRealistic.png", pond: "SwampRealistic.png", desert: "DesertRealistic.png", grassland: "GrasslandRealistic.png", graveyard: "GraveyardRealistic.png", hell: "HellRealistic.png", snowfield: "SnowfieldRealistic.png" })) {
-  const img = trackAssetImage(new Image());
-  img.onload = () => {
-    if (Object.values(terrainImages).every(texture => texture.complete && texture.naturalWidth)) worldMapCanvas = null;
-  };
-  img.src = `./assets/terrains/${file}`;
-  terrainImages[id] = img;
+  terrainImages[id] = createAssetImage(`./assets/terrains/${file.replace(/\.png$/i, ".webp")}`);
 }
-const npcImages = {};
+const npcImages = createLazyImageMap();
 for (const [id, file] of Object.entries({ blackMarket: "BlackMarketMerchant.png", altar: "SacrificeAltar.png" })) {
-  const img = trackAssetImage(new Image());
-  img.src = `./assets/npcs/${file}`;
-  npcImages[id] = img;
+  npcImages[id] = createAssetImage(`./assets/npcs/${file.replace(/\.png$/i, ".webp")}`);
 }
 const followerAssetById = { furnace: "FurnaceSpirit.png", balrog: "Balrog.png", lotus: "RedLotusBeast.png", rock: "RockSpirit.png", golem: "Golem.png", giant: "MountainGiant.png", skeleton: "SkeletonFollower.png", skeletonWarrior: "SkeletonWarrior.png", reaper: "DeathReaper.png", militia: "Militia.png", swordsman: "Swordsman.png", knight: "Knight.png", rogueGirl: "RogueGirl.png", assassinGirl: "AssassinGirl.png", ninjaGirl: "NinjaGirl.png", pixie: "Pixie.png", flowerFairy: "FlowerFairy.png", fairyPrincess: "FairyPrincess.png", ghostFollower: "GhostFollower.png", wraith: "Wraith.png", banshee: "Banshee.png", littleDemon: "LittleDemon.png", demonFollower: "DemonFollower.png", hellKing: "HellKing.png", ghoul: "Ghoul.png", abomination: "Abomination.png", abominationGiant: "AbominationGiant.png", spider: "SmallSpider.png", bigSpider: "BigSpider.png", jorogumo: "Jorogumo.png", treantGuardian: "TreantGuardian.png" };
-const followerImages = {};
+const followerImages = createLazyImageMap();
 for (const file of new Set(Object.values(followerAssetById))) {
-  const img = trackAssetImage(new Image());
-  img.src = `./assets/followers/${file}`;
-  followerImages[file] = img;
+  followerImages[file] = createAssetImage(`./assets/followers/${file.replace(/\.png$/i, ".webp")}`);
 }
 const classAssetById = {
   elementMage: "GrandWitch.png",
@@ -1303,11 +1386,9 @@ const classAssetById = {
 const classCastAssetById = {
   elementMage: "GrandWitchCast.png"
 };
-const classImages = {};
+const classImages = createLazyImageMap();
 for (const file of new Set([...Object.values(classAssetById), ...Object.values(classCastAssetById)])) {
-  const img = trackAssetImage(new Image());
-  img.src = `./assets/classes/${file}`;
-  classImages[file] = img;
+  classImages[file] = createAssetImage(`./assets/classes/${file.replace(/\.png$/i, ".webp")}`);
 }
 // Character portraits stay on the class-select screen; combat uses compact pixel-art sprites.
 const classBattleSpriteById = {
@@ -1319,11 +1400,14 @@ const classBattleSpriteById = {
   hellLord: "HellLordPixel.png",
   iceDragonDaughter: "IceDragonDaughterPixel.png"
 };
-const classBattleSprites = {};
+const classBattleSprites = createLazyImageMap();
 for (const file of new Set(Object.values(classBattleSpriteById))) {
-  const img = trackAssetImage(new Image());
-  img.src = `./assets/player-pixels/${file}`;
-  classBattleSprites[file] = img;
+  classBattleSprites[file] = createAssetImage(`./assets/player-pixels/${file.replace(/\.png$/i, ".webp")}`);
+}
+
+function ensureRunAssets(classId) {
+  const classFile = classBattleSpriteById[classId] || classBattleSpriteById.elementMage;
+  return requestAssetImage(classBattleSprites[classFile]);
 }
 
 const terrains = [
@@ -1337,7 +1421,8 @@ const terrains = [
 ];
 
 const terrainById = Object.fromEntries(terrains.map(t => [t.id, t]));
-const WORLD_MAP_SIZE = 4096;
+// 2048² keeps the cached world texture near 16 MB instead of ~64 MB on mobile GPUs.
+const WORLD_MAP_SIZE = 2048;
 const WORLD_MAP_SAMPLE = 8;
 let worldMapCanvas = null;
 
@@ -1579,6 +1664,14 @@ const gearBook = [
   { name: "空间扭曲外套", rarity: "epic", desc: "50% chance to reflect ranged attacks", apply: s => { s.rangedReflectChance = Math.max(s.rangedReflectChance || 0, 0.5); } },
   { name: "招财猫", rarity: "common", desc: "Gold gain +10%", apply: s => { s.goldGainBonus = (s.goldGainBonus || 0) + 0.10; } },
   { name: "优惠券", rarity: "rare", desc: "每次访问黑市时随机一个商品五折。", apply: s => { s.marketCoupon = true; } },
+  { name: "苍风羽饰", rarity: "uncommon", desc: "风伤+15%，移速+5%", apply: s => { s.wind *= 1.15; s.speed *= 1.05; } },
+  { name: "雷鸣护符", rarity: "rare", desc: "雷伤+18%，冷却-4%", apply: s => { s.lightning *= 1.18; s.cooldown *= 0.96; } },
+  { name: "石肤护符", rarity: "common", desc: "最大生命+25，防御力+2", apply: s => { s.maxHp += 25; s.hp += 25; s.defense += 2; } },
+  { name: "战地绷带", rarity: "common", desc: "最大生命+20，生命恢复+1.2/秒", apply: s => { s.maxHp += 20; s.hp += 20; s.regen += 1.2; } },
+  { name: "召唤师徽章", rarity: "rare", desc: "随从攻速+10%，随从攻击光环+8%", apply: s => { s.followerCooldown *= 0.9; s.followerAttackAuraGear = (s.followerAttackAuraGear || 0) + 0.08; } },
+  { name: "聚焦透镜", rarity: "uncommon", desc: "攻击力+9%，范围-4%", apply: s => { s.damage *= 1.09; s.area *= 0.96; } },
+  { name: "贪婪钱袋", rarity: "uncommon", desc: "金币获取+20%", apply: s => { s.goldGainBonus = (s.goldGainBonus || 0) + 0.20; } },
+  { name: "星尘法典", rarity: "epic", desc: "攻击力+10%，技能持续时间+15%", apply: s => { s.damage *= 1.10; s.duration *= 1.15; } },
   { name: "备用心脏", rarity: "epic", desc: "最大生命+100，死亡时重生一次", apply: s => { s.maxHp += 100; s.hp += 100; s.reviveCharges = (s.reviveCharges || 0) + 1; } }
 ];
 
@@ -1822,6 +1915,9 @@ const localizedData = {
       "更高阶": "higher tier",
       "无可献祭随从": "No permanent follower available",
       "召唤物不能献祭。": "Summoned units cannot be sacrificed.",
+      "召唤物和亡灵生物不能献祭。": "Summoned units and undead creatures cannot be sacrificed.",
+      "治疗补给": "Healing Supplies",
+      "经验结晶": "Experience Crystal",
       "英雄等级+1，并随机升级一个已学习技能。": "Gain 1 hero level and upgrade one learned skill.",
       "离开祭坛": "Leave Altar",
       "保留所有随从。": "Keep every follower.",
@@ -2000,6 +2096,22 @@ const localizedData = {
       "招财猫": "Lucky Cat",
       "优惠券": "Coupon",
       "每次访问黑市时随机一个商品五折。": "One random offer is half price each time you visit the Black Market.",
+      "苍风羽饰": "Gale Feather",
+      "风伤+15%，移速+5%": "Wind damage +15%, move speed +5%",
+      "雷鸣护符": "Thunder Talisman",
+      "雷伤+18%，冷却-4%": "Lightning damage +18%, cooldown -4%",
+      "石肤护符": "Stoneskin Talisman",
+      "最大生命+25，防御力+2": "Max HP +25, defense +2",
+      "战地绷带": "Field Bandage",
+      "最大生命+20，生命恢复+1.2/秒": "Max HP +20, HP regen +1.2/sec",
+      "召唤师徽章": "Summoner Emblem",
+      "随从攻速+10%，随从攻击光环+8%": "Follower attack speed +10%, follower attack aura +8%",
+      "聚焦透镜": "Focusing Lens",
+      "攻击力+9%，范围-4%": "Attack +9%, area -4%",
+      "贪婪钱袋": "Greedy Coin Purse",
+      "金币获取+20%": "Gold gain +20%",
+      "星尘法典": "Stardust Codex",
+      "攻击力+10%，技能持续时间+15%": "Attack +10%, skill duration +15%",
       "备用心脏": "Spare Heart",
       "最大生命+100，死亡时重生一次": "Max HP +100 and revive once on death",
       "荆棘王冠": "Thorn Crown",
@@ -2319,7 +2431,7 @@ function newState(classId = "elementMage") {
       x: W / 2, y: H / 2, r: Math.round(16 * PLAYER_SIZE_MULT), hp: 180, maxHp: 180, xp: 0, next: 32, level: 1,
       speed: 205, damage: 1, area: 1, cooldown: 1, followerCooldown: 1, duration: 1, defense: 0, groupReduce: 0,
       fire: 1, ice: 1, wind: 1, earth: 1, lightning: 1, arcane: 1, poison: 1,
-      regen: 0.7, crit: 0.10, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, rangedReflectChance: 0, rangedDodgeChance: 0, chaosRain: false, goldGainBonus: 0, marketCoupon: false, reviveCharges: 0, ward: 0, hitGrace: 0
+      regen: 0.7, crit: 0.10, critMul: 1.5, thorns: 0, healPulse: false, followerLimitBonus: 0, spiritBonus: 0, healAura: 0, healAuraRange: 0, deathExplosionChance: 0, rangedReflectChance: 0, rangedDodgeChance: 0, chaosRain: false, goldGainBonus: 0, marketCoupon: false, reviveCharges: 0, ward: 0, hitGrace: 8
     },
     skills: Object.fromEntries(selectedClass.skills.map(id => [id, skillState(id)])),
     followers: [],
@@ -2418,7 +2530,7 @@ function restoreState(save) {
   restored.spawn = save.spawn || 0;
   restored.gold = save.gold || 0;
   restored.className = classBook[save.classId]?.name || save.className || restored.className;
-  restored.player = { ...restored.player, ...save.player, hitGrace: 0 };
+  restored.player = { ...restored.player, ...save.player, hitGrace: 1.25 };
   restored.player.r = Math.max(restored.player.r || 0, Math.round(16 * PLAYER_SIZE_MULT));
   restored.skills = save.skills || restored.skills;
   restored.followers = (save.followers || []).map(f => ({ ...f, hitGrace: 0, t: f.t || rand(0, 1) }));
@@ -4203,7 +4315,10 @@ function update(dt) {
   mx += touchMove.x;
   my += touchMove.y;
   const len = Math.hypot(mx, my) || 1;
-  if (Math.abs(mx) + Math.abs(my) > 0.04) p.face = Math.atan2(my, mx);
+  if (Math.abs(mx) + Math.abs(my) > 0.04) {
+    p.face = Math.atan2(my, mx);
+    dismissOnboarding();
+  }
   p.x += (mx / len) * p.speed * diseaseMoveMult(p) * dt;
   p.y += (my / len) * p.speed * diseaseMoveMult(p) * dt;
 
@@ -4540,7 +4655,7 @@ function canOpenSacrificeAltar() {
 
 function grantSacrificeUpgrade(index) {
   const follower = state.followers[index];
-  if (!follower || follower.summoned) return false;
+  if (!canSacrificeFollower(follower)) return false;
   const x = follower.x;
   const y = follower.y;
   state.followers.splice(index, 1);
@@ -4570,13 +4685,13 @@ function openSacrificeAltar() {
   if (!canOpenSacrificeAltar()) return;
   const followers = state.followers
     .map((follower, index) => ({ follower, index }))
-    .filter(entry => !entry.follower.summoned && entry.follower.hp > 0);
+    .filter(entry => canSacrificeFollower(entry.follower));
   state.paused = true;
   choicesEl.innerHTML = "";
   if (!followers.length) {
     const empty = document.createElement("button");
     empty.className = "choice";
-    empty.innerHTML = `<b>${esc(localizeText("无可献祭随从"))}</b><span>${esc(localizeText("召唤物不能献祭。"))}</span>`;
+    empty.innerHTML = `<b>${esc(localizeText("无可献祭随从"))}</b><span>${esc(localizeText("召唤物和亡灵生物不能献祭。"))}</span>`;
     empty.addEventListener("click", () => {
       state.paused = false;
       levelPanel.classList.add("hidden");
@@ -4844,6 +4959,14 @@ function isDemonFollower(f) {
 
 function isGhoulFollower(f) {
   return f.id === "ghoul" || f.id === "abomination" || f.id === "abominationGiant";
+}
+
+function isUndeadFollower(f) {
+  return !!f && (isSkeletonFollower(f) || isGhostFollower(f) || isGhoulFollower(f));
+}
+
+function canSacrificeFollower(f) {
+  return !!f && !f.summoned && f.hp > 0 && !isUndeadFollower(f);
 }
 
 function isSpiderFollower(f) {
@@ -5934,11 +6057,15 @@ function updateMonsters(dt) {
       state.monsters.splice(i, 1);
       continue;
     }
-    if (!m.baseMaxHp) m.baseMaxHp = (m.maxHp || m.hp || 1) / timeGrowth();
-    const grownMax = m.baseMaxHp * timeGrowth();
-    if (grownMax > (m.maxHp || 0)) {
-      m.hp += grownMax - (m.maxHp || 0);
-      m.maxHp = grownMax;
+    // A dead monster must be settled before time scaling can raise its max HP.
+    // Otherwise a small growth delta can revive an entity that reached exactly 0 HP.
+    if (m.hp > 0) {
+      if (!m.baseMaxHp) m.baseMaxHp = (m.maxHp || m.hp || 1) / timeGrowth();
+      const grownMax = m.baseMaxHp * timeGrowth();
+      if (grownMax > (m.maxHp || 0)) {
+        m.hp += grownMax - (m.maxHp || 0);
+        m.maxHp = grownMax;
+      }
     }
     m.attackMul = m.tag === "typhon" ? 1.25 : 1;
     if ((m.awaken || 0) > 0) {
@@ -6183,6 +6310,35 @@ function updateGems(dt) {
   }
 }
 
+function grantChestReward(c, roll = Math.random()) {
+  const p = state.player;
+  if (roll < 0.52) {
+    const gear = pickGearByRarity();
+    if (gear && applyUniqueGear(gear)) {
+      addText(`${localizeText("宝箱")}：[${rarityLabel(gear.rarity)}] ${localizeGearName(gear)}`, c.x - 36, c.y - 20, gearRarityInfo[gear.rarity]?.color || "#ffd36b");
+      return "gear";
+    }
+  }
+  if (roll < 0.82) {
+    const bonusGold = 55 + Math.floor(state.time / 60) * 9;
+    addGold(bonusGold, c.x, c.y);
+    state.items.push(`${localizeText("宝箱")}: ${bonusGold} ${t("statGold")}`);
+    return "gold";
+  }
+  if (roll < 0.94) {
+    const healing = 35 + Math.floor(state.time / 180) * 5;
+    p.hp = Math.min(p.maxHp, p.hp + healing);
+    state.items.push(`${localizeText("宝箱")}: ${localizeText("治疗补给")} +${healing}`);
+    addText(`+${healing}`, c.x - 18, c.y - 20, "#7dff9a");
+    return "healing";
+  }
+  const xp = 26 + Math.floor(state.time / 120) * 4;
+  gainXp(xp);
+  state.items.push(`${localizeText("宝箱")}: ${localizeText("经验结晶")} +${xp}`);
+  addText(`XP +${xp}`, c.x - 24, c.y - 20, "#6cf2ff");
+  return "xp";
+}
+
 function updateChests(dt) {
   const p = state.player;
   for (let i = state.chests.length - 1; i >= 0; i--) {
@@ -6190,14 +6346,7 @@ function updateChests(dt) {
     c.pulse += dt * 5;
     const d = Math.hypot(p.x - c.x, p.y - c.y);
     if (d < p.r + c.r + 10) {
-      const g = pickGearByRarity();
-      if (g && applyUniqueGear(g)) {
-        addText(`${localizeText("宝箱")}：[${rarityLabel(g.rarity)}] ${localizeGearName(g)}`, c.x - 36, c.y - 20, gearRarityInfo[g.rarity]?.color || "#ffd36b");
-      } else {
-        const bonusGold = 80 + Math.floor(state.time / 60) * 12;
-        addGold(bonusGold, c.x, c.y);
-        state.items.push(`${localizeText("宝箱")}: ${bonusGold} ${t("statGold")}`);
-      }
+      grantChestReward(c);
       addRing(c.x, c.y, 42, "rgba(255,211,107,.9)", 0.45);
       addParticles(c.x, c.y, "rgba(255,226,132,.9)", 16, 32, 0.55);
       playSfx("chest");
@@ -7066,7 +7215,7 @@ function ensureWorldMapCanvas() {
   }
   g.imageSmoothingQuality = "high";
   g.drawImage(base, 0, 0, WORLD_MAP_SIZE, WORLD_MAP_SIZE);
-  drawWorldMapTextureRegions(g);
+  // Keep biome textures demand-loaded; the procedural base avoids a seven-image startup burst.
   drawWorldMapRelief(g);
   drawWorldMapGlaze(g);
   drawWorldMapAtmosphere(g);
@@ -9240,6 +9389,7 @@ function drawLotusMeteor(pr) {
 function drawEnemyShot(s) {
   ctx.save();
   if (s.kind === "rock") {
+    requestAssetImage(stoneImage);
     ctx.strokeStyle = "rgba(62,45,32,.42)";
     ctx.globalAlpha = 0.55;
     ctx.lineWidth = 5;
@@ -9448,6 +9598,7 @@ function renderGuideContent() {
     const fusionCards = fusionRecipes.map(([name, req, effect]) => `<div class="guide-card fusion-card"><b>${esc(localizeText(name))}</b><span>${esc(localizeItemLine(req))}</span><small>${esc(localizeText(effect))}</small></div>`).join("");
     content = `<section class="guide-section"><h3>${esc(t("codexFusions"))} · ${fusionRecipes.length}</h3><div class="guide-grid codex-grid">${fusionCards}</div></section>`;
   } else {
+    requestAssetImage(arrowImage);
   const classCards = Object.keys(classBook).map(id => guideCard(localizeClassName(id), `${localizeClassInnate(id)}: ${localizeClassDesc(id)}`)).join("");
   const fusionCards = fusionRecipes.map(([name, req, effect]) => guideCard(localizeText(name), `${localizeItemLine(req)}. ${localizeText(effect)}`)).join("");
   const rarityCards = Object.entries(gearRarityInfo)
@@ -9672,7 +9823,7 @@ function showClassSelect() {
     }
     preview.innerHTML = `
       <div class="class-preview-label">${esc(t("classPreview"))}</div>
-      <img src="./assets/classes/${cls.icon}" alt="${esc(localizeClassName(id))}">
+      <img src="./assets/classes/${cls.icon.replace(/\.png$/i, ".webp")}" alt="${esc(localizeClassName(id))}">
       <div class="class-preview-info">
         <h2>${esc(localizeClassName(id))}</h2>
         <b>${esc(localizeClassInnate(id))}</b>
@@ -9685,7 +9836,7 @@ function showClassSelect() {
     btn.type = "button";
     btn.className = "class-choice";
     btn.setAttribute("aria-pressed", "false");
-    btn.innerHTML = `<img src="./assets/classes/${cls.icon}" alt=""><span><b>${esc(localizeClassName(id))}</b><small>${esc(localizeClassInnate(id))}</small></span>`;
+    btn.innerHTML = `<img loading="lazy" decoding="async" src="./assets/classes/${cls.icon.replace(/\.png$/i, ".webp")}" alt=""><span><b>${esc(localizeClassName(id))}</b><small>${esc(localizeClassInnate(id))}</small></span>`;
     btn.addEventListener("click", () => selectClass(id));
     btn.addEventListener("focus", () => selectClass(id));
     cards.set(id, btn);
@@ -9699,18 +9850,37 @@ function showClassSelect() {
   classPanel.classList.remove("hidden");
   startPanel.querySelector("p").textContent = t("overwriteSave");
 }
+function showOnboardingIfNeeded() {
+  let completed = false;
+  try { completed = localStorage.getItem(ONBOARDING_KEY) === "done"; } catch {}
+  if (completed || !onboardingHint) return;
+  onboardingTimer = window.setTimeout(() => dismissOnboarding(), 10000);
+  applyStaticLanguage();
+  onboardingHint.classList.remove("hidden");
+}
+
+function dismissOnboarding() {
+  if (!onboardingHint || onboardingHint.classList.contains("hidden")) return;
+  onboardingHint.classList.add("hidden");
+  if (onboardingTimer) window.clearTimeout(onboardingTimer);
+  onboardingTimer = 0;
+  try { localStorage.setItem(ONBOARDING_KEY, "done"); } catch {}
+}
+
 async function startWithClass(classId) {
   unlockAudio();
   playSfx("menu");
-  await ensureAssetsWarm();
+  await ensureRunAssets(classId);
   clearSave();
   state = newState(classId);
   applySettings();
   state.running = true;
   startPanel.classList.add("hidden");
   levelPanel.classList.add("hidden");
+  pausePanel?.classList.add("hidden");
   if (classPanel) classPanel.classList.add("hidden");
   saveGame();
+  showOnboardingIfNeeded();
   syncHud();
 }
 
@@ -9722,11 +9892,12 @@ async function continueGame() {
   }
   unlockAudio();
   playSfx("menu");
-  await ensureAssetsWarm();
+  await ensureRunAssets(save.classId || "elementMage");
   state = restoreState(save);
   applySettings();
   startPanel.classList.add("hidden");
   levelPanel.classList.add("hidden");
+  pausePanel?.classList.add("hidden");
   if (classPanel) classPanel.classList.add("hidden");
   syncHud();
 }
@@ -9753,7 +9924,10 @@ window.addEventListener("keydown", e => {
       openBlackMarket();
     }
   }
-  if (isKeyAction(e.code, "pause") && state?.running) state.paused = !state.paused;
+  if (isKeyAction(e.code, "pause") && state?.running) {
+    if (pausePanel && !pausePanel.classList.contains("hidden")) closePauseMenu();
+    else openPauseMenu();
+  }
   if ([keyFor("pause"), keyFor("up"), keyFor("down"), keyFor("left"), keyFor("right"), "Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
 });
 window.addEventListener("keyup", e => keys.delete(e.code));
@@ -9796,19 +9970,70 @@ if (moveStick) {
   moveStick.addEventListener("pointercancel", resetStick);
 }
 pauseTouch?.addEventListener("click", () => {
-  if (state?.running) state.paused = !state.paused;
+  if (!state?.running) return;
+  if (pausePanel && !pausePanel.classList.contains("hidden")) closePauseMenu();
+  else openPauseMenu();
 });
+resumeGame?.addEventListener("click", closePauseMenu);
+pauseSettings?.addEventListener("click", () => openSettings(true));
+restartGame?.addEventListener("click", restartCurrentRun);
+returnToTitle?.addEventListener("click", returnCurrentRunToTitle);
 languageSelect?.addEventListener("change", e => setLanguage(e.target.value));
 document.addEventListener("fullscreenchange", () => {
   if (settingsPanel && !settingsPanel.classList.contains("hidden")) renderSettingsContent();
 });
 startBtn?.addEventListener("click", () => startWithClass("elementMage"));
 
+function pauseForLifecycle() {
+  if (!state?.running) return;
+  lifecycleResumePending = !state.paused;
+  saveGame();
+  state.paused = true;
+  keys.clear();
+  touchMove.x = 0;
+  touchMove.y = 0;
+}
+
+function resumeFromLifecycle() {
+  if (!state?.running) return;
+  state.last = performance.now();
+  const blockingPanelOpen = [pausePanel, levelPanel, guidePanel, settingsPanel].some(panel => panel && !panel.classList.contains("hidden"));
+  if (lifecycleResumePending && !blockingPanelOpen) state.paused = false;
+  lifecycleResumePending = false;
+}
+
+function handleAndroidBack() {
+  if (settingsPanel && !settingsPanel.classList.contains("hidden")) {
+    closeSettingsPanel();
+    return true;
+  }
+  if (guidePanel && !guidePanel.classList.contains("hidden")) {
+    closeGuidePanel();
+    return true;
+  }
+  if (pausePanel && !pausePanel.classList.contains("hidden")) {
+    returnCurrentRunToTitle();
+    return true;
+  }
+  if (state?.running) {
+    openPauseMenu();
+    return true;
+  }
+  return false;
+}
+
+window.ElementalSurvivalLifecycle = { pause: pauseForLifecycle, resume: resumeFromLifecycle, back: handleAndroidBack, save: saveGame };
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") pauseForLifecycle();
+  else resumeFromLifecycle();
+});
+window.addEventListener("pagehide", pauseForLifecycle);
+window.addEventListener("beforeunload", saveGame);
+
 state = newState();
 applySettings();
 applyStaticLanguage();
 renderStartMenu();
-ensureAssetsWarm();
 draw();
 syncHud();
 requestAnimationFrame(loop);

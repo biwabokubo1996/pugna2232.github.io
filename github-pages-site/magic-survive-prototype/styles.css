@@ -161,7 +161,8 @@ li {
 .start-panel,
 .level-panel,
 .guide-panel,
-.settings-panel {
+.settings-panel,
+.pause-panel {
   position: absolute;
   inset: auto;
   width: min(520px, calc(100% - 44px));
@@ -226,7 +227,7 @@ li {
   z-index: 0;
   inset: 0 0 0 auto;
   width: 62%;
-  background: url("./assets/classes/GrandWitch.png") right 54% center / contain no-repeat;
+  background: url("./assets/classes/GrandWitch.webp") right 54% center / contain no-repeat;
   filter: drop-shadow(-16px 16px 24px rgba(0, 0, 0, 0.45));
   opacity: 0.96;
 }
@@ -243,6 +244,57 @@ li {
   max-height: calc(100% - 44px);
   overflow: auto;
   z-index: 14;
+}
+
+.pause-panel {
+  z-index: 16;
+  display: grid;
+  gap: 14px;
+  width: min(430px, calc(100% - 44px));
+  text-align: center;
+  backdrop-filter: blur(12px);
+}
+
+.pause-panel > strong {
+  color: #fff7cc;
+  font-size: 28px;
+}
+
+.pause-panel > p {
+  color: #b8c8bf;
+  font-size: 13px;
+}
+
+.pause-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pause-actions button:first-child {
+  grid-column: 1 / -1;
+}
+
+.onboarding-hint {
+  position: absolute;
+  left: 50%;
+  bottom: max(28px, calc(env(safe-area-inset-bottom) + 18px));
+  z-index: 11;
+  display: grid;
+  gap: 4px;
+  width: min(520px, calc(100% - 220px));
+  padding: 12px 18px;
+  border: 1px solid rgba(244, 178, 78, 0.46);
+  border-radius: 8px;
+  background: rgba(8, 11, 13, 0.88);
+  color: #dce9e1;
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.onboarding-hint strong {
+  color: #fff7cc;
 }
 
 .guide-head {
@@ -913,8 +965,29 @@ button:hover {
 
   .start-panel.class-selecting {
     width: min(100% - 28px, 700px);
+    min-height: 0;
     max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     overflow: auto;
+  }
+
+  .class-selection-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding: 8px 0 2px;
+    background: linear-gradient(to bottom, rgba(16,22,24,0), #101618 28%);
+  }
+
+  .pause-panel {
+    max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow: auto;
+  }
+
+  .onboarding-hint {
+    bottom: max(16px, calc(env(safe-area-inset-bottom) + 10px));
+    width: min(460px, calc(100% - 210px));
+    padding: 9px 12px;
+    font-size: 12px;
   }
 
   .class-selecting .menu-content {

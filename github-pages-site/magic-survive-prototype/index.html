@@ -10,8 +10,8 @@
   <meta name="apple-mobile-web-app-title" content="元素生存">
   <title>Elemental Survival</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="apple-touch-icon" href="./assets/classes/GrandWitch.png">
-  <link rel="stylesheet" href="./styles.css?v=20260721-mobile-pwa">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <link rel="stylesheet" href="./styles.css?v=20260911-balance-fixes">
 </head>
 <body>
   <main class="shell">
@@ -27,6 +27,20 @@
           <small id="levelPanelClass">Class</small>
         </div>
         <div id="choices" class="choices"></div>
+      </div>
+      <div id="pausePanel" class="pause-panel hidden" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+        <strong id="pauseTitle">Paused</strong>
+        <p id="pauseDescription">Your progress has been saved.</p>
+        <div class="pause-actions">
+          <button id="resumeGame" type="button">Resume</button>
+          <button id="pauseSettings" class="secondary" type="button">Settings</button>
+          <button id="restartGame" class="secondary" type="button">Restart</button>
+          <button id="returnToTitle" class="secondary" type="button">Return to Title</button>
+        </div>
+      </div>
+      <div id="onboardingHint" class="onboarding-hint hidden" role="status" aria-live="polite">
+        <strong id="onboardingTitle">Move to survive</strong>
+        <span id="onboardingText">Use the left joystick. You are protected for the first 8 seconds.</span>
       </div>
       <div id="startPanel" class="start-panel">
         <div class="menu-content">
@@ -84,7 +98,7 @@
       </div>
     </aside>
   </main>
-<script src="./game.js?v=20260722-ice-dragon-level100"></script>
+<script src="./game.js?v=20260911-balance-fixes"></script>
 <script>
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));

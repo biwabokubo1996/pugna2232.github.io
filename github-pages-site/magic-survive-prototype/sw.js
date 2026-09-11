@@ -1,4 +1,4 @@
-const CACHE_NAME = "elemental-survival-v20260721-mobile";
+const CACHE_NAME = "elemental-survival-v20260911-balance-fixes";
 const APP_SHELL = ["./", "./index.html", "./styles.css", "./game.js", "./manifest.webmanifest"];
 
 self.addEventListener("install", event => {

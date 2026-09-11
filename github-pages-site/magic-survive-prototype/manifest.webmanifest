@@ -10,8 +10,8 @@
   "theme_color": "#101618",
   "icons": [
     {
-      "src": "./assets/classes/GrandWitch.png",
-      "sizes": "500x500",
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     }
